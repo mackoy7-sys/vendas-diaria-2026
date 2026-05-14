@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Vendas — Maio 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 500; }
+  .sub { font-size: 13px; color: #888; margin-top: 3px; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #d3d1c7; background: #fff; color: #5f5e5a; font-size: 13px; cursor: pointer; transition: all .15s; }
+  .filter-btn.active { background: #185FA5; border-color: #185FA5; color: #fff; }
+  .filter-btn:hover:not(.active) { background: #f1efe8; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .metric-card { background: #f1efe8; border-radius: 8px; padding: 12px 14px; }
+  .metric-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; }
+  .metric-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .good { color: #0F6E56; } .bad { color: #993C1D; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .chart-card { background: #fff; border: 0.5px solid #e0dfd6; border-radius: 12px; padding: 16px 20px; }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+  .chart-sub { font-size: 12px; color: #888; margin-bottom: 12px; }
+  .section-title { font-size: 15px; font-weight: 500; margin: 24px 0 12px; color: #1a1a18; border-left: 3px solid #185FA5; padding-left: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; font-size: 12px; color: #888; }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .ld { width: 10px; height: 10px; border-radius: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 7px 8px; color: #888; border-bottom: 0.5px solid #e0dfd6; font-weight: 500; }
+  td { padding: 7px 8px; border-bottom: 0.5px solid #e0dfd6; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+  .bg { background: #E1F5EE; color: #0F6E56; }
+  .bb { background: #FAECE7; color: #993C1D; }
+  .bm { background: #FAEEDA; color: #854F0B; }
+  .insight-box { background: #f1efe8; border-radius: 10px; padding: 14px 16px; font-size: 12px; color: #555; line-height: 1.7; margin-top: 10px; }
+  .insight-box strong { color: #1a1a18; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const CONFIG = {
+  mesLabel: "Maio 2026",
+  diaAtual: 13,
+
+  gestores: {
+    TOTAL: {
+      label: "Total geral",
+      meta: 11600,
+      acumulado: [396,482,556,958,1412,1836,2302,2640,2788,2959,3420,3867,4196],
+      pf: 2560, pme: 1594, adesao: 301,
+      conv: [21.2,4.7,6.7,5.7,7.2,7.7,10.5,8.4,6.9,12.1,8.6,8.8,7.4],
+      leads: [1871,1821,1098,6999,6286,5533,4427,4025,2145,1418,5333,5083,4430],
+      vendas_abr: 8996,
+      projecao_fixa: 9323
+    },
+    FABIO: {
+      label: "Fabio",
+      meta: 6000,
+      acumulado: [369,413,455,654,894,1086,1334,1493,1609,1727,1952,2205,2385],
+      pf: 952, pme: 1404, adesao: 275,
+      conv: null,
+      leads: null,
+      vendas_abr: 4794,
+      projecao_fixa: null
+    },
+    JOSY: {
+      label: "Josy",
+      meta: 4700,
+      acumulado: [21,53,66,239,424,619,810,962,991,1040,1258,1432,1545],
+      pf: 1342, pme: 190, adesao: 26,
+      conv: null,
+      leads: null,
+      vendas_abr: 3612,
+      projecao_fixa: null
+    },
+    ADMINISTRATIVO: {
+      label: "Administrativo",
+      meta: 700,
+      acumulado: [6,16,35,62,90,126,152,176,179,183,198,217,250],
+      pf: 250, pme: 0, adesao: 0,
+      conv: null,
+      leads: null,
+      vendas_abr: 548,
+      projecao_fixa: null
+    },
+    ACTIONLINE: {
+      label: "Actionline",
+      meta: 200,
+      acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,16],
+      pf: 16, pme: 0, adesao: 0,
+      conv: null,
+      leads: null,
+      vendas_abr: 42,
+      projecao_fixa: null
+    }
+  }
+};
+
+const GESTORES_LIST = ['FABIO','JOSY','ADMINISTRATIVO','ACTIONLINE'];
+let currentGestor = 'TOTAL';
+let chartAcum, chartConv, chartMix, chartLeads, chartLeadPerf;
+
+function dias() {
+  return Array.from({length: CONFIG.diaAtual}, (_,i) => `${i+1}`);
+}
+function metaProp(meta) {
+  return Array.from({length: CONFIG.diaAtual}, (_,i) => Math.round(meta*(i+1)/31));
+}
+
+function setGestor(g) {
+  currentGestor = g;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.g === g));
+  renderAll();
+}
+
+function renderMetrics() {
+  const d = CONFIG.gestores[currentGestor];
+  const total = d.acumulado[d.acumulado.length-1];
+  const pctMeta = Math.round(total/d.meta*100);
+  const media = Math.round(total/CONFIG.diaAtual);
+  const proj = d.projecao_fixa || Math.round(media*31);
+  const pctProj = Math.round(proj/d.meta*100);
+  const varAbr = d.vendas_abr > 0 ? Math.round((proj/d.vendas_abr - 1)*100) : null;
+  const convMedia = d.conv ? (d.conv.reduce((a,b)=>a+b,0)/d.conv.length).toFixed(1) : null;
+  const refProp = Math.round(CONFIG.diaAtual/31*100);
+  const totalLeads = d.leads ? d.leads.reduce((a,b)=>a+b,0) : null;
+  const mediaLeads = totalLeads ? Math.round(totalLeads/CONFIG.diaAtual) : null;
+
+  let html = `
+    <div class="metric-card"><div class="metric-label">Vendas realizadas</div><div class="metric-value">${total.toLocaleString('pt-BR')}</div><div class="metric-sub">Meta: ${d.meta.toLocaleString('pt-BR')}</div></div>
+    <div class="metric-card"><div class="metric-label">% da meta</div><div class="metric-value ${pctMeta>=refProp?'good':'bad'}">${pctMeta}%</div><div class="metric-sub">Ref. proporcional: ~${refProp}%</div></div>
+    <div class="metric-card"><div class="metric-label">Média/dia</div><div class="metric-value">${media.toLocaleString('pt-BR')}</div><div class="metric-sub">Últimos ${CONFIG.diaAtual} dias</div></div>
+    <div class="metric-card"><div class="metric-label">Projeção mês</div><div class="metric-value">${proj.toLocaleString('pt-BR')}</div><div class="metric-sub">${pctProj}% da meta</div></div>
+  `;
+  if (varAbr !== null) html += `<div class="metric-card"><div class="metric-label">Var. vs abril</div><div class="metric-value ${varAbr>=0?'good':'bad'}">${varAbr>0?'+':''}${varAbr}%</div><div class="metric-sub">Abril: ${d.vendas_abr.toLocaleString('pt-BR')}</div></div>`;
+  if (convMedia) html += `<div class="metric-card"><div class="metric-label">Conv. média</div><div class="metric-value">${convMedia}%</div><div class="metric-sub">Leads → vendas</div></div>`;
+  if (mediaLeads) html += `<div class="metric-card"><div class="metric-label">Leads/dia (média)</div><div class="metric-value">${mediaLeads.toLocaleString('pt-BR')}</div><div class="metric-sub">Total: ${totalLeads.toLocaleString('pt-BR')}</div></div>`;
+  document.getElementById('metrics').innerHTML = html;
+}
+
+function renderChartAcum() {
+  const d = CONFIG.gestores[currentGestor];
+  const meta = metaProp(d.meta);
+  const ctx = document.getElementById('chartAcum').getContext('2d');
+  if (chartAcum) chartAcum.destroy();
+  chartAcum = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dias(),
+      datasets: [
+        { label: 'Realizado', data: d.acumulado, borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+        { label: 'Meta proporcional', data: meta, borderColor: '#1D9E75', borderDash: [5,4], backgroundColor: 'transparent', fill: false, tension: 0.1, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 11 }, autoSkip: false }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { font: { size: 11 }, callback: v => v.toLocaleString('pt-BR') }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function renderChartConv() {
+  const d = CONFIG.gestores[currentGestor];
+  const ctx = document.getElementById('chartConv').getContext('2d');
+  if (chartConv) chartConv.destroy();
+  const convData = d.conv || Array(CONFIG.diaAtual).fill(null);
+  chartConv = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dias(),
+      datasets: [{ label: 'Conv. (%)', data: convData, backgroundColor: convData.map(v => v===null?'rgba(180,180,180,0.3)':v>=8?'rgba(15,110,86,0.7)':v>=5?'rgba(186,117,23,0.7)':'rgba(153,60,29,0.7)'), borderRadius: 3 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y!==null?ctx.parsed.y.toFixed(1)+'%':'n/d' } } },
+      scales: {
+        x: { ticks: { font: { size: 11 }, autoSkip: false }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, callback: v => v+'%' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function renderChartMix() {
+  const d = CONFIG.gestores[currentGestor];
+  const ctx = document.getElementById('chartMix').getContext('2d');
+  if (chartMix) chartMix.destroy();
+  const allVals = [d.pf, d.pme, d.adesao];
+  const allLbls = ['PF','PME','Adesão'];
+  const colors = ['#185FA5','#1D9E75','#D85A30'];
+  const filtered = allVals.map((v,i)=>({v,l:allLbls[i],c:colors[i]})).filter(x=>x.v>0);
+  const total = filtered.reduce((a,x)=>a+x.v,0);
+  document.getElementById('legend-mix').innerHTML = filtered.map(x=>`<span><span class="ld" style="background:${x.c}"></span>${x.l}: ${Math.round(x.v/total*100)}%</span>`).join('');
+  chartMix = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: filtered.map(x=>x.l), datasets: [{ data: filtered.map(x=>x.v), backgroundColor: filtered.map(x=>x.c), borderWidth: 0, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { display: false } } }
+  });
+}
+
+function renderChartLeads() {
+  const d = CONFIG.gestores[currentGestor];
+  const ctx = document.getElementById('chartLeads').getContext('2d');
+  if (chartLeads) chartLeads.destroy();
+  const leadsData = d.leads || Array(CONFIG.diaAtual).fill(null);
+  const mediaLeads = leadsData.filter(v=>v!==null).reduce((a,b)=>a+b,0) / leadsData.filter(v=>v!==null).length;
+
+  chartLeads = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dias(),
+      datasets: [
+        {
+          label: 'Leads',
+          data: leadsData,
+          backgroundColor: leadsData.map(v => v===null ? 'rgba(180,180,180,0.3)' : v >= mediaLeads ? 'rgba(24,95,165,0.75)' : 'rgba(24,95,165,0.35)'),
+          borderRadius: 3
+        },
+        {
+          label: 'Média',
+          data: Array(CONFIG.diaAtual).fill(Math.round(mediaLeads)),
+          type: 'line',
+          borderColor: '#D85A30',
+          borderDash: [5,4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label === 'Média' ? 'Média: ' + Math.round(ctx.parsed.y).toLocaleString('pt-BR') : 'Leads: ' + ctx.parsed.y.toLocaleString('pt-BR') } }
+      },
+      scales: {
+        x: { ticks: { font: { size: 11 }, autoSkip: false }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, callback: v => v.toLocaleString('pt-BR') }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function renderChartLeadPerf() {
+  const d = CONFIG.gestores[currentGestor];
+  const ctx = document.getElementById('chartLeadPerf').getContext('2d');
+  if (chartLeadPerf) chartLeadPerf.destroy();
+
+  const leadsData = d.leads || Array(CONFIG.diaAtual).fill(null);
+  const convData  = d.conv  || Array(CONFIG.diaAtual).fill(null);
+  const vendasDia = d.acumulado.map((v,i) => i===0 ? v : v - d.acumulado[i-1]);
+
+  // custo por venda = leads / vendas do dia
+  const custoPorVenda = leadsData.map((l, i) => {
+    const v = vendasDia[i];
+    return (l !== null && v > 0) ? Math.round(l / v) : null;
+  });
+
+  chartLeadPerf = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dias(),
+      datasets: [
+        {
+          label: 'Leads/venda',
+          data: custoPorVenda,
+          borderColor: '#185FA5',
+          backgroundColor: 'rgba(24,95,165,0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          borderWidth: 2,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Conv. (%)',
+          data: convData,
+          borderColor: '#1D9E75',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          borderWidth: 2,
+          borderDash: [4,3],
+          yAxisID: 'y2'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label === 'Leads/venda'
+              ? 'Leads/venda: ' + ctx.parsed.y
+              : 'Conversão: ' + ctx.parsed.y?.toFixed(1) + '%'
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { size: 11 }, autoSkip: false }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: {
+          position: 'left',
+          ticks: { font: { size: 11 } },
+          title: { display: true, text: 'Leads por venda', font: { size: 10 }, color: '#185FA5' },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        y2: {
+          position: 'right',
+          ticks: { font: { size: 11 }, callback: v => v + '%' },
+          title: { display: true, text: 'Conversão (%)', font: { size: 10 }, color: '#1D9E75' },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+function renderInsights() {
+  const d = CONFIG.gestores[currentGestor];
+  if (!d.leads || !d.conv) {
+    document.getElementById('insights').innerHTML = '';
+    return;
+  }
+
+  const leads = d.leads;
+  const conv  = d.conv;
+  const vendas = d.acumulado.map((v,i) => i===0 ? v : v - d.acumulado[i-1]);
+  const totalLeads = leads.reduce((a,b)=>a+b,0);
+  const mediaConv  = (conv.reduce((a,b)=>a+b,0)/conv.length).toFixed(1);
+  const custoPorVenda = leads.map((l,i) => vendas[i]>0 ? (l/vendas[i]).toFixed(1) : null).filter(v=>v!==null);
+  const mediaCpv = (custoPorVenda.reduce((a,b)=>a+parseFloat(b),0)/custoPorVenda.length).toFixed(1);
+
+  const melhorDia = conv.indexOf(Math.max(...conv)) + 1;
+  const piorDia   = conv.indexOf(Math.min(...conv)) + 1;
+  const diasAcimaDe8 = conv.filter(v=>v>=8).length;
+  const diasAbaixoDe5 = conv.filter(v=>v<5).length;
+
+  const maxLeads = Math.max(...leads);
+  const minLeads = Math.min(...leads);
+  const variacao = Math.round((maxLeads - minLeads) / minLeads * 100);
+
+  document.getElementById('insights').innerHTML = `
+    <div class="insight-box">
+      <strong>Volume de leads:</strong> ${totalLeads.toLocaleString('pt-BR')} leads recebidos nos primeiros ${CONFIG.diaAtual} dias.
+      O volume diário varia bastante — de <strong>${minLeads.toLocaleString('pt-BR')}</strong> (mínimo) a <strong>${maxLeads.toLocaleString('pt-BR')}</strong> (máximo), 
+      uma variação de <strong>${variacao}%</strong> entre os extremos. Em média são necessários <strong>${mediaCpv} leads</strong> para gerar cada venda.
+      <br><br>
+      <strong>Conversão:</strong> média de <strong>${mediaConv}%</strong> no período.
+      O melhor dia foi o <strong>dia ${melhorDia}</strong> (${conv[melhorDia-1]}%) e o pior o <strong>dia ${piorDia}</strong> (${conv[piorDia-1]}%).
+      ${diasAcimaDe8} dias ficaram acima de 8% (verde) e ${diasAbaixoDe5} dias abaixo de 5% (vermelho).
+      <br><br>
+      <strong>Atenção:</strong> dias com alto volume de leads (como dias 4–7) não necessariamente resultam nas maiores conversões — 
+      o gargalo tende a ser a qualidade ou o acompanhamento dos leads, não a quantidade.
+    </div>
+  `;
+}
+
+function renderTable() {
+  const rows = GESTORES_LIST.map(g => {
+    const d = CONFIG.gestores[g];
+    const real = d.acumulado[d.acumulado.length-1];
+    const pct = Math.round(real/d.meta*100);
+    const ref = Math.round(CONFIG.diaAtual/31*100);
+    const badge = pct>=ref?'bg':pct>=(ref*0.7)?'bm':'bb';
+    const proj = d.projecao_fixa || Math.round(real/CONFIG.diaAtual*31);
+    const pctProj = Math.round(proj/d.meta*100);
+    return `<tr>
+      <td style="font-weight:500">${d.label}</td>
+      <td>${real.toLocaleString('pt-BR')}</td>
+      <td>${d.meta.toLocaleString('pt-BR')}</td>
+      <td><span class="badge ${badge}">${pct}%</span></td>
+      <td>${Math.round(real/CONFIG.diaAtual).toLocaleString('pt-BR')}</td>
+      <td>${proj.toLocaleString('pt-BR')}</td>
+      <td><span class="badge ${pctProj>=80?'bg':pctProj>=60?'bm':'bb'}">${pctProj}%</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>Gestor</th><th>Realizado</th><th>Meta</th><th>% meta</th><th>Média/dia</th><th>Projeção</th><th>% proj.</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function buildUI() {
+  document.getElementById('app').innerHTML = `
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="header">
+        <div>
+          <h1>Vendas — <span id="mesLabel">${CONFIG.mesLabel}</span></h1>
+          <div class="sub">Acumulado até dia <span id="diaLabel">${CONFIG.diaAtual}</span> · Meta: ${CONFIG.gestores.TOTAL.meta.toLocaleString('pt-BR')}</div>
+        </div>
+        <div class="filters" id="filters">
+          ${['TOTAL','FABIO','JOSY','ADMINISTRATIVO','ACTIONLINE'].map(g=>`<button class="filter-btn${g==='TOTAL'?' active':''}" data-g="${g}" onclick="setGestor('${g}')">${CONFIG.gestores[g]?.label||g}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="metrics" id="metrics"></div>
+
+      <div class="charts-grid">
+        <div class="chart-card full">
+          <div class="chart-title">Volume de vendas acumulado por dia</div>
+          <div class="chart-sub">Realizado vs meta proporcional diária</div>
+          <div class="legend">
+            <span><span class="ld" style="background:#185FA5"></span>Realizado</span>
+            <span><span class="ld" style="background:#1D9E75;opacity:.6"></span>Meta proporcional</span>
+          </div>
+          <div style="position:relative;height:220px;"><canvas id="chartAcum"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Taxa de conversão</div>
+          <div class="chart-sub">Leads × vendas · verde ≥8% · amarelo ≥5%</div>
+          <div style="position:relative;height:200px;"><canvas id="chartConv"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Mix por tipo de venda</div>
+          <div class="chart-sub">PF · PME · Adesão</div>
+          <div class="legend" id="legend-mix"></div>
+          <div style="position:relative;height:200px;"><canvas id="chartMix"></canvas></div>
+        </div>
+
+        <div class="chart-card full">
+          <div class="chart-title">Resumo por gestor</div>
+          <div class="chart-sub">Realizado, meta e % de atingimento</div>
+          <div id="tableWrap"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Análise de Leads</div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Volume diário de leads</div>
+          <div class="chart-sub">Barras escuras = acima da média · linha laranja = média</div>
+          <div class="legend">
+            <span><span class="ld" style="background:#185FA5"></span>Leads/dia</span>
+            <span><span class="ld" style="background:#D85A30"></span>Média</span>
+          </div>
+          <div style="position:relative;height:200px;"><canvas id="chartLeads"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Performance do lead</div>
+          <div class="chart-sub">Leads necessários por venda vs taxa de conversão</div>
+          <div class="legend">
+            <span><span class="ld" style="background:#185FA5"></span>Leads/venda</span>
+            <span><span class="ld" style="background:#1D9E75"></span>Conversão (%)</span>
+          </div>
+          <div style="position:relative;height:200px;"><canvas id="chartLeadPerf"></canvas></div>
+        </div>
+
+        <div class="chart-card full" id="insightsCard">
+          <div class="chart-title">Resumo analítico</div>
+          <div class="chart-sub">Interpretação automática dos dados de leads</div>
+          <div id="insights"></div>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+buildUI();
+renderAll();
+
+function renderAll() {
+  renderMetrics();
+  renderChartAcum();
+  renderChartConv();
+  renderChartMix();
+  renderChartLeads();
+  renderChartLeadPerf();
+  renderInsights();
+  renderTable();
+}
+</script>
+</body>
+</html>
