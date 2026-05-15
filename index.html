@@ -61,25 +61,25 @@
 // ============================================================
 const CONFIG = {
   mesLabel: "Maio 2026",
-  diaAtual: 14, // último dia com dados
+  diaAtual: 15, // último dia com dados
 
   gestores: {
     TOTAL: {
       label: "Total geral",
       meta: 11600,
       // Acumulado diário — adicione um valor por dia
-      acumulado: [396,482,556,961,1416,1843,2313,2651,2799,2970,3431,3876,4289,4413],
-      pf: 2719, pme: 1605, adesao: 301,
-      conv: [21.2,4.7,6.7,5.8,7.2,7.7,10.6,8.4,6.9,12.1,8.6,8.8,9.3,null],
-      leads: [1871,1821,1098,6999,4286,5533,4427,4025,2145,1418,5333,5083,4430,null],
+      acumulado: [396,482,556,961,1416,1843,2313,2657,2811,2982,3443,3894,4321,4563,4599],
+      pf: 2811, pme: 1774, adesao: 310,
+      conv: [21.1,4.7,6.7,5.8,7.2,7.7,10.6,8.5,7.1,12.0,8.6,8.8,9.3,5.0,null],
+      leads: [1877,1825,1103,7011,4290,5544,4443,4038,2159,1425,5373,5127,4601,4833,null],
       vendas_abr: 8996,
-      projecao_fixa: 9353
+      projecao_fixa: 9393
     },
     FABIO: {
       label: "Fabio",
       meta: 6000,
-      acumulado: [369,413,455,657,897,1092,1343,1502,1618,1736,1961,2213,2418,2485],
-      pf: 997, pme: 1413, adesao: 275,
+      acumulado: [369,413,455,657,897,1092,1343,1508,1624,1742,1967,2225,2439,2565,2596],
+      pf: 1030, pme: 1562, adesao: 282,
       conv: null, leads: null,
       vendas_abr: 4794,
       projecao_fixa: null
@@ -87,8 +87,8 @@ const CONFIG = {
     JOSY: {
       label: "Josy",
       meta: 4700,
-      acumulado: [21,53,66,239,425,620,812,964,993,1042,1260,1433,1611,1662],
-      pf: 1456, pme: 192, adesao: 26,
+      acumulado: [21,53,66,232,413,597,779,929,964,1012,1222,1385,1555,1643,1648],
+      pf: 1426, pme: 212, adesao: 28,
       conv: null, leads: null,
       vendas_abr: 3612,
       projecao_fixa: null
@@ -96,8 +96,8 @@ const CONFIG = {
     ADMINISTRATIVO: {
       label: "Administrativo",
       meta: 700,
-      acumulado: [6,16,35,62,90,126,152,176,179,183,198,217,244,250],
-      pf: 250, pme: 0, adesao: 0,
+      acumulado: [6,16,35,69,102,149,185,211,214,219,242,271,311,339,339],
+      pf: 339, pme: 0, adesao: 0,
       conv: null, leads: null,
       vendas_abr: 548,
       projecao_fixa: null
@@ -105,7 +105,7 @@ const CONFIG = {
     ACTIONLINE: {
       label: "Actionline",
       meta: 200,
-      acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,16,16],
+      acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,16,16,16],
       pf: 16, pme: 0, adesao: 0,
       conv: null, leads: null,
       vendas_abr: 42,
@@ -751,4 +751,3 @@ function renderAll() {
 </script>
 </body>
 </html>
-
