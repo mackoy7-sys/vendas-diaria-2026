@@ -68,18 +68,18 @@ const CONFIG = {
       label: "Total geral",
       meta: 11600,
       // Acumulado diário — adicione um valor por dia
-      acumulado: [506,590,664,1065,1517,1946,2415,2764,2918,3085,3541,3996,4456,4828,5206,5328,5426,5881,6291,6754,7002,7036],
-      pf: 4325, pme: 2569, adesao: 459,
-      conv: [26.6,4.5,6.6,5.7,7.1,7.7,10.5,8.5,7.0,11.5,8.5,8.7,9.8,7.2,8.9,6.1,4.9,5.5,7.3,8.1,null,5.5],
+      acumulado: [506,590,664,1065,1517,1946,2415,2764,2918,3085,3541,3996,4456,4828,5206,5328,5426,5881,6291,6754,7002,7214],
+      pf: 4496, pme: 2579, adesao: 459,
+      conv: [26.6,4.5,6.6,5.7,7.1,7.7,10.5,8.5,7.0,11.5,8.5,8.7,9.8,7.2,8.9,6.1,4.9,5.5,7.3,8.1,null,8.2],
       leads: [1901,1849,1115,7065,4338,5602,4487,4084,2194,1453,5395,5237,4687,5186,4229,2007,1984,8190,5517,5210,null,4491],
       vendas_abr: 8996,
-      projecao_fixa: 9486
+      projecao_fixa: 9481
     },
     FABIO: {
       label: "Fabio",
       meta: 6000,
-      acumulado: [479,522,564,762,1001,1198,1450,1620,1736,1850,2075,2346,2571,2754,2955,3034,3113,3324,3518,3763,3911,3944],
-      pf: 1562, pme: 2266, adesao: 410,
+      acumulado: [479,522,564,762,1001,1198,1450,1620,1736,1850,2075,2346,2571,2754,2955,3034,3113,3324,3518,3763,3911,4007],
+      pf: 1618, pme: 2276, adesao: 410,
       conv: null, leads: null,
       vendas_abr: 4794,
       projecao_fixa: null
@@ -87,8 +87,8 @@ const CONFIG = {
     JOSY: {
       label: "Josy",
       meta: 4700,
-      acumulado: [21,52,65,238,422,617,809,961,996,1045,1259,1427,1639,1796,1939,1974,1987,2200,2405,2587,2670,2670],
-      pf: 2341, pme: 303, adesao: 49,
+      acumulado: [21,52,65,238,422,617,809,961,996,1045,1259,1427,1639,1796,1939,1974,1987,2200,2405,2587,2670,2777],
+      pf: 2448, pme: 303, adesao: 49,
       conv: null, leads: null,
       vendas_abr: 3612,
       projecao_fixa: null
@@ -96,8 +96,8 @@ const CONFIG = {
     ADMINISTRATIVO: {
       label: "Administrativo",
       meta: 700,
-      acumulado: [6,16,35,62,90,126,150,174,177,181,195,213,232,264,296,304,310,335,346,380,397,398],
-      pf: 398, pme: 0, adesao: 0,
+      acumulado: [6,16,35,62,90,126,150,174,177,181,195,213,232,264,296,304,310,335,346,380,397,406],
+      pf: 406, pme: 0, adesao: 0,
       conv: null, leads: null,
       vendas_abr: 548,
       projecao_fixa: null
@@ -119,6 +119,7 @@ const CONFIG = {
 
 const GESTORES_LIST = ['FABIO','JOSY','ADMINISTRATIVO','ACTIONLINE'];
 let currentGestor = 'TOTAL';
+let currentProduto = 'TODOS'; // 'TODOS' | 'PF' | 'PME' | 'ADESAO'
 let rangeStart = 1;                      // dia início (1-based)
 let rangeEnd   = CONFIG.diaAtual;        // dia fim   (1-based)
 let chartAcum, chartConv, chartMix, chartDiario, chartMedia, chartLeads, chartLeadsPerf;
@@ -167,28 +168,50 @@ function setRange() {
   renderAll();
 }
 
+function setProduto(p) {
+  currentProduto = p;
+  document.querySelectorAll('.prod-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.p === p);
+  });
+  renderAll();
+}
+
 function renderMetrics() {
   const d = CONFIG.gestores[currentGestor];
-  const total    = totalNoIntervalo(d.acumulado);
+  const totalBruto = totalNoIntervalo(d.acumulado);
+  const mixTot = (d.pf + d.pme + d.adesao) || 1;
+  const pfRatio = d.pf / mixTot, pmeRatio = d.pme / mixTot, adesRatio = d.adesao / mixTot;
+  const total = currentProduto === 'PF' ? Math.round(totalBruto * pfRatio)
+              : currentProduto === 'PME' ? Math.round(totalBruto * pmeRatio)
+              : currentProduto === 'ADESAO' ? Math.round(totalBruto * adesRatio)
+              : totalBruto;
+  const metaFiltrada = currentProduto === 'PF' ? Math.round(d.meta * pfRatio)
+                     : currentProduto === 'PME' ? Math.round(d.meta * pmeRatio)
+                     : currentProduto === 'ADESAO' ? Math.round(d.meta * adesRatio)
+                     : d.meta;
   const n        = nDias();
-  const pctMeta  = Math.round(total / d.meta * 100);
+  const pctMeta  = Math.round(total / metaFiltrada * 100);
   const media    = Math.round(total / n);
-  const proj     = d.projecao_fixa || Math.round(media * 31);
-  const pctProj  = Math.round(proj / d.meta * 100);
-  const varAbr   = d.vendas_abr > 0 ? Math.round((proj / d.vendas_abr - 1) * 100) : null;
+  const proj     = (currentProduto === 'TODOS' && d.projecao_fixa) ? d.projecao_fixa : Math.round(media * 31);
+  const pctProj  = Math.round(proj / metaFiltrada * 100);
+  const abrFiltrado = currentProduto === 'PF' ? Math.round(d.vendas_abr * pfRatio)
+              : currentProduto === 'PME' ? Math.round(d.vendas_abr * pmeRatio)
+              : currentProduto === 'ADESAO' ? Math.round(d.vendas_abr * adesRatio)
+              : d.vendas_abr;
+  const varAbr   = abrFiltrado > 0 ? Math.round((proj / abrFiltrado - 1) * 100) : null;
   const convSlice = sliceRange(d.conv);
   const convValid = convSlice ? convSlice.filter(v => v !== null) : [];
   const convMedia = convValid.length > 0 ? (convValid.reduce((a,b)=>a+b,0)/convValid.length).toFixed(1) : null;
   const refProp   = Math.round(rangeEnd / 31 * 100);
 
   let html = `
-    <div class="metric-card"><div class="metric-label">Vendas realizadas</div><div class="metric-value">${total.toLocaleString('pt-BR')}</div><div class="metric-sub">Meta: ${d.meta.toLocaleString('pt-BR')}</div></div>
+    <div class="metric-card"><div class="metric-label">Vendas realizadas</div><div class="metric-value">${total.toLocaleString('pt-BR')}</div><div class="metric-sub">Meta: ${metaFiltrada.toLocaleString('pt-BR')}</div></div>
     <div class="metric-card"><div class="metric-label">% da meta</div><div class="metric-value ${pctMeta>=refProp?'good':'bad'}">${pctMeta}%</div><div class="metric-sub">Ref. proporcional: ~${refProp}%</div></div>
     <div class="metric-card"><div class="metric-label">Média/dia</div><div class="metric-value">${media.toLocaleString('pt-BR')}</div><div class="metric-sub">${n} dias selecionados</div></div>
     <div class="metric-card"><div class="metric-label">Projeção mês</div><div class="metric-value">${proj.toLocaleString('pt-BR')}</div><div class="metric-sub">${pctProj}% da meta</div></div>
   `;
   if (varAbr !== null) {
-    html += `<div class="metric-card"><div class="metric-label">Var. vs abril</div><div class="metric-value ${varAbr>=0?'good':'bad'}">${varAbr>0?'+':''}${varAbr}%</div><div class="metric-sub">Abril: ${d.vendas_abr.toLocaleString('pt-BR')}</div></div>`;
+    html += `<div class="metric-card"><div class="metric-label">Var. vs abril</div><div class="metric-value ${varAbr>=0?'good':'bad'}">${varAbr>0?'+':''}${varAbr}%</div><div class="metric-sub">Abril: ${abrFiltrado.toLocaleString('pt-BR')}</div></div>`;
   }
   if (convMedia) {
     html += `<div class="metric-card"><div class="metric-label">Conv. média</div><div class="metric-value">${convMedia}%</div><div class="metric-sub">Leads → vendas</div></div>`;
@@ -289,7 +312,9 @@ function renderChartMix() {
   const allVals = [d.pf, d.pme, d.adesao];
   const allLbls = ['PF','PME','Adesão'];
   const colors  = ['#185FA5','#1D9E75','#D85A30'];
-  const filtered = allVals.map((v,i)=>({v,l:allLbls[i],c:colors[i]})).filter(x=>x.v>0);
+  const filtered = allVals.map((v,i)=>({v,l:allLbls[i],c:colors[i],k:['PF','PME','ADESAO'][i]}))
+    .filter(x=>x.v>0)
+    .map(x=>({...x, c: currentProduto==='TODOS'||currentProduto===x.k ? x.c : x.c+'40'}));
   const tot = filtered.reduce((a,x)=>a+x.v,0);
   document.getElementById('legend-mix').innerHTML = filtered.map(x=>`<span><span class="ld" style="background:${x.c}"></span>${x.l}: ${Math.round(x.v/tot*100)}%</span>`).join('');
 
@@ -344,11 +369,14 @@ function renderChartDiario() {
     type: 'bar',
     data: {
       labels: dias(),
-      datasets: [
-        { label: 'PF',     data: dv.map(v=>Math.round(v*pp)), backgroundColor: '#185FA5', borderRadius: 2, stack: 's', _noLabel: true },
-        { label: 'PME',    data: dv.map(v=>Math.round(v*pm)), backgroundColor: '#1D9E75', borderRadius: 2, stack: 's', _noLabel: true },
-        { label: 'Adesão', data: dv.map(v=>Math.round(v*pa)), backgroundColor: '#D85A30', borderRadius: 2, stack: 's', _noLabel: true }
-      ]
+      datasets: (() => {
+        const all = [
+          { label: 'PF',     key:'PF',    data: dv.map(v=>Math.round(v*pp)), backgroundColor: '#185FA5', borderRadius: 2, stack: 's', _noLabel: true },
+          { label: 'PME',    key:'PME',   data: dv.map(v=>Math.round(v*pm)), backgroundColor: '#1D9E75', borderRadius: 2, stack: 's', _noLabel: true },
+          { label: 'Adesão', key:'ADESAO',data: dv.map(v=>Math.round(v*pa)), backgroundColor: '#D85A30', borderRadius: 2, stack: 's', _noLabel: true }
+        ];
+        return currentProduto === 'TODOS' ? all : all.filter(ds => ds.key === currentProduto);
+      })()
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -403,9 +431,14 @@ function renderChartMedia() {
   const mediaAdes = parseFloat((d.adesao / n).toFixed(1));
   const totalMed  = mediaPF + mediaPME + mediaAdes || 1;
 
-  const tipos  = ['PF', 'PME', 'Adesão'];
-  const medias = [mediaPF, mediaPME, mediaAdes];
-  const cores  = ['#185FA5', '#1D9E75', '#D85A30'];
+  const todosTipos  = ['PF', 'PME', 'Adesão'];
+  const todosKeys   = ['PF','PME','ADESAO'];
+  const todosMedias = [mediaPF, mediaPME, mediaAdes];
+  const todosCores  = ['#185FA5', '#1D9E75', '#D85A30'];
+  const idxFiltro   = currentProduto === 'TODOS' ? [0,1,2] : [todosKeys.indexOf(currentProduto)];
+  const tipos  = idxFiltro.map(i => todosTipos[i]);
+  const medias = idxFiltro.map(i => todosMedias[i]);
+  const cores  = idxFiltro.map(i => todosCores[i]);
   const pcts   = medias.map(v => Math.round(v / totalMed * 100));
 
   // legenda com %
@@ -655,6 +688,13 @@ function buildUI() {
           <!-- Filtro gestor -->
           <div class="filters" id="filters">
             ${['TOTAL','FABIO','JOSY','ADMINISTRATIVO','ACTIONLINE'].map(g=>`<button class="filter-btn${g==='TOTAL'?' active':''}" data-g="${g}" onclick="setGestor('${g}')">${CONFIG.gestores[g]?.label||g}</button>`).join('')}
+          </div>
+          <!-- Filtro produto -->
+          <div class="filters" id="filtros-produto">
+            <button class="filter-btn prod-btn active" data-p="TODOS" onclick="setProduto('TODOS')">Todos</button>
+            <button class="filter-btn prod-btn" data-p="PF" onclick="setProduto('PF')" style="border-left:3px solid #185FA5;">PF</button>
+            <button class="filter-btn prod-btn" data-p="PME" onclick="setProduto('PME')" style="border-left:3px solid #1D9E75;">PME</button>
+            <button class="filter-btn prod-btn" data-p="ADESAO" onclick="setProduto('ADESAO')" style="border-left:3px solid #D85A30;">Adesão</button>
           </div>
         </div>
       </div>
