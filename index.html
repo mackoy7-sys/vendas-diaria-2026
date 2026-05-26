@@ -61,25 +61,25 @@
 // ============================================================
 const CONFIG = {
   mesLabel: "Maio 2026",
-  diaAtual: 25, // último dia com dados
+  diaAtual: 26, // último dia com dados
 
   gestores: {
     TOTAL: {
       label: "Total geral",
-      meta: 11600,
+      meta: 11970,
       // Acumulado diário — adicione um valor por dia
-      acumulado: [506,590,664,1065,1517,1946,2415,2764,2918,3085,3541,3996,4456,4828,5206,5328,5426,5881,6291,6754,7002,7214,7527,7707,7798],
-      pf: 4762, pme: 2816, adesao: 459,
-      conv: [26.6,4.5,6.6,5.7,7.1,7.7,10.5,8.5,7.0,11.5,8.5,8.7,9.8,7.2,8.9,6.1,4.9,5.5,7.3,8.1,null,8.2,8.9,10.3,null],
-      leads: [1901,1849,1115,7065,4338,5602,4487,4084,2194,1453,5395,5237,4687,5186,4229,2007,1984,8190,5517,5210,null,4491,2033,884,null],
+      acumulado: [506,590,664,1065,1517,1945,2414,2762,2916,3083,3538,3994,4454,4826,5205,5327,5425,5878,6376,6839,7238,7527,7707,7798,7812,8040],
+      pf: 4903, pme: 2963, adesao: 462,
+      conv: [26.6,4.5,6.6,5.7,7.1,7.7,10.5,8.5,7.0,11.5,8.5,8.7,9.8,7.2,8.9,6.1,4.9,5.5,7.3,8.1,null,8.2,8.9,10.3,4.7,null],
+      leads: [1913,1856,1123,7090,6357,5630,4509,4107,2213,1459,5421,5270,4699,5232,4269,2023,2002,8224,5556,5489,4663,4120,2085,1378,4877,null],
       vendas_abr: 8996,
-      projecao_fixa: 9474
+      projecao_fixa: 9480
     },
     FABIO: {
       label: "Fabio",
-      meta: 6000,
-      acumulado: [479,522,564,762,1001,1198,1450,1620,1736,1850,2075,2346,2571,2754,2955,3034,3113,3324,3518,3763,3911,4007,4330,4407,4462],
-      pf: 1716, pme: 2500, adesao: 410,
+      meta: 6370,
+      acumulado: [479,522,564,762,1001,1198,1450,1620,1736,1850,2075,2346,2571,2754,2955,3034,3113,3324,3518,3763,3911,4007,4330,4407,4553,4619],
+      pf: 1778, pme: 2615, adesao: 412,
       conv: null, leads: null,
       vendas_abr: 4794,
       projecao_fixa: null
@@ -87,8 +87,8 @@ const CONFIG = {
     JOSY: {
       label: "Josy",
       meta: 4700,
-      acumulado: [21,52,65,238,422,617,809,961,996,1045,1259,1427,1639,1796,1939,1974,1987,2200,2405,2587,2670,2777,2870,2903,2912],
-      pf: 2567, pme: 316, adesao: 49,
+      acumulado: [21,52,65,238,422,617,809,961,996,1045,1259,1427,1639,1796,1939,1974,1987,2200,2405,2587,2670,2777,2870,2903,3007,3026],
+      pf: 2644, pme: 348, adesao: 50,
       conv: null, leads: null,
       vendas_abr: 3612,
       projecao_fixa: null
@@ -96,8 +96,8 @@ const CONFIG = {
     ADMINISTRATIVO: {
       label: "Administrativo",
       meta: 700,
-      acumulado: [6,16,35,62,90,126,150,174,177,181,195,213,232,264,296,304,310,335,346,380,397,406,432,447,452],
-      pf: 452, pme: 0, adesao: 0,
+      acumulado: [6,16,35,62,90,126,150,174,177,181,195,213,232,264,296,304,310,335,346,380,397,406,432,447,453,454],
+      pf: 454, pme: 0, adesao: 0,
       conv: null, leads: null,
       vendas_abr: 548,
       projecao_fixa: null
@@ -105,7 +105,7 @@ const CONFIG = {
     ACTIONLINE: {
       label: "Actionline",
       meta: 200,
-      acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,24,24,24,27,27,27],
+      acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,24,24,24,27,27,27,27],
       pf: 27, pme: 0, adesao: 0,
       conv: null, leads: null,
       vendas_abr: 42,
@@ -122,7 +122,7 @@ let currentGestor = 'TOTAL';
 let currentProduto = 'TODOS'; // 'TODOS' | 'PF' | 'PME' | 'ADESAO'
 let rangeStart = 1;                      // dia início (1-based)
 let rangeEnd   = CONFIG.diaAtual;        // dia fim   (1-based)
-let chartAcum, chartConv, chartMix, chartDiario, chartMedia, chartLeads, chartLeadsPerf;
+let chartAcum, chartConv, chartMix, chartDiario, chartMedia, chartLeads, chartLeadsPerf, chartSemana, chartProdDia, chartProdPct, chartLeadsLine;
 
 // retorna os labels de dias do intervalo selecionado
 function dias() {
@@ -768,6 +768,63 @@ function buildUI() {
           <div class="chart-sub">Realizado, meta e % de atingimento</div>
           <div id="tableWrap"></div>
         </div>
+        <div class="chart-card full">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid #e0dfd6;">
+            <div style="width:3px;height:18px;background:#185FA5;border-radius:2px;"></div>
+            <span style="font-size:15px;font-weight:500;">Produtividade por Semana</span>
+          </div>
+          <div class="chart-sub" style="margin-top:-8px;margin-bottom:14px;">Total de vendas acumuladas em cada semana do mês · barras por gestor</div>
+          <div class="legend" id="legend-semana"></div>
+          <div style="position:relative;height:280px;"><canvas id="chartSemana"></canvas></div>
+          <div id="semanaTable" style="margin-top:18px;"></div>
+        </div>
+
+        <div class="chart-card full">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid #e0dfd6;">
+            <div style="width:3px;height:18px;background:#D85A30;border-radius:2px;"></div>
+            <span style="font-size:15px;font-weight:500;">Análise Comparativa de Produtos por Dia</span>
+          </div>
+          <div class="chart-sub" style="margin-top:-8px;margin-bottom:18px;">Volume diário de vidas por produto (PF · PME · Adesão) e identificação dos períodos de maior relevância para cada tipo</div>
+
+          <!-- Gráfico linha: evolução diária por produto -->
+          <div style="display:grid;grid-template-columns:1fr;gap:28px;" id="prodComparativoWrap">
+            <div>
+              <div class="chart-title">Volume diário por produto</div>
+              <div class="chart-sub">Vendas de cada tipo em cada dia do período</div>
+              <div class="legend" id="legend-proddia"></div>
+              <div style="position:relative;height:340px;"><canvas id="chartProdDia"></canvas></div>
+            </div>
+            <div>
+              <div class="chart-title">Participação % diária por produto</div>
+              <div class="chart-sub">Peso de cada tipo no total do dia</div>
+              <div class="legend">
+                <span><span class="ld" style="background:#185FA5"></span>PF</span>
+                <span><span class="ld" style="background:#1D9E75"></span>PME</span>
+                <span><span class="ld" style="background:#D85A30"></span>Adesão</span>
+              </div>
+              <div style="position:relative;height:260px;"><canvas id="chartProdPct"></canvas></div>
+            </div>
+          </div>
+
+          <!-- KPI cards de produto -->
+          <div id="prodKpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px;"></div>
+
+          <!-- Análise textual dos períodos -->
+          <div id="prodInsights" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="chart-card full">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid #e0dfd6;">
+            <div style="width:3px;height:18px;background:#E8623A;border-radius:2px;"></div>
+            <span style="font-size:15px;font-weight:500;">Volume de Leads por Dia</span>
+          </div>
+          <div class="chart-sub" style="margin-top:-8px;margin-bottom:14px;">Evolução diária do volume de leads captados · linha tracejada = média do período</div>
+          <div class="legend">
+            <span><span class="ld" style="background:#185FA5"></span>Leads/dia</span>
+            <span><span class="ld" style="background:#E8623A;height:2px;width:18px;border-radius:0;"></span>Média</span>
+          </div>
+          <div style="position:relative;height:320px;"><canvas id="chartLeadsLine"></canvas></div>
+        </div>
       </div>
     </div>`;
 }
@@ -787,6 +844,579 @@ function renderAll() {
   renderChartMix();
   renderChartLeads();
   renderTable();
+  renderChartSemana();
+  renderProdutos();
+  renderLeadsLine();
+}
+
+function renderLeadsLine() {
+  const d = CONFIG.gestores[currentGestor];
+  // Leads só existem para TOTAL; para outros gestores esconde o card
+  const wrap = document.getElementById('chartLeadsLine')?.closest('.chart-card');
+  if (!d.leads) { if (wrap) wrap.style.display = 'none'; return; }
+  if (wrap) wrap.style.display = '';
+
+  // Fatia do intervalo selecionado
+  const leadsSlice = d.leads.slice(rangeStart - 1, rangeEnd);
+  const diasLbl    = dias();
+
+  // Média ignorando nulls
+  const vals  = leadsSlice.filter(v => v !== null && v !== undefined);
+  const media = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+  const mediaArr = leadsSlice.map(() => media);
+
+  const ctx = document.getElementById('chartLeadsLine').getContext('2d');
+  if (chartLeadsLine) chartLeadsLine.destroy();
+
+  // Plugin: valor em cima de cada ponto não-nulo
+  const leadsLabelPlugin = {
+    id: 'leadsLineLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx: c, data } = chart;
+      const meta = chart.getDatasetMeta(0); // só dataset de leads
+      data.datasets[0].data.forEach((raw, i) => {
+        if (raw === null || raw === undefined) return;
+        const el = meta.data[i];
+        const label = raw >= 1000 ? (raw / 1000).toFixed(1).replace('.0','') + 'k' : raw.toString();
+        c.save();
+        c.textAlign    = 'center';
+        c.textBaseline = 'bottom';
+        c.font         = '500 9.5px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+        c.fillStyle    = '#185FA5';
+        c.fillText(label, el.x, el.y - 6);
+        c.restore();
+      });
+    }
+  };
+
+  chartLeadsLine = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: diasLbl,
+      datasets: [
+        {
+          label: 'Leads/dia',
+          data: leadsSlice,
+          borderColor: '#185FA5',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.35,
+          pointRadius: (ctx) => leadsSlice[ctx.dataIndex] !== null ? 4 : 0,
+          pointBackgroundColor: '#185FA5',
+          borderWidth: 2,
+          spanGaps: false,
+        },
+        {
+          label: '_fill',
+          data: leadsSlice,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(24,95,165,0.08)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 0,
+          borderWidth: 0,
+          spanGaps: true,  // área contínua sem colapsar ao zero
+        },
+        {
+          label: 'Média',
+          data: mediaArr,
+          borderColor: '#E8623A',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 26 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          filter: item => item.datasetIndex === 0 && item.parsed.y !== null,
+          callbacks: {
+            label: c => {
+              if (c.dataset.label === '_fill') return null;
+              return c.datasetIndex === 0
+              ? ` Leads: ${c.parsed.y !== null ? c.parsed.y.toLocaleString('pt-BR') : '—'}`
+              : ` Média: ${media.toLocaleString('pt-BR')}`;
+            },
+            afterBody: (items) => {
+              if (!items.length || items[0].parsed.y === null) return [];
+              const diff = items[0].parsed.y - media;
+              return [diff >= 0
+                ? `▲ ${diff.toLocaleString('pt-BR')} acima da média`
+                : `▼ ${Math.abs(diff).toLocaleString('pt-BR')} abaixo da média`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 0 },
+          grid: { color: 'rgba(0,0,0,0.04)' }
+        },
+        y: {
+          ticks: {
+            font: { size: 11 },
+            callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          beginAtZero: true
+        }
+      }
+    },
+    plugins: [leadsLabelPlugin]
+  });
+}
+
+// ── Variáveis dos gráficos de produto declaradas no escopo global ────
+
+function renderProdutos() {
+  const d = CONFIG.gestores[currentGestor];
+  const mixTot = (d.pf + d.pme + d.adesao) || 1;
+
+  // Ratios de mix do gestor (proporcional ao total do mês)
+  const rPF   = d.pf   / mixTot;
+  const rPME  = d.pme  / mixTot;
+  const rAdes = d.adesao / mixTot;
+
+  // Delta diário do acumulado no intervalo
+  const fullDelta = d.acumulado.map((v, i) => i === 0 ? v : v - d.acumulado[i - 1]);
+  const delta = fullDelta.slice(rangeStart - 1, rangeEnd);
+  const diasLbl = dias();
+  const n = nDias();
+
+  // Volume diário estimado por produto
+  const pfDia   = delta.map(v => Math.round(v * rPF));
+  const pmeDia  = delta.map(v => Math.round(v * rPME));
+  const adesDia = delta.map(v => Math.round(v * rAdes));
+
+  // ── Legenda ──────────────────────────────────────────────────
+  document.getElementById('legend-proddia').innerHTML = `
+    <span><span class="ld" style="background:#185FA5"></span>PF</span>
+    <span><span class="ld" style="background:#1D9E75"></span>PME</span>
+    <span><span class="ld" style="background:#D85A30"></span>Adesão</span>`;
+
+  // ── Gráfico 1: Volume diário por produto (linhas) ─────────────
+  const ctx1 = document.getElementById('chartProdDia').getContext('2d');
+  if (chartProdDia) chartProdDia.destroy();
+  chartProdDia = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: diasLbl,
+      datasets: [
+        { label: 'PF',     data: pfDia,   borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.07)',  fill: true, tension: 0.35, pointRadius: 3, borderWidth: 2 },
+        { label: 'PME',    data: pmeDia,  borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.07)', fill: true, tension: 0.35, pointRadius: 3, borderWidth: 2 },
+        { label: 'Adesão', data: adesDia, borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.07)',  fill: true, tension: 0.35, pointRadius: 3, borderWidth: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 22 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false,
+          callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR')}` }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        y: { ticks: { font: { size: 11 }, callback: v => v.toLocaleString('pt-BR') }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    },
+    plugins: [{
+      id: 'prodDiaLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx, data } = chart;
+        // Coleta todos os pontos por coluna (dia) e evita sobreposição
+        const cols = {};
+        data.datasets.forEach((ds, di) => {
+          const meta = chart.getDatasetMeta(di);
+          if (meta.hidden) return;
+          meta.data.forEach((el, i) => {
+            const raw = ds.data[i];
+            if (raw === null || raw === undefined || raw === 0) return;
+            if (!cols[i]) cols[i] = [];
+            cols[i].push({ x: el.x, y: el.y, raw, color: ds.borderColor });
+          });
+        });
+        Object.values(cols).forEach(pts => {
+          pts.sort((a, b) => a.y - b.y);
+          const minGap = 13;
+          for (let k = 1; k < pts.length; k++) {
+            if (pts[k].y - pts[k-1].y < minGap) pts[k].y = pts[k-1].y + minGap;
+          }
+          pts.forEach(({ x, y, raw, color }) => {
+            ctx.save();
+            ctx.textAlign    = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.font         = '500 9px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+            ctx.fillStyle    = color;
+            ctx.fillText(raw.toLocaleString('pt-BR'), x, y - 5);
+            ctx.restore();
+          });
+        });
+      }
+    }]
+  });
+
+  // ── Gráfico 2: Participação % diária (barras empilhadas 100%) ──
+  const ctx2 = document.getElementById('chartProdPct').getContext('2d');
+  if (chartProdPct) chartProdPct.destroy();
+  const pctPF   = delta.map((v, i) => v > 0 ? Math.round(pfDia[i]   / v * 100) : 0);
+  const pctPME  = delta.map((v, i) => v > 0 ? Math.round(pmeDia[i]  / v * 100) : 0);
+  const pctAdes = delta.map((v, i) => v > 0 ? Math.round(adesDia[i] / v * 100) : 0);
+
+  chartProdPct = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: diasLbl,
+      datasets: [
+        { label: 'PF',     data: pctPF,   backgroundColor: '#185FA5', stack: 'pct', borderWidth: 0 },
+        { label: 'PME',    data: pctPME,  backgroundColor: '#1D9E75', stack: 'pct', borderWidth: 0 },
+        { label: 'Adesão', data: pctAdes, backgroundColor: '#D85A30', stack: 'pct', borderWidth: 0 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false,
+          callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y}%` }
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 11 }, autoSkip: false, maxRotation: 0 }, grid: { display: false } },
+        y: { stacked: true, max: 100, ticks: { font: { size: 11 }, callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+
+  // ── KPI cards por produto ─────────────────────────────────────
+  const totalPF   = pfDia.reduce((a, b) => a + b, 0);
+  const totalPME  = pmeDia.reduce((a, b) => a + b, 0);
+  const totalAdes = adesDia.reduce((a, b) => a + b, 0);
+  const totalG    = totalPF + totalPME + totalAdes || 1;
+
+  // Dia de pico por produto
+  const picoPF   = pfDia.indexOf(Math.max(...pfDia));
+  const picoPME  = pmeDia.indexOf(Math.max(...pmeDia));
+  const picoAdes = adesDia.indexOf(Math.max(...adesDia));
+
+  // Médias
+  const diasUteis = delta.filter(v => v > 0).length || 1;
+  const mediaPF   = (totalPF   / diasUteis).toFixed(1);
+  const mediaPME  = (totalPME  / diasUteis).toFixed(1);
+  const mediaAdes = (totalAdes / diasUteis).toFixed(1);
+
+  const kpiData = [
+    { label: 'PF',     cor: '#185FA5', bg: 'rgba(24,95,165,0.07)',  total: totalPF,   pct: Math.round(totalPF/totalG*100),   media: mediaPF,   pico: diasLbl[picoPF]   },
+    { label: 'PME',    cor: '#1D9E75', bg: 'rgba(29,158,117,0.07)', total: totalPME,  pct: Math.round(totalPME/totalG*100),  media: mediaPME,  pico: diasLbl[picoPME]  },
+    { label: 'Adesão', cor: '#D85A30', bg: 'rgba(216,90,48,0.07)',  total: totalAdes, pct: Math.round(totalAdes/totalG*100), media: mediaAdes, pico: diasLbl[picoAdes] },
+  ];
+
+  document.getElementById('prodKpis').innerHTML = kpiData.map(k => `
+    <div style="background:${k.bg};border-radius:8px;padding:14px 16px;border-left:3px solid ${k.cor};">
+      <div style="font-size:12px;color:#888;margin-bottom:4px;">${k.label}</div>
+      <div style="font-size:22px;font-weight:500;color:${k.cor};">${k.total.toLocaleString('pt-BR')}</div>
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:#666;">
+        <span><b>${k.pct}%</b> do mix</span>
+        <span>Média <b>${k.media}</b>/dia útil</span>
+        <span>Pico no dia <b>${k.pico}</b></span>
+      </div>
+    </div>`).join('');
+
+  // ── Análise de períodos relevantes ───────────────────────────
+  // Divide o intervalo em terços: início / meio / fim do mês
+  const t1 = Math.floor(n / 3);
+  const t2 = Math.floor(2 * n / 3);
+
+  function somaFaixa(arr, ini, fim) { return arr.slice(ini, fim).reduce((a, b) => a + b, 0); }
+
+  const faixas = [
+    { nome: 'Início do período', ini: 0,  fim: t1,  dias: `Dia ${rangeStart}–${rangeStart + t1 - 1}` },
+    { nome: 'Meio do período',   ini: t1, fim: t2,  dias: `Dia ${rangeStart + t1}–${rangeStart + t2 - 1}` },
+    { nome: 'Final do período',  ini: t2, fim: n,   dias: `Dia ${rangeStart + t2}–${rangeEnd}` },
+  ];
+
+  // Por semana (seg a sex = dias úteis estimados)
+  const semanas = [
+    { label: 'Sem 1 (dias 1–4)',   ini: 0,  fim: 4  },
+    { label: 'Sem 2 (dias 5–11)',  ini: 4,  fim: 11 },
+    { label: 'Sem 3 (dias 12–18)',ini: 11, fim: 18 },
+    { label: 'Sem 4 (dias 19–25)',ini: 18, fim: 25 },
+  ].filter(s => s.ini < n);
+
+  // Produto dominante por faixa
+  function dominante(ini, fim) {
+    const vPF   = somaFaixa(pfDia,   ini, fim);
+    const vPME  = somaFaixa(pmeDia,  ini, fim);
+    const vAdes = somaFaixa(adesDia, ini, fim);
+    const tot   = vPF + vPME + vAdes || 1;
+    return [
+      { nome: 'PF',   v: vPF,   pct: Math.round(vPF/tot*100),   cor: '#185FA5' },
+      { nome: 'PME',  v: vPME,  pct: Math.round(vPME/tot*100),  cor: '#1D9E75' },
+      { nome: 'Adesão', v: vAdes, pct: Math.round(vAdes/tot*100), cor: '#D85A30' },
+    ].sort((a, b) => b.v - a.v);
+  }
+
+  // Melhor semana por produto
+  function melhorSemana(arr) {
+    let best = -1, bestIdx = 0;
+    semanas.forEach((s, i) => {
+      const v = somaFaixa(arr, s.ini, Math.min(s.fim, n));
+      if (v > best) { best = v; bestIdx = i; }
+    });
+    return semanas[bestIdx]?.label || '—';
+  }
+
+  const msPF   = melhorSemana(pfDia);
+  const msPME  = melhorSemana(pmeDia);
+  const msAdes = adesDia.reduce((a, b) => a + b, 0) > 0 ? melhorSemana(adesDia) : null;
+
+  // Tendência: compara primeira vs segunda metade
+  const metade = Math.floor(n / 2);
+  function tendencia(arr) {
+    const a1 = somaFaixa(arr, 0, metade) / (metade || 1);
+    const a2 = somaFaixa(arr, metade, n) / ((n - metade) || 1);
+    if (a2 > a1 * 1.1) return { txt: '↑ acelerando', cor: '#0F6E56' };
+    if (a2 < a1 * 0.9) return { txt: '↓ desacelerando', cor: '#993C1D' };
+    return { txt: '→ estável', cor: '#854F0B' };
+  }
+
+  const tPF   = tendencia(pfDia);
+  const tPME  = tendencia(pmeDia);
+  const tAdes = tendencia(adesDia);
+
+  // Dias da semana com maior volume (0=dom … 6=sab) — usando dia do mês
+  // Maio 2026: dia 1 = Sex (5), ajuste: diaDaSemana = (dia + 3) % 7  → 0=seg
+  const nomesDia = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  function melhorDiaSemana(arr) {
+    const soma = [0,0,0,0,0,0,0], cnt = [0,0,0,0,0,0,0];
+    arr.forEach((v, i) => {
+      const diaMes = rangeStart + i;
+      const dow = (diaMes + 3) % 7; // maio 2026: dia 1 = sexta = índice 4
+      soma[dow] += v; cnt[dow]++;
+    });
+    const med = soma.map((s, i) => cnt[i] > 0 ? s / cnt[i] : 0);
+    const idx = med.indexOf(Math.max(...med));
+    return { dia: nomesDia[idx], media: med[idx].toFixed(1) };
+  }
+
+  const mdPF   = melhorDiaSemana(pfDia);
+  const mdPME  = melhorDiaSemana(pmeDia);
+
+  // Produto líder de cada faixa
+  const faixaHtml = faixas.map(f => {
+    if (f.ini >= n) return '';
+    const ranks = dominante(f.ini, Math.min(f.fim, n));
+    const lider = ranks[0];
+    return `
+      <div style="flex:1;min-width:160px;background:#f9f8f4;border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:#888;margin-bottom:4px;">${f.nome}</div>
+        <div style="font-size:12px;color:#aaa;margin-bottom:8px;">${f.dias}</div>
+        ${ranks.map((r, ri) => `
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;${ri===0?'':'opacity:0.55'}">
+            <span style="width:8px;height:8px;border-radius:50%;background:${r.cor};flex-shrink:0;"></span>
+            <span style="font-size:12px;font-weight:${ri===0?600:400};color:${ri===0?r.cor:'#666'};">${r.nome}</span>
+            <span style="font-size:12px;color:#888;margin-left:auto;">${r.pct}%</span>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+
+  document.getElementById('prodInsights').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      ${faixaHtml}
+    </div>
+    <div style="background:#f1efe8;border-radius:10px;padding:16px 18px;">
+      <div style="font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:12px;">📊 Insights do período selecionado</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:#444;line-height:1.7;">
+        <div>
+          <b style="color:#185FA5;">PF</b> é o produto de maior volume: <b>${Math.round(rPF*100)}%</b> do mix total.<br>
+          Melhor semana: <b>${msPF}</b> · Tendência: <b style="color:${tPF.cor}">${tPF.txt}</b><br>
+          Dia da semana mais produtivo: <b>${mdPF.dia}</b> (média ${mdPF.media} vidas/dia)
+        </div>
+        <div>
+          <b style="color:#1D9E75;">PME</b> representa <b>${Math.round(rPME*100)}%</b> do mix.<br>
+          Melhor semana: <b>${msPME}</b> · Tendência: <b style="color:${tPME.cor}">${tPME.txt}</b><br>
+          Dia da semana mais produtivo: <b>${mdPME.dia}</b> (média ${mdPME.media} vidas/dia)
+        </div>
+        ${msAdes ? `<div>
+          <b style="color:#D85A30;">Adesão</b> representa <b>${Math.round(rAdes*100)}%</b> do mix.<br>
+          Melhor semana: <b>${msAdes}</b> · Tendência: <b style="color:${tAdes.cor}">${tAdes.txt}</b>
+        </div>` : ''}
+        <div>
+          <b>Período de maior relevância geral:</b><br>
+          ${(() => {
+            const totSem = semanas.map(s => somaFaixa(delta, s.ini, Math.min(s.fim, n)));
+            const iMax = totSem.indexOf(Math.max(...totSem));
+            const pct  = Math.round(totSem[iMax] / (totalG||1) * 100);
+            return `<b style="color:#0F6E56;">${semanas[iMax]?.label}</b> concentra <b>${pct}%</b> das vendas do período.`;
+          })()}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderChartSemana() {
+  // Definição das semanas do mês (seg a dom, ou até diaAtual)
+  const semanas = [
+    { label: 'Sem 1\n1–4',   dias: [1,2,3,4]        },
+    { label: 'Sem 2\n5–11',  dias: [5,6,7,8,9,10,11] },
+    { label: 'Sem 3\n12–18', dias: [12,13,14,15,16,17,18] },
+    { label: 'Sem 4\n19–25', dias: [19,20,21,22,23,24,25] },
+    { label: 'Sem 5\n26–31', dias: [26,27,28,29,30,31] },
+  ];
+
+  // Filtra semanas que tenham ao menos 1 dia com dado
+  const semanasAtivas = semanas.filter(s => s.dias[0] <= CONFIG.diaAtual);
+
+  // Para cada gestor calcula o total de vendas em cada semana
+  const gestoresList = ['FABIO','JOSY','ADMINISTRATIVO','ACTIONLINE'];
+  const cores = {
+    FABIO:          '#185FA5',
+    JOSY:           '#1D9E75',
+    ADMINISTRATIVO: '#D85A30',
+    ACTIONLINE:     '#8B5CF6',
+  };
+  const coresTotal = '#94A3B8'; // barra cinza para o total (opcional)
+
+  // Função: vendas de um gestor numa semana
+  function vendasSemana(acumulado, diasSemana) {
+    const dFim   = Math.min(diasSemana[diasSemana.length - 1], CONFIG.diaAtual);
+    const dIni   = diasSemana[0];
+    if (dIni > CONFIG.diaAtual) return 0;
+    const valFim  = acumulado[dFim - 1]  || 0;
+    const valAntes = dIni > 1 ? (acumulado[dIni - 2] || 0) : 0;
+    return valFim - valAntes;
+  }
+
+  // Datasets: um por gestor
+  const datasets = gestoresList.map(g => ({
+    label: CONFIG.gestores[g].label,
+    data: semanasAtivas.map(s => vendasSemana(CONFIG.gestores[g].acumulado, s.dias)),
+    backgroundColor: cores[g],
+    borderRadius: 4,
+    borderSkipped: false,
+    barPercentage: 0.75,
+    categoryPercentage: 0.8,
+  }));
+
+  // Labels das semanas (quebra de linha via array)
+  const labels = semanasAtivas.map(s => s.label.split('\n'));
+
+  // Legenda
+  document.getElementById('legend-semana').innerHTML = gestoresList
+    .map(g => `<span><span class="ld" style="background:${cores[g]}"></span>${CONFIG.gestores[g].label}</span>`)
+    .join('');
+
+  const ctx = document.getElementById('chartSemana').getContext('2d');
+  if (chartSemana) chartSemana.destroy();
+
+  // Plugin inline: valor em cima de cada barra
+  const semanaLabelPlugin = {
+    id: 'semanaLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx: c } = chart;
+      chart.data.datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di);
+        if (meta.hidden) return;
+        meta.data.forEach((bar, i) => {
+          const val = ds.data[i];
+          if (!val) return;
+          c.save();
+          c.textAlign    = 'center';
+          c.textBaseline = 'bottom';
+          c.font = '500 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+          c.fillStyle = '#1a1a18';
+          c.fillText(val.toLocaleString('pt-BR'), bar.x, bar.y - 3);
+          c.restore();
+        });
+      });
+    }
+  };
+
+  chartSemana = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 24 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: (items) => {
+              // Reconstrói o label da semana
+              const s = semanasAtivas[items[0].dataIndex];
+              return s.label.replace('\n', ' · Dias ');
+            },
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('pt-BR')} vendas`,
+            footer: (items) => {
+              const total = items.reduce((a, b) => a + b.parsed.y, 0);
+              return `Total: ${total.toLocaleString('pt-BR')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 11 } },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { font: { size: 11 }, callback: v => v.toLocaleString('pt-BR') },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: 'Vendas no período', font: { size: 11 }, color: '#888' }
+        }
+      }
+    },
+    plugins: [semanaLabelPlugin]
+  });
+
+  // Mini tabela resumo abaixo do gráfico
+  const totalPorSemana = semanasAtivas.map(s =>
+    gestoresList.reduce((acc, g) => acc + vendasSemana(CONFIG.gestores[g].acumulado, s.dias), 0)
+  );
+  const melhorIdx = totalPorSemana.indexOf(Math.max(...totalPorSemana));
+
+  const headerCols = semanasAtivas.map((s, i) =>
+    `<th style="text-align:right;${i===melhorIdx?'color:#0F6E56;font-weight:600':''}">${s.label.replace('\n','<br>')}</th>`
+  ).join('');
+
+  const bodyRows = gestoresList.map(g => {
+    const d = CONFIG.gestores[g];
+    const cols = semanasAtivas.map((s, i) => {
+      const v = vendasSemana(d.acumulado, s.dias);
+      return `<td style="text-align:right;${i===melhorIdx?'color:#0F6E56;font-weight:500':''}">${v ? v.toLocaleString('pt-BR') : '—'}</td>`;
+    }).join('');
+    return `<tr><td style="font-weight:500">${d.label}</td>${cols}</tr>`;
+  }).join('');
+
+  const totalRow = semanasAtivas.map((s, i) =>
+    `<td style="text-align:right;font-weight:600;${i===melhorIdx?'color:#0F6E56':''}">${totalPorSemana[i].toLocaleString('pt-BR')}</td>`
+  ).join('');
+
+  document.getElementById('semanaTable').innerHTML = `
+    <table>
+      <thead><tr><th>Gestor</th>${headerCols}</tr></thead>
+      <tbody>
+        ${bodyRows}
+        <tr style="border-top:1px solid #e0dfd6;">
+          <td style="font-weight:600;color:#1a1a18;">Total</td>${totalRow}
+        </tr>
+      </tbody>
+    </table>`;
 }
 </script>
 </body>
