@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard de Vendas</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -306,35 +307,35 @@
 // ============================================================
 const CONFIG = {
   mesLabel: "Maio 2026",
-  diaAtual: 30,
+  diaAtual: 31,
 
   gestores: {
     TOTAL: {
       label: "Total geral",
-      meta: 11970,
-      acumulado: [508,592,666,1065,1517,1945,2414,2760,2914,3081,
-                  3536,3991,4452,4825,5202,5324,5422,5874,6369,6831,
-                  7236,7577,7772,7888,8325,8734,9137,9525,9982,10184,10290],
-      pf: 6272,
-      pme: 3557,
-      adesao: 461,
-      conv: [26.4,4.5,6.5,5.6,7.1,7.6,10.3,8.4,6.9,11.3,
-             8.4,8.6,9.8,7.1,8.7,6.0,4.9,5.5,8.9,8.4,
-             8.6,8.2,9.2,8.2,8.4,8.2,7.5,7.0,11.0,null,null],
-      leads: [1921,1867,1133,7108,6376,5657,4532,4116,2235,1472,
-              5444,5297,4712,5261,4312,2043,2019,8237,5582,5500,
-              4691,4139,2118,1408,5179,4974,5396,5580,4159,null,null],
+      meta: 11600,
+      acumulado: [508,590,664,1061,1511,1938,2407,2753,2907,3077,
+                  3531,3984,4442,4815,5191,5313,5411,5854,6361,6829,
+                  7241,7584,7779,7895,8331,8748,9166,9557,10033,10317,10563],
+      pf: 6451,
+      pme: 3648,
+      adesao: 464,
+      conv: [26.4,4.4,6.5,5.6,7.0,7.5,10.3,8.4,6.9,11.5,
+             8.3,8.5,9.7,7.1,8.7,6.0,4.8,5.5,8.9,8.5,
+             8.8,8.3,9.1,8.2,8.4,8.3,7.7,7.0,11.2,12.5,17.1],
+      leads: [1922,1871,1138,7129,6393,5662,4549,4121,2241,1475,
+              5451,5310,4721,5270,4316,2049,2024,8248,5587,5514,
+              4705,4147,2132,1418,5186,5007,5424,5619,4242,2273,1439],
       vendas_abr: 8996,
-      projecao_fixa: null
+      projecao_fixa: 10563
     },
     FABIO: {
       label: "Fabio",
-      meta: 6370,
-      acumulado: [482,525,567,764,1003,1200,1451,1620,1736,1850,
-                  2075,2343,2570,2754,2954,3033,3112,3325,3606,3851,
-                  4074,4241,4379,4457,4680,4887,5128,5327,5556,5721,5821],
-      pf: 2319,
-      pme: 3090,
+      meta: 6000,
+      acumulado: [482,525,567,764,1002,1199,1450,1619,1735,1849,
+                  2073,2339,2565,2749,2949,3028,3107,3321,3604,3855,
+                  4085,4252,4390,4468,4693,4906,5160,5361,5608,5819,5980],
+      pf: 2391,
+      pme: 3177,
       adesao: 412,
       conv: null,
       leads: null,
@@ -344,12 +345,12 @@ const CONFIG = {
     JOSY: {
       label: "Josy",
       meta: 4700,
-      acumulado: [20,51,64,236,420,614,807,958,993,1042,
-                  1255,1423,1634,1791,1934,1969,1982,2193,2395,2574,
-                  2741,2886,2928,2959,3160,3349,3493,3667,3859,3889,3895],
-      pf: 3379,
-      pme: 467,
-      adesao: 49,
+      acumulado: [20,51,64,234,417,610,803,954,989,1041,
+                  1254,1422,1631,1788,1930,1965,1978,2189,2391,2570,
+                  2737,2884,2926,2957,3155,3346,3492,3667,3864,3926,4003],
+      pf: 3480,
+      pme: 471,
+      adesao: 52,
       conv: null,
       leads: null,
       vendas_abr: 3612,
@@ -358,10 +359,10 @@ const CONFIG = {
     ADMINISTRATIVO: {
       label: "Administrativo",
       meta: 700,
-      acumulado: [6,16,35,62,90,126,150,173,176,180,
-                  194,212,231,263,295,303,309,334,346,382,
-                  397,423,438,445,457,469,484,494,525,532,532],
-      pf: 532,
+      acumulado: [6,14,33,60,88,124,148,171,174,178,
+                  192,210,229,261,293,301,307,332,344,380,
+                  395,421,436,443,455,467,482,492,519,530,536],
+      pf: 536,
       pme: 0,
       adesao: 0,
       conv: null,
@@ -374,7 +375,7 @@ const CONFIG = {
       meta: 200,
       acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,22,
                   24,24,24,27,27,27,28,29,32,37,42],
-      pf: 42,
+      pf: 44,
       pme: 0,
       adesao: 0,
       conv: null,
@@ -540,19 +541,43 @@ function renderAcumulado() {
   const mediaVal = (data[data.length-1]) / (diaFim - diaIni + 1);
   const projecaoLine = labels.map((_,i) => Math.round(mediaVal * (diaIni + i)));
 
+  const showAllLabels = (diaFim - diaIni + 1) <= 15;
   charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Acumulado", data, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 2 },
-        { label: "Meta", data: metaLine, borderColor: "#1D9E75", borderDash: [6,3], borderWidth: 1.5, pointRadius: 0, fill: false },
-        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false }
+        { label: "Acumulado", data, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5,
+          datalabels: {
+            display: ctx => showAllLabels || ctx.dataIndex === data.length - 1,
+            align: "top", anchor: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v
+          }
+        },
+        { label: "Meta", data: metaLine, borderColor: "#1D9E75", borderDash: [6,3], borderWidth: 1.5, pointRadius: 0, fill: false,
+          datalabels: {
+            display: ctx => ctx.dataIndex === metaLine.length - 1,
+            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#1D9E75",
+            formatter: v => "Meta: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
+          }
+        },
+        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false,
+          datalabels: {
+            display: ctx => ctx.dataIndex === projecaoLine.length - 1,
+            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#E8623A",
+            formatter: v => "Proj: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
+          }
+        }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { labels: { font: { size: 11 } } } },
+      layout: { padding: { right: 55 } },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {}
+      },
       scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } } }
     }
   });
@@ -563,19 +588,36 @@ function renderVolume() {
   destroyChart("volume");
   const labels = getDayLabels();
   const { pf, pme, ades } = getVolumeData();
+  const numDias = diaFim - diaIni + 1;
+  const volFontSize = numDias <= 15 ? 10 : numDias <= 25 ? 8 : 7;
+  const totaisVol = pf.map((v,i) => v + pme[i] + ades[i]);
   charts["volume"] = new Chart(document.getElementById("chartVolume"), {
     type: "bar",
     data: {
       labels,
       datasets: [
-        { label: "PF",     data: pf,   backgroundColor: "#185FA5" },
-        { label: "PME",    data: pme,  backgroundColor: "#1D9E75" },
-        { label: "Adesão", data: ades, backgroundColor: "#D85A30" }
+        { label: "PF",     data: pf,   backgroundColor: "#185FA5",
+          datalabels: { display: false }
+        },
+        { label: "PME",    data: pme,  backgroundColor: "#1D9E75",
+          datalabels: { display: false }
+        },
+        { label: "Adesão", data: ades, backgroundColor: "#D85A30",
+          datalabels: {
+            display: ctx => totaisVol[ctx.dataIndex] > 0,
+            anchor: "end", align: "top",
+            font: { size: volFontSize, weight: "600" }, color: "#333",
+            formatter: (v, ctx) => totaisVol[ctx.dataIndex] || ""
+          }
+        }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { labels: { font: { size: 11 } } } },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {}
+      },
       scales: { x: { stacked: true, ticks: { font: { size: 10 }, maxTicksLimit: 12 } }, y: { stacked: true, ticks: { font: { size: 10 } } } }
     }
   });
@@ -596,11 +638,18 @@ function renderProduto() {
     type: "bar",
     data: {
       labels: ["PF", "PME", "Adesão"],
-      datasets: [{ label: "Média/dia", data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderRadius: 5 }]
+      datasets: [{ label: "Média/dia", data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderRadius: 5,
+        datalabels: {
+          anchor: "end", align: "right",
+          font: { size: 11, weight: "700" }, color: "#333",
+          formatter: v => v > 0 ? v : ""
+        }
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: true, indexAxis: "y",
-      plugins: { legend: { display: false } },
+      layout: { padding: { right: 30 } },
+      plugins: { legend: { display: false }, datalabels: {} },
       scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
     }
   });
@@ -628,16 +677,31 @@ function renderConv() {
     }
   }
 
+  const showConvLabels = (diaFim - diaIni + 1) <= 20;
   charts["conv"] = new Chart(document.getElementById("chartConv"), {
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: "Conv %", data, backgroundColor: bgColors, borderRadius: 3 }]
+      datasets: [{ label: "Conv %", data, backgroundColor: bgColors, borderRadius: 3,
+        datalabels: {
+          display: ctx => showConvLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+          anchor: "end", align: "top",
+          font: { size: 9, weight: "600" },
+          color: ctx => {
+            const v = ctx.dataset.data[ctx.dataIndex];
+            if (v === null) return "transparent";
+            return v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D";
+          },
+          formatter: v => v !== null ? v + "%" : ""
+        }
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw}%` : "—" } }
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw}%` : "—" } },
+        datalabels: {}
       },
       scales: {
         x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } },
@@ -662,12 +726,24 @@ function renderMix() {
     type: "doughnut",
     data: {
       labels: ["PF","PME","Adesão"],
-      datasets: [{ data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderWidth: 2 }]
+      datasets: [{ data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderWidth: 2,
+        datalabels: {
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          color: "#fff",
+          font: { size: 11, weight: "700" },
+          formatter: (v, ctx) => {
+            const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct = sum > 0 ? ((v/sum)*100).toFixed(1) : 0;
+            return pct + "%";
+          }
+        }
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
       plugins: {
         legend: { position: "bottom", labels: { font: { size: 11 }, padding: 12 } },
+        datalabels: {},
         tooltip: { callbacks: {
           label: ctx => {
             const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
@@ -703,18 +779,28 @@ function renderLeads() {
   const mediaLeads = leadsValidos.length ? leadsValidos.reduce((a,b)=>a+b,0)/leadsValidos.length : 0;
   const mediaLeadsLine = leadsData.map(v => v !== null ? mediaLeads : null);
 
+  const showLeadLabels = (diaFim - diaIni + 1) <= 15;
   charts["leads"] = new Chart(document.getElementById("chartLeads"), {
     type: "bar",
     data: {
       labels,
       datasets: [
-        { label: "Leads", data: leadsData, backgroundColor: "rgba(24,95,165,.6)", borderRadius: 3, order: 2 },
-        { label: "Média", data: mediaLeadsLine, type: "line", borderColor: "#E8623A", borderDash: [5,3], borderWidth: 2, pointRadius: 0, fill: false, order: 1 }
+        { label: "Leads", data: leadsData, backgroundColor: "rgba(24,95,165,.6)", borderRadius: 3, order: 2,
+          datalabels: {
+            display: ctx => showLeadLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v !== null ? (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v) : ""
+          }
+        },
+        { label: "Média", data: mediaLeadsLine, type: "line", borderColor: "#E8623A", borderDash: [5,3], borderWidth: 2, pointRadius: 0, fill: false, order: 1,
+          datalabels: { display: false }
+        }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { labels: { font: { size: 11 } } } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
       scales: { x: { ticks: { font:{size:10}, maxTicksLimit:12 } }, y: { ticks: { font:{size:10} } } }
     }
   });
@@ -734,18 +820,33 @@ function renderLeads() {
     }
   }
 
+  const showLPLabels = labels2.length <= 15;
   charts["leadPerf"] = new Chart(document.getElementById("chartLeadPerf"), {
     type: "bar",
     data: {
       labels: labels2,
       datasets: [
-        { label: "Leads/Venda", data: lv, backgroundColor: "rgba(24,95,165,.55)", borderRadius: 3, yAxisID: "y" },
-        { label: "Conv %", data: cv2, type: "line", borderColor: "#E8623A", borderWidth: 2, pointRadius: 3, fill: false, yAxisID: "y2" }
+        { label: "Leads/Venda", data: lv, backgroundColor: "rgba(24,95,165,.55)", borderRadius: 3, yAxisID: "y",
+          datalabels: {
+            display: showLPLabels,
+            anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v
+          }
+        },
+        { label: "Conv %", data: cv2, type: "line", borderColor: "#E8623A", borderWidth: 2, pointRadius: 3, fill: false, yAxisID: "y2",
+          datalabels: {
+            display: ctx => showLPLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            align: "top", anchor: "top",
+            font: { size: 9, weight: "600" }, color: "#E8623A",
+            formatter: v => v !== null ? v + "%" : ""
+          }
+        }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { labels: { font:{size:11} } } },
+      plugins: { legend: { labels: { font:{size:11} } }, datalabels: {} },
       scales: {
         x: { ticks: { font:{size:10}, maxTicksLimit:12 } },
         y: { type:"linear", position:"left", ticks:{ font:{size:10} }, title:{ display:true, text:"Leads/Venda", font:{size:10} } },
@@ -792,6 +893,9 @@ function renderTabela() {
     tbody.appendChild(tr);
   }
 }
+
+// Registra plugin globalmente
+Chart.register(ChartDataLabels);
 
 // ── RENDER ALL ──
 function renderAll() {
