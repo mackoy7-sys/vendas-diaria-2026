@@ -192,9 +192,33 @@
       .chart-grid-2, .chart-grid-3, .leads-grid { grid-template-columns: 1fr; }
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
     }
+  /* Login overlay */
+  #login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+  #login-overlay.hidden{display:none}
+  .login-box{background:var(--card);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,.12);padding:40px 36px;width:100%;max-width:360px;text-align:center}
+  .login-logo{width:60px;height:60px;background:var(--header);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;color:#fff;font-weight:700}
+  .login-box h2{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+  .login-box p{font-size:12px;color:#888;margin-bottom:24px}
+  .login-box input{width:100%;padding:10px 14px;border:1px solid #dde1e7;border-radius:7px;font-size:14px;color:#1a1a2e;outline:none;margin-bottom:12px;letter-spacing:2px}
+  .login-box input:focus{border-color:var(--azul)}
+  .login-box button{width:100%;padding:11px;background:var(--header);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer}
+  .login-box button:hover{background:var(--azul)}
+  .login-error{font-size:12px;color:#c0392b;margin-top:8px;min-height:16px}
   </style>
 </head>
 <body>
+
+<!-- Login overlay -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">H</div>
+    <h2>Dashboard de Vendas</h2>
+    <p>Hapvida – RMSP</p>
+    <input type="password" id="login-input" placeholder="Digite a senha" autocomplete="current-password" />
+    <button onclick="checkLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -1035,6 +1059,30 @@ function renderAll() {
 
 // Inicia
 renderAll();
+</script>
+
+<script>
+(function(){
+  const KEY = 'vendasdiaria_auth';
+  if(sessionStorage.getItem(KEY)==='1'){
+    document.getElementById('login-overlay').classList.add('hidden');
+  }
+  document.getElementById('login-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter') checkLogin();
+  });
+})();
+
+function checkLogin(){
+  const val = document.getElementById('login-input').value;
+  if(val==='hapvida1234'){
+    sessionStorage.setItem('vendasdiaria_auth','1');
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else {
+    document.getElementById('login-error').textContent='Senha incorreta. Tente novamente.';
+    document.getElementById('login-input').value='';
+    document.getElementById('login-input').focus();
+  }
+}
 </script>
 </body>
 </html>
