@@ -60,6 +60,23 @@
       font-weight: 600;
     }
     .btn-gestor:hover:not(.active) { background: rgba(255,255,255,.15); }
+    .btn-mes {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: transparent;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn-mes.active {
+      background: var(--laranja);
+      border-color: var(--laranja);
+      font-weight: 700;
+    }
+    .btn-mes:hover:not(.active) { background: rgba(255,255,255,.15); }
     .filter-sep { width: 1px; height: 24px; background: rgba(255,255,255,.25); margin: 0 4px; }
     .filter-select {
       padding: 5px 8px;
@@ -186,6 +203,11 @@
     <div class="subtitle">Atualizado: dia <span id="diaAtualLabel"></span> &nbsp;|&nbsp; Filtro: Dia <span id="filtroLabel"></span></div>
   </div>
   <div class="filters">
+    <span class="filter-label">Mês:</span>
+    <button class="btn-mes" onclick="setMes('ABRIL')">Abril</button>
+    <button class="btn-mes active" onclick="setMes('MAIO')">Maio</button>
+    <button class="btn-mes" onclick="setMes('JUNHO')">Junho</button>
+    <div class="filter-sep"></div>
     <span class="filter-label">Gestor:</span>
     <button class="btn-gestor active" onclick="setGestor('TOTAL')">Total</button>
     <button class="btn-gestor" onclick="setGestor('FABIO')">Fabio</button>
@@ -226,7 +248,7 @@
       <div class="kpi-sub" id="kMediaSub"></div>
     </div>
     <div class="kpi-card" style="border-left-color:#9b59b6">
-      <div class="kpi-label">Var. vs Abril</div>
+      <div class="kpi-label" id="kAbrLabel">Var. vs mês anterior</div>
       <div class="kpi-value" id="kAbr">—</div>
       <div class="kpi-sub" id="kAbrSub"></div>
     </div>
@@ -303,88 +325,171 @@
 
 <script>
 // ============================================================
-//  C O N F I G
+//  C O N F I G   —   DADOS POR MÊS (Abril / Maio / Junho)
 // ============================================================
-const CONFIG = {
-  mesLabel: "Maio 2026",
-  diaAtual: 31,
+// Cada mês tem a MESMA estrutura. Para atualizar dados diários,
+// edite o mês desejado dentro de DADOS_MESES.
+// O mês exibido é controlado pelo filtro de mês no topo.
+// ============================================================
+const DADOS_MESES = {
 
-  gestores: {
-    TOTAL: {
-      label: "Total geral",
-      meta: 11600,
-      acumulado: [508,590,664,1061,1511,1938,2407,2753,2907,3077,
-                  3531,3984,4442,4815,5191,5313,5411,5854,6361,6829,
-                  7241,7584,7779,7895,8331,8748,9166,9557,10033,10317,10563],
-      pf: 6451,
-      pme: 3648,
-      adesao: 464,
-      conv: [26.4,4.4,6.5,5.6,7.0,7.5,10.3,8.4,6.9,11.5,
-             8.3,8.5,9.7,7.1,8.7,6.0,4.8,5.5,8.9,8.5,
-             8.8,8.3,9.1,8.2,8.4,8.3,7.7,7.0,11.2,12.5,17.1],
-      leads: [1922,1871,1138,7129,6393,5662,4549,4121,2241,1475,
-              5451,5310,4721,5270,4316,2049,2024,8248,5587,5514,
-              4705,4147,2132,1418,5186,5007,5424,5619,4242,2273,1439],
-      vendas_abr: 8996,
-      projecao_fixa: 10563
-    },
-    FABIO: {
-      label: "Fabio",
-      meta: 6000,
-      acumulado: [482,525,567,764,1002,1199,1450,1619,1735,1849,
-                  2073,2339,2565,2749,2949,3028,3107,3321,3604,3855,
-                  4085,4252,4390,4468,4693,4906,5160,5361,5608,5819,5980],
-      pf: 2391,
-      pme: 3177,
-      adesao: 412,
-      conv: null,
-      leads: null,
-      vendas_abr: 4794,
-      projecao_fixa: null
-    },
-    JOSY: {
-      label: "Josy",
-      meta: 4700,
-      acumulado: [20,51,64,234,417,610,803,954,989,1041,
-                  1254,1422,1631,1788,1930,1965,1978,2189,2391,2570,
-                  2737,2884,2926,2957,3155,3346,3492,3667,3864,3926,4003],
-      pf: 3480,
-      pme: 471,
-      adesao: 52,
-      conv: null,
-      leads: null,
-      vendas_abr: 3612,
-      projecao_fixa: null
-    },
-    ADMINISTRATIVO: {
-      label: "Administrativo",
-      meta: 700,
-      acumulado: [6,14,33,60,88,124,148,171,174,178,
-                  192,210,229,261,293,301,307,332,344,380,
-                  395,421,436,443,455,467,482,492,519,530,536],
-      pf: 536,
-      pme: 0,
-      adesao: 0,
-      conv: null,
-      leads: null,
-      vendas_abr: 548,
-      projecao_fixa: null
-    },
-    ACTIONLINE: {
-      label: "Actionline",
-      meta: 200,
-      acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,22,
-                  24,24,24,27,27,27,28,29,32,37,42],
-      pf: 44,
-      pme: 0,
-      adesao: 0,
-      conv: null,
-      leads: null,
-      vendas_abr: 42,
-      projecao_fixa: null
+  ABRIL: {
+    mesLabel: "Abril 2026",
+    mesAnteriorLabel: "Março",
+    diasNoMes: 30,
+    diaAtual: 30,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 11600,
+        acumulado: [259,531,608,705,825,1169,1655,2073,2481,2875,
+                    3022,3118,3500,3885,4253,4708,5028,5151,5241,5646,
+                    5776,6164,6565,6869,6989,7076,7553,7971,8385,8996],
+        pf: 5631, pme: 3247, adesao: 118,
+        conv: [3.8,4.6,3.5,4.3,9.5,4.5,7.4,7.0,7.6,8.9,
+               8.2,8.7,5.4,5.9,6.2,8.0,7.1,6.2,6.3,9.2,
+               5.4,7.3,8.2,7.2,5.9,8.3,9.4,7.7,8.7,17.9],
+        leads: [6830,5910,2176,2251,1259,7702,6560,5948,5363,4446,
+                1789,1108,7086,6483,5981,5684,4483,1998,1430,4419,
+                2405,5318,4898,4241,2039,1044,5076,5395,4781,3417],
+        vendas_ant: 8996, projecao_fixa: 8996
+      },
+      FABIO: {
+        label: "Fabio", meta: 5900,
+        acumulado: [123,243,283,356,450,605,865,1074,1283,1451,
+                    1566,1643,1820,2009,2187,2433,2591,2697,2753,2969,
+                    3064,3256,3443,3597,3680,3746,4010,4232,4477,4794],
+        pf: 1681, pme: 3056, adesao: 57,
+        conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4630,
+        acumulado: [131,262,292,313,333,500,693,889,1063,1265,
+                    1293,1311,1491,1661,1828,2009,2142,2154,2176,2337,
+                    2360,2529,2708,2833,2855,2869,3054,3216,3368,3612],
+        pf: 3362, pme: 191, adesao: 59,
+        conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 685,
+        acumulado: [5,26,33,36,42,61,92,103,124,148,
+                    152,153,177,201,222,245,271,275,287,312,
+                    324,347,381,404,419,426,452,484,501,548],
+        pf: 546, pme: 0, adesao: 2,
+        conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 280,
+        acumulado: [0,0,0,0,0,3,5,7,11,11,
+                    11,11,12,14,16,21,24,25,25,28,
+                    28,32,33,35,35,35,37,39,39,42],
+        pf: 42, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
+      }
+    }
+  },
+
+  MAIO: {
+    mesLabel: "Maio 2026",
+    mesAnteriorLabel: "Abril",
+    diasNoMes: 31,
+    diaAtual: 31,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 11600,
+        acumulado: [508,590,664,1061,1511,1938,2407,2753,2907,3077,
+                    3531,3984,4442,4815,5191,5313,5411,5854,6361,6829,
+                    7241,7584,7779,7895,8331,8748,9166,9557,10033,10317,10563],
+        pf: 6451, pme: 3648, adesao: 464,
+        conv: [26.4,4.4,6.5,5.6,7.0,7.5,10.3,8.4,6.9,11.5,
+               8.3,8.5,9.7,7.1,8.7,6.0,4.8,5.5,8.9,8.5,
+               8.8,8.3,9.1,8.2,8.4,8.3,7.7,7.0,11.2,12.5,17.1],
+        leads: [1922,1871,1138,7129,6393,5662,4549,4121,2241,1475,
+                5451,5310,4721,5270,4316,2049,2024,8248,5587,5514,
+                4705,4147,2132,1418,5186,5007,5424,5619,4242,2273,1439],
+        vendas_ant: 8996, projecao_fixa: 10563
+      },
+      FABIO: {
+        label: "Fabio", meta: 6370,
+        acumulado: [482,525,567,764,1002,1199,1450,1619,1735,1849,
+                    2073,2339,2565,2749,2949,3028,3107,3321,3604,3855,
+                    4085,4252,4390,4468,4693,4906,5160,5361,5608,5819,5980],
+        pf: 2391, pme: 3177, adesao: 412,
+        conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4700,
+        acumulado: [20,51,64,234,417,610,803,954,989,1041,
+                    1254,1422,1631,1788,1930,1965,1978,2189,2391,2570,
+                    2737,2884,2926,2957,3155,3346,3492,3667,3864,3926,4003],
+        pf: 3480, pme: 471, adesao: 52,
+        conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 700,
+        acumulado: [6,14,33,60,88,124,148,171,174,178,
+                    192,210,229,261,293,301,307,332,344,380,
+                    395,421,436,443,455,467,482,492,519,530,536],
+        pf: 536, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 200,
+        acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,22,
+                    24,24,24,27,27,27,28,29,32,37,42],
+        pf: 44, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
+      }
+    }
+  },
+
+  JUNHO: {
+    mesLabel: "Junho 2026",
+    mesAnteriorLabel: "Maio",
+    diasNoMes: 30,
+    diaAtual: 2,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 12460,
+        acumulado: [421,810],
+        pf: 561, pme: 173, adesao: 76,
+        conv: [6.1,7.0],
+        leads: [6877,5581],
+        vendas_ant: 10563, projecao_fixa: 8100
+      },
+      FABIO: {
+        label: "Fabio", meta: 6600,
+        acumulado: [206,378],
+        pf: 201, pme: 124, adesao: 53,
+        conv: null, leads: null, vendas_ant: 5980, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4960,
+        acumulado: [186,368],
+        pf: 300, pme: 49, adesao: 19,
+        conv: null, leads: null, vendas_ant: 4003, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 600,
+        acumulado: [25,53],
+        pf: 49, pme: 4, adesao: 0,
+        conv: null, leads: null, vendas_ant: 536, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 300,
+        acumulado: [4,11],
+        pf: 11, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 44, projecao_fixa: null
+      }
     }
   }
+
 };
+
+// Mês exibido por padrão ao abrir o dashboard:
+let mesAtivo = "MAIO";
+
+// CONFIG = espelho do mês ativo (não editar manualmente — use DADOS_MESES)
+let CONFIG = DADOS_MESES[mesAtivo];
 // ============================================================
 // FIM CONFIG
 // ============================================================
@@ -404,12 +509,29 @@ document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
 function buildSelects() {
   const si = document.getElementById("diaIni");
   const sf = document.getElementById("diaFim");
+  si.innerHTML = "";
+  sf.innerHTML = "";
   for (let d = 1; d <= CONFIG.diaAtual; d++) {
     si.innerHTML += `<option value="${d}" ${d===1?'selected':''}>Dia ${d}</option>`;
     sf.innerHTML += `<option value="${d}" ${d===CONFIG.diaAtual?'selected':''}>Dia ${d}</option>`;
   }
 }
 buildSelects();
+
+// ── TROCA DE MÊS ──
+function setMes(m) {
+  mesAtivo = m;
+  CONFIG = DADOS_MESES[mesAtivo];
+  document.querySelectorAll(".btn-mes").forEach(b => b.classList.remove("active"));
+  if (typeof event !== "undefined" && event && event.target) event.target.classList.add("active");
+  // resetar período para o mês inteiro disponível
+  diaIni = 1;
+  diaFim = CONFIG.diaAtual;
+  document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+  document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+  buildSelects();
+  renderAll();
+}
 
 function setGestor(g) {
   gestorAtivo = g;
@@ -453,10 +575,10 @@ function renderKPIs() {
   const meta = g.meta;
   const pctMeta = (real / meta) * 100;
   const media = real / dias;
-  const proj = g.projecao_fixa || Math.round(media * 31);
+  const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
   const pctProj = (proj / meta) * 100;
-  const varAbr = ((proj / g.vendas_abr) - 1) * 100;
-  const ref = (diaFim / 31) * 100;
+  const varAbr = ((proj / g.vendas_ant) - 1) * 100;
+  const ref = (diaFim / CONFIG.diasNoMes) * 100;
 
   document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
   document.getElementById("filtroLabel").textContent = `${diaIni} até ${diaFim}`;
@@ -475,7 +597,9 @@ function renderKPIs() {
 
   const varSign = varAbr >= 0 ? "+" : "";
   document.getElementById("kAbr").textContent = varSign + fmtDec(varAbr) + "%";
-  document.getElementById("kAbrSub").textContent = `vs Abril (${fmt(g.vendas_abr)})`;
+  document.getElementById("kAbrSub").textContent = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
+  const labAbr = document.getElementById("kAbrLabel");
+  if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
   document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
 
   // Conv média
@@ -867,10 +991,10 @@ function renderTabela() {
     const dias = diasNoIntervalo(diaIni, diaFim);
     const pctMeta = ((real / g.meta) * 100).toFixed(1);
     const media = real / dias;
-    const proj = g.projecao_fixa || Math.round(media * 31);
+    const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
     const pctProj = ((proj / g.meta) * 100).toFixed(1);
-    const varAbr = (((proj / g.vendas_abr) - 1) * 100).toFixed(1);
-    const ref = (diaFim / 31) * 100;
+    const varAbr = (((proj / g.vendas_ant) - 1) * 100).toFixed(1);
+    const ref = (diaFim / CONFIG.diasNoMes) * 100;
     const bc = badgeClass(parseFloat(pctMeta), ref);
     const total = g.pf + g.pme + g.adesao;
     const ratio = total > 0 ? real / total : 0;
