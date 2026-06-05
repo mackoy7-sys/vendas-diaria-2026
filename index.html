@@ -231,6 +231,7 @@
     <button class="btn-mes" onclick="setMes('ABRIL')">Abril</button>
     <button class="btn-mes active" onclick="setMes('MAIO')">Maio</button>
     <button class="btn-mes" onclick="setMes('JUNHO')">Junho</button>
+    <button class="btn-mes" onclick="setMes('TRIMESTRE')" style="background:#6c4ed8;color:#fff;border-color:#6c4ed8">2º Trimestre</button>
     <div class="filter-sep"></div>
     <span class="filter-label">Gestor:</span>
     <button class="btn-gestor active" onclick="setGestor('TOTAL')">Total</button>
@@ -283,8 +284,40 @@
     </div>
   </div>
 
+  <!-- PAINEL 2º TRIMESTRE (visível só na visão trimestre) -->
+  <div id="triPanel" style="display:none;">
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Meta vs Realizado — 2º Trimestre (por gestor)</div>
+        <canvas id="chartTriMeta"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📅 Vendas por Mês — Abril / Maio / Junho</div>
+        <canvas id="chartTriMes"></canvas>
+      </div>
+    </div>
+    <div class="table-card" style="margin-top:16px">
+      <div class="chart-title">📋 Consolidado do Trimestre — Meta vs Realizado</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Gestor</th>
+            <th class="td-right">Abril</th>
+            <th class="td-right">Maio</th>
+            <th class="td-right">Junho</th>
+            <th class="td-right">Realizado Trim.</th>
+            <th class="td-right">Meta Trim.</th>
+            <th class="td-right">% Meta</th>
+            <th class="td-right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaTri"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ROW 1: Acumulado + Volume -->
-  <div class="chart-grid-2">
+  <div class="chart-grid-2 normal-view">
     <div class="chart-card">
       <div class="chart-title">📈 Vendas Acumuladas por Dia</div>
       <canvas id="chartAcumulado"></canvas>
@@ -296,7 +329,7 @@
   </div>
 
   <!-- ROW 2: Média produto + Conversão + Mix -->
-  <div class="chart-grid-3">
+  <div class="chart-grid-3 normal-view">
     <div class="chart-card">
       <div class="chart-title">🏷️ Média de Vendas por Produto</div>
       <canvas id="chartProduto"></canvas>
@@ -312,7 +345,7 @@
   </div>
 
   <!-- ROW 3: Leads -->
-  <div class="leads-grid" id="leadsSection">
+  <div class="leads-grid normal-view" id="leadsSection">
     <div class="leads-card">
       <div class="chart-title">📥 Volume Diário de Leads</div>
       <canvas id="chartLeads"></canvas>
@@ -324,7 +357,7 @@
   </div>
 
   <!-- Tabela -->
-  <div class="table-card">
+  <div class="table-card normal-view">
     <div class="chart-title">📋 Resumo por Gestor</div>
     <table>
       <thead>
@@ -523,6 +556,56 @@ const DADOS_MESES = {
 
 };
 
+// ============================================================
+// 2º TRIMESTRE — gerado automaticamente a partir de ABRIL+MAIO+JUNHO
+// Soma de vendas realizadas (acumulado final) e soma das metas.
+// ============================================================
+(function montaTrimestre(){
+  const meses = ["ABRIL","MAIO","JUNHO"];
+  const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
+  const labels = { TOTAL:"Total geral", FABIO:"Fabio", JOSY:"Josy", ADMINISTRATIVO:"Administrativo", ACTIONLINE:"Actionline" };
+
+  const tri = {
+    mesLabel: "2º Trimestre 2026 (Abr+Mai+Jun)",
+    mesAnteriorLabel: "1º Trim.",
+    diasNoMes: meses.reduce((s,m) => s + DADOS_MESES[m].diaAtual, 0),
+    diaAtual: meses.length, // 1 ponto por mês no eixo
+    isTrimestre: true,
+    mesesInclusos: meses,
+    gestores: {}
+  };
+
+  for (const k of gestores) {
+    // venda total de cada mês = último valor do acumulado
+    const porMes = meses.map(m => {
+      const arr = DADOS_MESES[m].gestores[k].acumulado;
+      return arr[arr.length - 1] || 0;
+    });
+    // acumulado trimestral progressivo (Abr, Abr+Mai, Abr+Mai+Jun)
+    const acumProg = [];
+    let soma = 0;
+    porMes.forEach(v => { soma += v; acumProg.push(soma); });
+
+    const metaTri = meses.reduce((s,m) => s + DADOS_MESES[m].gestores[k].meta, 0);
+    const pf  = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].pf||0), 0);
+    const pme = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].pme||0), 0);
+    const ade = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].adesao||0), 0);
+
+    tri.gestores[k] = {
+      label: labels[k],
+      meta: metaTri,
+      acumulado: acumProg,           // [Abr, Abr+Mai, Abr+Mai+Jun]
+      porMes: porMes,                // vendas de cada mês isolado
+      metasPorMes: meses.map(m => DADOS_MESES[m].gestores[k].meta),
+      pf, pme, adesao: ade,
+      conv: null, leads: null,
+      vendas_ant: 0,
+      projecao_fixa: soma            // realizado = projeção (trimestre fechado)
+    };
+  }
+  DADOS_MESES.TRIMESTRE = tri;
+})();
+
 // Mês exibido por padrão ao abrir o dashboard:
 let mesAtivo = "MAIO";
 
@@ -608,6 +691,41 @@ function badgeClass(pct, ref) {
 // ── KPIs ──
 function renderKPIs() {
   const g = CONFIG.gestores[gestorAtivo];
+
+  // ── Modo TRIMESTRE ──
+  if (CONFIG.isTrimestre) {
+    const real = g.projecao_fixa;        // realizado = soma dos meses
+    const meta = g.meta;
+    const pctMeta = (real / meta) * 100;
+    const saldo = real - meta;
+    const mediaMes = real / 3;
+
+    document.getElementById("diaAtualLabel").textContent = "Abr+Mai+Jun";
+    document.getElementById("filtroLabel").textContent = "Trimestre completo";
+
+    document.getElementById("kVendas").textContent = fmt(real);
+    document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>`;
+
+    document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
+    document.getElementById("kMetaSub").innerHTML = `Meta trimestral acumulada`;
+
+    document.getElementById("kProj").textContent = (saldo>=0?'+':'') + fmt(saldo);
+    document.getElementById("kProjSub").innerHTML = saldo>=0 ? "acima da meta" : "abaixo da meta";
+
+    document.getElementById("kMedia").textContent = fmtDec(mediaMes, 0);
+    document.getElementById("kMediaSub").textContent = "vendas/mês (3 meses)";
+
+    document.getElementById("kAbr").textContent = fmt(g.porMes[2]);
+    document.getElementById("kAbrSub").textContent = "vendas em Junho";
+    const labAbr = document.getElementById("kAbrLabel");
+    if (labAbr) labAbr.textContent = "Último mês (Jun)";
+    document.getElementById("kAbr").style.color = "#6c4ed8";
+
+    document.getElementById("kConv").textContent = "—";
+    document.getElementById("kConvSub").textContent = "n/d no trimestre";
+    return;
+  }
+
   const real = vendas(gestorAtivo, diaIni, diaFim);
   const dias = diasNoIntervalo(diaIni, diaFim);
   const meta = g.meta;
@@ -1061,14 +1179,100 @@ Chart.register(ChartDataLabels);
 
 // ── RENDER ALL ──
 function renderAll() {
+  const isTri = !!CONFIG.isTrimestre;
+  // alterna blocos
+  document.querySelectorAll(".normal-view").forEach(el => el.style.display = isTri ? "none" : "");
+  document.getElementById("triPanel").style.display = isTri ? "" : "none";
+  // desabilita seletor de período no trimestre
+  document.getElementById("diaIni").disabled = isTri;
+  document.getElementById("diaFim").disabled = isTri;
+
   renderKPIs();
-  renderAcumulado();
-  renderVolume();
-  renderProduto();
-  renderConv();
-  renderMix();
-  renderLeads();
-  renderTabela();
+  if (isTri) {
+    renderTrimestre();
+  } else {
+    renderAcumulado();
+    renderVolume();
+    renderProduto();
+    renderConv();
+    renderMix();
+    renderLeads();
+    renderTabela();
+  }
+}
+
+// ── RENDER TRIMESTRE ──
+function renderTrimestre() {
+  const meses = ["Abril","Maio","Junho"];
+  const gestores = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+
+  // Gráfico 1: Meta vs Realizado por gestor (barras agrupadas)
+  destroyChart("triMeta");
+  const labelsG = gestores.map(k => CONFIG.gestores[k].label);
+  const realizadoG = gestores.map(k => CONFIG.gestores[k].projecao_fixa);
+  const metaG = gestores.map(k => CONFIG.gestores[k].meta);
+  charts["triMeta"] = new Chart(document.getElementById("chartTriMeta"), {
+    type: "bar",
+    data: {
+      labels: labelsG,
+      datasets: [
+        { label: "Realizado", data: realizadoG, backgroundColor: "#185FA5", borderRadius: 4,
+          datalabels: { anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#185FA5",
+            formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } },
+        { label: "Meta", data: metaG, backgroundColor: "rgba(29,158,117,.55)", borderRadius: 4,
+          datalabels: { anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#1D9E75",
+            formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend:{ labels:{font:{size:11}} }, datalabels:{} },
+      scales: { x:{ ticks:{font:{size:10}} }, y:{ beginAtZero:true, ticks:{font:{size:10}} } }
+    }
+  });
+
+  // Gráfico 2: Vendas por mês (Abr/Mai/Jun) do gestor ativo
+  destroyChart("triMes");
+  const g = CONFIG.gestores[gestorAtivo];
+  charts["triMes"] = new Chart(document.getElementById("chartTriMes"), {
+    type: "bar",
+    data: {
+      labels: meses,
+      datasets: [{ label: "Vendas — " + g.label, data: g.porMes,
+        backgroundColor: ["#185FA5","#1D9E75","#6c4ed8"], borderRadius: 5,
+        datalabels: { anchor:"end", align:"top", font:{size:12,weight:"700"}, color:"#333",
+          formatter: v => fmt(v) } }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend:{display:false}, datalabels:{} },
+      scales: { x:{ ticks:{font:{size:11}} }, y:{ beginAtZero:true, ticks:{font:{size:10}} } }
+    }
+  });
+
+  // Tabela consolidada
+  const tbody = document.getElementById("tabelaTri");
+  tbody.innerHTML = "";
+  for (const k of gestores) {
+    const gg = CONFIG.gestores[k];
+    const realizado = gg.projecao_fixa;
+    const pctMeta = ((realizado / gg.meta) * 100).toFixed(1);
+    const saldo = realizado - gg.meta;
+    const bc = parseFloat(pctMeta) >= 100 ? "green" : parseFloat(pctMeta) >= 90 ? "yellow" : "red";
+    const tr = document.createElement("tr");
+    if (k === "TOTAL") tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>${gg.label}</td>
+      <td class="td-right num">${fmt(gg.porMes[0])}</td>
+      <td class="td-right num">${fmt(gg.porMes[1])}</td>
+      <td class="td-right num">${fmt(gg.porMes[2])}</td>
+      <td class="td-right num">${fmt(realizado)}</td>
+      <td class="td-right num">${fmt(gg.meta)}</td>
+      <td class="td-right"><span class="badge ${bc}">${pctMeta}%</span></td>
+      <td class="td-right num" style="color:${saldo>=0?'#1D9E75':'#D85A30'}">${saldo>=0?'+':''}${fmt(saldo)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
 }
 
 // Inicia
