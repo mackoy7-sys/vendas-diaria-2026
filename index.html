@@ -144,8 +144,17 @@
       box-shadow: var(--shadow);
     }
     .chart-card.full { grid-column: 1 / -1; }
-    .chart-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px; }
-    .chart-card canvas { max-height: 240px; }
+    .chart-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .chart-card canvas { max-height: 420px; }
+
+    /* Gráficos principais em largura total (um por linha) para melhor leitura */
+    .chart-grid-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-grid-1 .chart-card canvas { max-height: 380px; }
 
     /* LEADS CARD */
     .leads-grid {
@@ -160,7 +169,7 @@
       padding: 16px 18px;
       box-shadow: var(--shadow);
     }
-    .leads-card canvas { max-height: 210px; }
+    .leads-card canvas { max-height: 340px; }
 
     /* TABELA */
     .table-card {
@@ -316,15 +325,15 @@
     </div>
   </div>
 
-  <!-- ROW 1: Acumulado + Volume -->
-  <div class="chart-grid-2 normal-view">
+  <!-- ROW 1: Acumulado + Volume (largura total para melhor visualização) -->
+  <div class="chart-grid-1 normal-view">
     <div class="chart-card">
       <div class="chart-title">📈 Vendas Acumuladas por Dia</div>
-      <canvas id="chartAcumulado"></canvas>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartAcumulado"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">📊 Volume de Vendas por Dia</div>
-      <canvas id="chartVolume"></canvas>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartVolume"></canvas></div>
     </div>
   </div>
 
@@ -453,46 +462,46 @@ const DADOS_MESES = {
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 11600,
-        acumulado: [509,591,665,1061,1510,1936,2404,2750,2904,3073,
-                    3486,3976,4434,4807,5182,5304,5401,5854,6351,6817,
-                    7231,7575,7770,7889,8323,8746,9162,9549,10021,10310,10557],
-        pf: 6433, pme: 3659, adesao: 465,
-        conv: [26.5,4.4,6.5,5.5,6.9,7.2,9.6,7.9,6.4,11.5,
-               7.9,8.2,9.7,7.0,8.6,5.9,4.9,5.5,8.9,8.5,
-               8.5,8.2,9.2,8.1,8.4,8.3,7.8,6.9,11.1,12.4,16.6],
-        leads: [1922,1875,1140,7145,6526,5896,4853,4390,2420,1478,
-                5720,5486,4887,5321,4344,2074,2031,8256,5596,5535,
-                5009,4249,2182,1428,5209,5018,5447,5628,4260,2283,1454],
-        vendas_ant: 8996, projecao_fixa: 10557
+        acumulado: [509,591,665,1060,1509,1933,2400,2744,2898,3068,
+                    3517,3967,4425,4798,5173,5295,5392,5842,6339,6806,
+                    7217,7564,7759,7875,8310,8729,9153,9555,10041,10327,10569],
+        pf: 6417, pme: 3686, adesao: 466,
+        conv: [26.5,4.4,6.5,5.5,6.9,7.2,9.6,7.6,6.1,11.3,
+               7.6,7.9,9.2,7.0,8.6,5.9,4.9,5.4,8.9,8.4,
+               8.1,8.0,9.1,7.8,7.1,11.4,12.5,16.5,8.3,8.1,8.1],
+        leads: [1924,1878,1140,7158,6528,5909,4865,4525,2533,1509,
+                5873,5683,4995,5356,4351,2085,2036,8268,5607,5542,
+                5093,4334,2251,1438,5219,5039,5453,5648,4271,2295,1468],
+        vendas_ant: 8996, projecao_fixa: 10569
       },
       FABIO: {
         label: "Fabio", meta: 6000,
-        acumulado: [483,526,568,765,1002,1199,1449,1618,1735,1848,
-                    2071,2337,2563,2747,2946,3025,3103,3317,3600,3851,
-                    4081,4251,4389,4467,4691,4906,5165,5366,5613,5824,5984],
-        pf: 2384, pme: 3188, adesao: 412,
+        acumulado: [483,526,568,765,1002,1199,1449,1616,1732,1846,
+                    2068,2333,2559,2743,2942,3021,3099,3311,3594,3846,
+                    4076,4246,4384,4462,4686,4901,5163,5375,5633,5844,6004],
+        pf: 2380, pme: 3211, adesao: 413,
         conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
       },
       JOSY: {
         label: "Josy", meta: 4700,
-        acumulado: [20,51,64,233,416,608,801,952,986,1038,
-                    1211,1416,1625,1782,1924,1959,1972,2183,2385,2564,
-                    2731,2879,2921,2952,3150,3346,3487,3662,3857,3919,3994],
-        pf: 3471, pme: 471, adesao: 52,
+        acumulado: [20,51,64,232,415,605,797,948,983,1035,
+                    1245,1412,1621,1778,1920,1955,1968,2178,2380,2558,
+                    2724,2872,2914,2945,3143,3334,3478,3652,3848,3912,3988],
+        pf: 3461, pme: 475, adesao: 52,
         conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 700,
         acumulado: [6,14,33,60,88,124,148,171,174,178,
-                    192,210,229,261,293,301,307,332,344,380,
-                    395,421,436,443,455,467,482,492,519,530,535],
-        pf: 534, pme: 1, adesao: 0,
+                    192,209,228,260,292,300,306,331,343,378,
+                    393,419,434,441,453,465,480,491,518,529,533],
+        pf: 532, pme: 1, adesao: 0,
         conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
       },
       ACTIONLINE: {
         label: "Actionline", meta: 200,
         acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,22,
-                    24,24,24,27,27,27,28,29,32,37,44],
+                    24,24,24,27,27,27,28,29,32,42,44],
         pf: 44, pme: 0, adesao: 0,
         conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
       }
@@ -507,48 +516,48 @@ const DADOS_MESES = {
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 12460,
-        acumulado: [474,880,1304,1397,1713,1783,1843,1865,1873,1925,
-                    1925,1930,1939,1957,1964,1967,1967,1967,1967,1967,
-                    1967,1967,1967,1973,1973,1978,1979,1981,1981,1981],
-        pf: 1245, pme: 563, adesao: 173,
-        conv: [6.8,7.2,9.8,2.5,7.7,4.9,11.9,null,null,null,
+        acumulado: [485,905,1342,1437,1776,1864,1945,2351,2773,2883,
+                    2891,2904,2932,2950,2957,2960,2963,2963,2963,2965,
+                    2965,2965,2965,2971,2971,2976,2977,2979,2979,2979],
+        pf: 1950, pme: 852, adesao: 177,
+        conv: [7.0,7.4,10.1,2.5,7.5,2.6,7.6,9.5,9.1,null,
                null,null,null,null,null,null,null,null,null,null,
                null,null,null,null,null,null,null,null,null,null],
-        leads: [6933,5642,4321,3700,4122,1435,504,null,null,null,
+        leads: [6967,5679,4342,3749,4521,3420,1061,4287,4658,null,
                 null,null,null,null,null,null,null,null,null,null,
                 null,null,null,null,null,null,null,null,null,null],
-        vendas_ant: 10557, projecao_fixa: 8693
+        vendas_ant: 10569, projecao_fixa: 9098
       },
       FABIO: {
         label: "Fabio", meta: 6600,
-        acumulado: [258,440,659,708,850,894,930,947,955,989,
-                    989,994,1003,1021,1028,1028,1028,1028,1028,1028,
-                    1028,1028,1028,1034,1034,1039,1040,1042,1042,1042],
-        pf: 463, pme: 448, adesao: 131,
-        conv: null, leads: null, vendas_ant: 5984, projecao_fixa: null
+        acumulado: [263,453,684,733,894,947,985,1154,1354,1436,
+                    1444,1457,1483,1501,1508,1508,1511,1511,1511,1513,
+                    1513,1513,1513,1519,1519,1524,1525,1527,1527,1527],
+        pf: 735, pme: 660, adesao: 132,
+        conv: null, leads: null, vendas_ant: 6004, projecao_fixa: null
       },
       JOSY: {
         label: "Josy", meta: 4960,
-        acumulado: [186,376,538,575,725,746,764,769,769,787,
-                    787,787,787,787,787,790,790,790,790,790,
-                    790,790,790,790,790,790,790,790,790,790],
-        pf: 638, pme: 115, adesao: 37,
-        conv: null, leads: null, vendas_ant: 3994, projecao_fixa: null
+        acumulado: [192,388,551,590,747,775,808,998,1192,1219,
+                    1219,1219,1221,1221,1221,1224,1224,1224,1224,1224,
+                    1224,1224,1224,1224,1224,1224,1224,1224,1224,1224],
+        pf: 992, pme: 192, adesao: 40,
+        conv: null, leads: null, vendas_ant: 3988, projecao_fixa: null
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 600,
-        acumulado: [26,54,84,90,108,112,118,118,118,118,
-                    118,118,118,118,118,118,118,118,118,118,
-                    118,118,118,118,118,118,118,118,118,118],
-        pf: 113, pme: 0, adesao: 5,
-        conv: null, leads: null, vendas_ant: 535, projecao_fixa: null
+        acumulado: [26,54,84,90,105,110,120,160,181,182,
+                    182,182,182,182,182,182,182,182,182,182,
+                    182,182,182,182,182,182,182,182,182,182],
+        pf: 177, pme: 0, adesao: 5,
+        conv: null, leads: null, vendas_ant: 533, projecao_fixa: null
       },
       ACTIONLINE: {
         label: "Actionline", meta: 300,
-        acumulado: [4,10,23,24,30,31,31,31,31,31,
-                    31,31,31,31,31,31,31,31,31,31,
-                    31,31,31,31,31,31,31,31,31,31],
-        pf: 31, pme: 0, adesao: 0,
+        acumulado: [4,10,23,24,30,32,32,39,46,46,
+                    46,46,46,46,46,46,46,46,46,46,
+                    46,46,46,46,46,46,46,46,46,46],
+        pf: 46, pme: 0, adesao: 0,
         conv: null, leads: null, vendas_ant: 44, projecao_fixa: null
       }
     }
@@ -818,8 +827,14 @@ function renderAcumulado() {
   const data = getAcumData();
   const meta = g.meta;
   const metaLine = labels.map(() => meta);
-  const mediaVal = (data[data.length-1]) / (diaFim - diaIni + 1);
-  const projecaoLine = labels.map((_,i) => Math.round(mediaVal * (diaIni + i)));
+  // Projeção: usa projecao_fixa se houver, senão estima por média/dia × dias do mês.
+  // A linha tracejada cresce linearmente do dia 1 até atingir a projeção no fim do mês.
+  const real = data[data.length-1] - (acum(gestorAtivo, diaIni-1) || 0);
+  const diasDecorridos = diaFim - diaIni + 1;
+  const mediaDia = diasDecorridos > 0 ? real / diasDecorridos : 0;
+  const projMes = g.projecao_fixa || Math.round(mediaDia * CONFIG.diasNoMes);
+  const projDia = projMes / CONFIG.diasNoMes;
+  const projecaoLine = labels.map((_,i) => Math.round(projDia * (diaIni + i)));
 
   const showAllLabels = (diaFim - diaIni + 1) <= 15;
   charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
@@ -852,13 +867,13 @@ function renderAcumulado() {
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: false,
       layout: { padding: { right: 55 } },
       plugins: {
         legend: { labels: { font: { size: 11 } } },
         datalabels: {}
       },
-      scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } } }
+      scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } }
     }
   });
 }
@@ -893,12 +908,12 @@ function renderVolume() {
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { labels: { font: { size: 11 } } },
         datalabels: {}
       },
-      scales: { x: { stacked: true, ticks: { font: { size: 10 }, maxTicksLimit: 12 } }, y: { stacked: true, ticks: { font: { size: 10 } } } }
+      scales: { x: { stacked: true, ticks: { font: { size: 10 }, maxTicksLimit: 31 } }, y: { stacked: true, ticks: { font: { size: 10 } } } }
     }
   });
 }
