@@ -387,6 +387,26 @@
       <tbody id="tabela"></tbody>
     </table>
   </div>
+
+  <!-- Tabela Leads por Origem (GUP) -->
+  <div class="table-card normal-view" id="cardOrigem">
+    <div class="chart-title">🎯 Conversão de Leads por Origem — GUP</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Origem</th>
+          <th class="td-right">Leads</th>
+          <th class="td-right">Produtivos</th>
+          <th class="td-right">% Prod.</th>
+          <th class="td-right">Contratos</th>
+          <th class="td-right">Vidas</th>
+          <th class="td-right">Conv. Contr.</th>
+          <th class="td-right">Conv. Vidas</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaOrigem"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
@@ -614,6 +634,29 @@ const DADOS_MESES = {
   }
   DADOS_MESES.TRIMESTRE = tri;
 })();
+
+// ============================================================
+//  LEADS POR ORIGEM (GUP) — snapshot mensal, fonte: build_leads_por_origem.py
+//  Contagens cruas; os % são recalculados em renderTabelaOrigem().
+//  Para novo mês: adicionar nova chave (ex.: MAIO: [...]).
+// ============================================================
+const DADOS_LEADS_ORIGEM = {
+  JUNHO: [
+    {origem:"CARRINHO ABANDONADO CONECTA", leads:10998, prod:6000, contratos:502, vidas:598},
+    {origem:"CAMPANHAS MARKETING", leads:9610, prod:2830, contratos:84, vidas:102},
+    {origem:"CONECTA", leads:9520, prod:5893, contratos:442, vidas:522},
+    {origem:"CARRINHO ABANDONADO", leads:5723, prod:2732, contratos:209, vidas:238},
+    {origem:"ESPONTÂNEO", leads:4870, prod:3201, contratos:168, vidas:212},
+    {origem:"EUGENIA", leads:4194, prod:2504, contratos:393, vidas:469},
+    {origem:"REPIQUE COMERCIAL", leads:4090, prod:1919, contratos:99, vidas:134},
+    {origem:"VPC", leads:1526, prod:550, contratos:22, vidas:24},
+    {origem:"OUTROS", leads:1377, prod:848, contratos:54, vidas:68},
+    {origem:"LEADS FRIOS", leads:69, prod:34, contratos:6, vidas:6},
+    {origem:"MÍDIA", leads:17, prod:9, contratos:2, vidas:2},
+    {origem:"TELEVENDAS", leads:5, prod:3, contratos:1, vidas:1},
+    {origem:"FLAMENGO", leads:2, prod:0, contratos:0, vidas:0}
+  ]
+};
 
 // Mês exibido por padrão ao abrir o dashboard:
 let mesAtivo = "MAIO";
@@ -1226,6 +1269,37 @@ function renderTabela() {
   }
 }
 
+// ── TABELA LEADS POR ORIGEM (GUP) ──
+function renderTabelaOrigem() {
+  const card = document.getElementById("cardOrigem");
+  const dados = DADOS_LEADS_ORIGEM[mesAtivo];
+  if (!dados) { card.style.display = "none"; return; }   // meses sem dados (Abril/Maio)
+  card.style.display = "";
+  const tbody = document.getElementById("tabelaOrigem");
+  tbody.innerHTML = "";
+  const pct = (a, b) => b ? (a / b * 100) : 0;
+  const linha = (o, bold = false) => {
+    const tr = document.createElement("tr");
+    if (bold) tr.style.fontWeight = "700";
+    tr.innerHTML =
+      `<td>${o.origem}</td>` +
+      `<td class="td-right num">${fmt(o.leads)}</td>` +
+      `<td class="td-right num">${fmt(o.prod)}</td>` +
+      `<td class="td-right">${fmtDec(pct(o.prod, o.leads))}%</td>` +
+      `<td class="td-right num">${fmt(o.contratos)}</td>` +
+      `<td class="td-right num">${fmt(o.vidas)}</td>` +
+      `<td class="td-right">${fmtDec(pct(o.contratos, o.leads))}%</td>` +
+      `<td class="td-right">${fmtDec(pct(o.vidas, o.leads))}%</td>`;
+    tbody.appendChild(tr);
+  };
+  dados.forEach(o => linha(o));
+  const t = dados.reduce((a, o) => ({
+    origem: "TOTAL GERAL", leads: a.leads + o.leads, prod: a.prod + o.prod,
+    contratos: a.contratos + o.contratos, vidas: a.vidas + o.vidas
+  }), {leads: 0, prod: 0, contratos: 0, vidas: 0});
+  linha(t, true);
+}
+
 // Registra plugin globalmente
 Chart.register(ChartDataLabels);
 
@@ -1250,6 +1324,7 @@ function renderAll() {
     renderMix();
     renderLeads();
     renderTabela();
+    renderTabelaOrigem();
   }
 }
 
