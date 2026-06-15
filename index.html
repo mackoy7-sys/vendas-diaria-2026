@@ -512,52 +512,52 @@ const DADOS_MESES = {
     mesLabel: "Junho 2026",
     mesAnteriorLabel: "Maio",
     diasNoMes: 30,
-    diaAtual: 30,
+    diaAtual: 14,
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 12460,
-        acumulado: [485,905,1342,1437,1776,1864,1945,2351,2773,2883,
-                    2891,2904,2932,2950,2957,2960,2963,2963,2963,2965,
-                    2965,2965,2965,2971,2971,2976,2977,2979,2979,2979],
-        pf: 1950, pme: 852, adesao: 177,
-        conv: [7.0,7.4,10.1,2.5,7.5,2.6,7.6,9.5,9.1,null,
-               null,null,null,null,null,null,null,null,null,null,
+        acumulado: [515,934,1370,1468,1809,1892,1977,2395,2842,3320,
+                    3720,3965,4071,4161,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 2802, pme: 1150, adesao: 209,
+        conv: [7.3,7.3,10.0,2.6,7.5,2.4,7.7,9.5,9.4,10.3,
+               11.1,10.2,8.5,9.7,null,null,null,null,null,null,
                null,null,null,null,null,null,null,null,null,null],
-        leads: [6967,5679,4342,3749,4521,3420,1061,4287,4658,null,
-                null,null,null,null,null,null,null,null,null,null,
+        leads: [7038,5719,4370,3765,4573,3461,1109,4379,4768,4637,
+                3619,2391,1240,932,null,null,null,null,null,null,
                 null,null,null,null,null,null,null,null,null,null],
-        vendas_ant: 10569, projecao_fixa: 9098
+        vendas_ant: 10563, projecao_fixa: 8653
       },
       FABIO: {
         label: "Fabio", meta: 6600,
-        acumulado: [263,453,684,733,894,947,985,1154,1354,1436,
-                    1444,1457,1483,1501,1508,1508,1511,1511,1511,1513,
-                    1513,1513,1513,1519,1519,1524,1525,1527,1527,1527],
-        pf: 735, pme: 660, adesao: 132,
-        conv: null, leads: null, vendas_ant: 6004, projecao_fixa: null
+        acumulado: [296,486,720,769,929,979,1021,1202,1419,1685,
+                    1890,2009,2087,2158,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 1102, pme: 893, adesao: 163,
+        conv: null, leads: null, vendas_ant: 6000, projecao_fixa: null
       },
       JOSY: {
         label: "Josy", meta: 4960,
-        acumulado: [192,388,551,590,747,775,808,998,1192,1219,
-                    1219,1219,1221,1221,1221,1224,1224,1224,1224,1224,
-                    1224,1224,1224,1224,1224,1224,1224,1224,1224,1224],
-        pf: 992, pme: 192, adesao: 40,
-        conv: null, leads: null, vendas_ant: 3988, projecao_fixa: null
+        acumulado: [188,383,542,584,744,770,804,994,1200,1377,
+                    1534,1636,1660,1675,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 1378, pme: 257, adesao: 40,
+        conv: null, leads: null, vendas_ant: 3986, projecao_fixa: null
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 600,
-        acumulado: [26,54,84,90,105,110,120,160,181,182,
-                    182,182,182,182,182,182,182,182,182,182,
-                    182,182,182,182,182,182,182,182,182,182],
-        pf: 177, pme: 0, adesao: 5,
+        acumulado: [27,55,85,91,106,111,120,160,177,201,
+                    231,254,258,262,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 256, pme: 0, adesao: 6,
         conv: null, leads: null, vendas_ant: 533, projecao_fixa: null
       },
       ACTIONLINE: {
         label: "Actionline", meta: 300,
-        acumulado: [4,10,23,24,30,32,32,39,46,46,
-                    46,46,46,46,46,46,46,46,46,46,
-                    46,46,46,46,46,46,46,46,46,46],
-        pf: 46, pme: 0, adesao: 0,
+        acumulado: [4,10,23,24,30,32,32,39,46,57,
+                    65,66,66,66,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 66, pme: 0, adesao: 0,
         conv: null, leads: null, vendas_ant: 44, projecao_fixa: null
       }
     }
@@ -742,7 +742,22 @@ function renderKPIs() {
   const media = real / dias;
   const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
   const pctProj = (proj / meta) * 100;
-  const varAbr = ((proj / g.vendas_ant) - 1) * 100;
+  // Var vs mês anterior — comparação no MESMO período (acumulado até o dia),
+  // e não contra o total fechado do mês anterior.
+  const PREV_MES = { JUNHO: "MAIO", MAIO: "ABRIL" };
+  const prevKey = PREV_MES[mesAtivo];
+  const realAteDia = acum(gestorAtivo, diaFim);
+  let baseAnt = g.vendas_ant;
+  let subAntTxt = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
+  let varAbr;
+  if (prevKey && DADOS_MESES[prevKey] && DADOS_MESES[prevKey].gestores[gestorAtivo]) {
+    const arrAnt = DADOS_MESES[prevKey].gestores[gestorAtivo].acumulado;
+    baseAnt = arrAnt[Math.min(diaFim, arrAnt.length) - 1] || 0;
+    subAntTxt = `vs ${CONFIG.mesAnteriorLabel} até dia ${diaFim} (${fmt(baseAnt)})`;
+    varAbr = baseAnt > 0 ? ((realAteDia / baseAnt) - 1) * 100 : 0;
+  } else {
+    varAbr = g.vendas_ant > 0 ? ((proj / g.vendas_ant) - 1) * 100 : 0;
+  }
   const ref = (diaFim / CONFIG.diasNoMes) * 100;
 
   document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
@@ -762,7 +777,7 @@ function renderKPIs() {
 
   const varSign = varAbr >= 0 ? "+" : "";
   document.getElementById("kAbr").textContent = varSign + fmtDec(varAbr) + "%";
-  document.getElementById("kAbrSub").textContent = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
+  document.getElementById("kAbrSub").textContent = subAntTxt;
   const labAbr = document.getElementById("kAbrLabel");
   if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
   document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
@@ -823,20 +838,41 @@ function destroyChart(id) {
 function renderAcumulado() {
   destroyChart("acumulado");
   const g = CONFIG.gestores[gestorAtivo];
-  const labels = getDayLabels();
-  const data = getAcumData();
   const meta = g.meta;
-  const metaLine = labels.map(() => meta);
-  // Projeção: usa projecao_fixa se houver, senão estima por média/dia × dias do mês.
-  // A linha tracejada cresce linearmente do dia 1 até atingir a projeção no fim do mês.
-  const real = data[data.length-1] - (acum(gestorAtivo, diaIni-1) || 0);
-  const diasDecorridos = diaFim - diaIni + 1;
-  const mediaDia = diasDecorridos > 0 ? real / diasDecorridos : 0;
-  const projMes = g.projecao_fixa || Math.round(mediaDia * CONFIG.diasNoMes);
-  const projDia = projMes / CONFIG.diasNoMes;
-  const projecaoLine = labels.map((_,i) => Math.round(projDia * (diaIni + i)));
+  const endMonth = CONFIG.diasNoMes;
+  const start = diaIni;
+  const lastReal = Math.min(diaFim, CONFIG.diaAtual);
 
-  const showAllLabels = (diaFim - diaIni + 1) <= 15;
+  // Eixo X: do dia inicial do filtro até o FIM do mês (a projeção precisa chegar lá)
+  const labels = [];
+  for (let d = start; d <= endMonth; d++) labels.push(`Dia ${d}`);
+  const idxLastReal = lastReal - start;   // último ponto com dado real
+  const idxEnd = labels.length - 1;       // fim do mês
+
+  // Acumulado real: preenche até lastReal, null depois
+  const data = labels.map((_, i) => {
+    const d = start + i;
+    return d <= lastReal ? acum(gestorAtivo, d) : null;
+  });
+
+  // Projeção do mês (acumulado projetado p/ o fim do mês)
+  const acumReal = acum(gestorAtivo, lastReal);
+  const projMes = g.projecao_fixa || (lastReal > 0 ? Math.round(acumReal / lastReal * endMonth) : 0);
+
+  // Linha de projeção: parte do último ponto real e cresce até projMes no último dia.
+  // (null antes de lastReal => a tracejada só aparece como continuação do real)
+  const projecaoLine = labels.map((_, i) => {
+    const d = start + i;
+    if (d < lastReal) return null;
+    if (d === lastReal) return acumReal;
+    if (endMonth <= lastReal) return acumReal;
+    const frac = (d - lastReal) / (endMonth - lastReal);
+    return Math.round(acumReal + (projMes - acumReal) * frac);
+  });
+
+  const metaLine = labels.map(() => meta);
+  const kfmt = v => v == null ? "" : (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v);
+
   charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
     type: "line",
     data: {
@@ -844,24 +880,24 @@ function renderAcumulado() {
       datasets: [
         { label: "Acumulado", data, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5,
           datalabels: {
-            display: ctx => showAllLabels || ctx.dataIndex === data.length - 1,
+            display: ctx => ctx.dataIndex === idxLastReal,
             align: "top", anchor: "top",
-            font: { size: 9, weight: "600" }, color: "#185FA5",
-            formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v
+            font: { size: 10, weight: "700" }, color: "#185FA5",
+            formatter: kfmt
           }
         },
         { label: "Meta", data: metaLine, borderColor: "#1D9E75", borderDash: [6,3], borderWidth: 1.5, pointRadius: 0, fill: false,
           datalabels: {
-            display: ctx => ctx.dataIndex === metaLine.length - 1,
+            display: ctx => ctx.dataIndex === idxEnd,
             align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#1D9E75",
-            formatter: v => "Meta: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
+            formatter: v => "Meta: " + kfmt(v)
           }
         },
-        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false,
+        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false, spanGaps: true,
           datalabels: {
-            display: ctx => ctx.dataIndex === projecaoLine.length - 1,
-            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#E8623A",
-            formatter: v => "Proj: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
+            display: ctx => ctx.dataIndex === idxEnd,
+            align: "top", anchor: "end", font: { size: 10, weight:"700" }, color: "#E8623A",
+            formatter: v => "Proj: " + kfmt(v)
           }
         }
       ]
@@ -871,7 +907,8 @@ function renderAcumulado() {
       layout: { padding: { right: 55 } },
       plugins: {
         legend: { labels: { font: { size: 11 } } },
-        datalabels: {}
+        datalabels: {},
+        tooltip: { callbacks: { label: ctx => ctx.raw == null ? null : `${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
       },
       scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } }
     }
