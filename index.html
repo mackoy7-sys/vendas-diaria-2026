@@ -365,6 +365,49 @@
     </div>
   </div>
 
+  <!-- ROW 3b: Leads por Origem e por Tipo (mês completo) -->
+  <div class="leads-grid normal-view" id="leadsOrigemSection">
+    <div class="leads-card">
+      <div class="chart-title">🎯 Leads por Origem (mês)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartLeadsOrigem"></canvas></div>
+    </div>
+    <div class="leads-card">
+      <div class="chart-title">🏷️ Leads por Tipo (mês)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartLeadsTipo"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3c: Tabela de Conversão por Origem -->
+  <div class="table-card normal-view" id="conversaoSection">
+    <div class="chart-title">📈 Conversão por Origem (mês)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Origem</th>
+          <th class="td-right">Leads Totais</th>
+          <th class="td-right">Leads Produtivos</th>
+          <th class="td-right">% Produtivos</th>
+          <th class="td-right">Contratos</th>
+          <th class="td-right">Vidas</th>
+          <th class="td-right">Conv. Contratos</th>
+          <th class="td-right">Conv. Vidas</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaConversao"></tbody>
+    </table>
+  </div>
+
+  <!-- ROW 3d: Entrada de Leads por Origem por Dia -->
+  <div class="table-card normal-view" id="leadsDiaSection">
+    <div class="chart-title">📥 Entrada de Leads por Origem por Dia (mês)</div>
+    <div style="overflow-x:auto;">
+      <table id="tabelaLeadsDia" style="font-size:11px;white-space:nowrap;">
+        <thead id="leadsDiaHead"></thead>
+        <tbody id="leadsDiaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Tabela -->
   <div class="table-card normal-view">
     <div class="chart-title">📋 Resumo por Gestor</div>
@@ -385,26 +428,6 @@
         </tr>
       </thead>
       <tbody id="tabela"></tbody>
-    </table>
-  </div>
-
-  <!-- Tabela Leads por Origem (GUP) -->
-  <div class="table-card normal-view" id="cardOrigem">
-    <div class="chart-title">🎯 Conversão de Leads por Origem — GUP</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Origem</th>
-          <th class="td-right">Leads</th>
-          <th class="td-right">Produtivos</th>
-          <th class="td-right">% Prod.</th>
-          <th class="td-right">Contratos</th>
-          <th class="td-right">Vidas</th>
-          <th class="td-right">Conv. Contr.</th>
-          <th class="td-right">Conv. Vidas</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaOrigem"></tbody>
     </table>
   </div>
 </div>
@@ -532,51 +555,106 @@ const DADOS_MESES = {
     mesLabel: "Junho 2026",
     mesAnteriorLabel: "Maio",
     diasNoMes: 30,
-    diaAtual: 14,
+    diaAtual: 30,
+    leadsOrigem: [
+      { label: "Carrinho Aband. Conecta", valor: 10998 },
+      { label: "Campanhas Marketing", valor: 9610 },
+      { label: "Conecta", valor: 9520 },
+      { label: "Carrinho Abandonado", valor: 5723 },
+      { label: "Espontâneo", valor: 4870 },
+      { label: "Eugenia", valor: 4194 },
+      { label: "Repique Comercial", valor: 4090 },
+      { label: "VPC", valor: 1526 },
+      { label: "Outros", valor: 1377 },
+      { label: "Leads Frios", valor: 69 },
+      { label: "Mídia", valor: 17 },
+      { label: "Televendas", valor: 5 },
+      { label: "Flamengo", valor: 2 }
+    ],
+    leadsTipo: [
+      { label: "PF", valor: 36433 },
+      { label: "Outros", valor: 8264 },
+      { label: "PME", valor: 6557 },
+      { label: "Adesão", valor: 429 },
+      { label: "PPO", valor: 318 }
+    ],
+    leadsConversao: [
+      { origem: "Carrinho Abandonado Conecta", leads: 9641, produtivos: 5342, contratos: 440, vidas: 511 },
+      { origem: "Campanhas Marketing", leads: 8976, produtivos: 2795, contratos: 72, vidas: 86 },
+      { origem: "Conecta", leads: 8501, produtivos: 5340, contratos: 388, vidas: 446 },
+      { origem: "Carrinho Abandonado", leads: 5235, produtivos: 2591, contratos: 191, vidas: 211 },
+      { origem: "Espontâneo", leads: 4341, produtivos: 2861, contratos: 152, vidas: 184 },
+      { origem: "Repique Comercial", leads: 3909, produtivos: 1875, contratos: 89, vidas: 115 },
+      { origem: "Eugenia", leads: 3840, produtivos: 2333, contratos: 352, vidas: 408 },
+      { origem: "VPC", leads: 1415, produtivos: 515, contratos: 21, vidas: 23 },
+      { origem: "Outros", leads: 1186, produtivos: 756, contratos: 50, vidas: 64 },
+      { origem: "Leads Frios", leads: 63, produtivos: 32, contratos: 5, vidas: 5 },
+      { origem: "Mídia", leads: 18, produtivos: 11, contratos: 2, vidas: 2 },
+      { origem: "Televendas", leads: 5, produtivos: 4, contratos: 0, vidas: 0 },
+      { origem: "Flamengo", leads: 2, produtivos: 0, contratos: 0, vidas: 0 }
+    ],
+    leadsOrigemDia: {
+      dias: 14,
+      origens: [
+        { origem: "Carrinho Abandonado Conecta", dias: [1135,1021,1046,603,872,302,184,1260,1234,1118,943,682,375,223] },
+        { origem: "Campanhas Marketing", dias: [1102,556,348,1520,1350,1801,407,283,505,712,429,325,181,91] },
+        { origem: "Conecta", dias: [1319,837,815,460,676,337,139,1225,971,989,763,417,295,277] },
+        { origem: "Carrinho Abandonado", dias: [566,607,540,412,521,401,138,534,570,504,436,244,137,113] },
+        { origem: "Espontâneo", dias: [1054,809,405,132,172,99,71,312,372,473,440,235,146,150] },
+        { origem: "Eugenia", dias: [751,568,505,183,334,195,102,378,376,342,235,144,55,26] },
+        { origem: "Repique Comercial", dias: [569,606,586,406,549,285,52,139,293,266,172,106,32,29] },
+        { origem: "VPC", dias: [316,606,46,9,10,11,7,147,227,23,11,102,3,8] },
+        { origem: "Outros", dias: [216,98,72,36,75,29,5,95,206,197,182,134,15,17] },
+        { origem: "Leads Frios", dias: [7,9,6,4,11,0,3,4,9,7,6,2,1,0] },
+        { origem: "Mídia", dias: [1,0,1,0,0,3,1,1,2,5,2,0,0,1] },
+        { origem: "Televendas", dias: [0,0,0,0,0,0,5,0,0,0,0,0,0,0] },
+        { origem: "Flamengo", dias: [2,0,0,0,0,0,0,0,0,0,0,0,0,0] }
+      ]
+    },
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 12460,
         acumulado: [515,934,1370,1468,1809,1892,1977,2395,2842,3320,
-                    3720,3965,4071,4161,null,null,null,null,null,null,
-                    null,null,null,null,null,null,null,null,null,null],
-        pf: 2802, pme: 1150, adesao: 209,
-        conv: [7.3,7.3,10.0,2.6,7.5,2.4,7.7,9.5,9.4,10.3,
-               11.1,10.2,8.5,9.7,null,null,null,null,null,null,
+                    3720,3965,4071,4161,4201,4215,4218,4220,4220,4225,
+                    4225,4227,4230,4236,4236,4241,4242,4244,4244,4244],
+        pf: 2804, pme: 1229, adesao: 211,
+        conv: [7.0,7.0,10.0,3.0,7.0,2.0,8.0,10.0,9.0,10.0,
+               11.0,10.0,9.0,10.0,null,null,null,null,null,null,
                null,null,null,null,null,null,null,null,null,null],
         leads: [7038,5719,4370,3765,4573,3461,1109,4379,4768,4637,
                 3619,2391,1240,932,null,null,null,null,null,null,
                 null,null,null,null,null,null,null,null,null,null],
-        vendas_ant: 10563, projecao_fixa: 8653
+        vendas_ant: 10569, projecao_fixa: 9587
       },
       FABIO: {
         label: "Fabio", meta: 6600,
         acumulado: [296,486,720,769,929,979,1021,1202,1419,1685,
-                    1890,2009,2087,2158,null,null,null,null,null,null,
-                    null,null,null,null,null,null,null,null,null,null],
-        pf: 1102, pme: 893, adesao: 163,
-        conv: null, leads: null, vendas_ant: 6000, projecao_fixa: null
+                    1890,2009,2087,2158,2181,2189,2192,2194,2194,2199,
+                    2199,2201,2204,2210,2210,2215,2216,2218,2218,2218],
+        pf: 1102, pme: 951, adesao: 165,
+        conv: null, leads: null, vendas_ant: 6004, projecao_fixa: null
       },
       JOSY: {
         label: "Josy", meta: 4960,
         acumulado: [188,383,542,584,744,770,804,994,1200,1377,
-                    1534,1636,1660,1675,null,null,null,null,null,null,
-                    null,null,null,null,null,null,null,null,null,null],
-        pf: 1378, pme: 257, adesao: 40,
-        conv: null, leads: null, vendas_ant: 3986, projecao_fixa: null
+                    1534,1636,1660,1675,1690,1696,1696,1696,1696,1696,
+                    1696,1696,1696,1696,1696,1696,1696,1696,1696,1696],
+        pf: 1378, pme: 278, adesao: 40,
+        conv: null, leads: null, vendas_ant: 3988, projecao_fixa: null
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 600,
         acumulado: [27,55,85,91,106,111,120,160,177,201,
-                    231,254,258,262,null,null,null,null,null,null,
-                    null,null,null,null,null,null,null,null,null,null],
-        pf: 256, pme: 0, adesao: 6,
+                    231,254,258,262,264,264,264,264,264,264,
+                    264,264,264,264,264,264,264,264,264,264],
+        pf: 258, pme: 0, adesao: 6,
         conv: null, leads: null, vendas_ant: 533, projecao_fixa: null
       },
       ACTIONLINE: {
         label: "Actionline", meta: 300,
         acumulado: [4,10,23,24,30,32,32,39,46,57,
-                    65,66,66,66,null,null,null,null,null,null,
-                    null,null,null,null,null,null,null,null,null,null],
+                    65,66,66,66,66,66,66,66,66,66,
+                    66,66,66,66,66,66,66,66,66,66],
         pf: 66, pme: 0, adesao: 0,
         conv: null, leads: null, vendas_ant: 44, projecao_fixa: null
       }
@@ -634,29 +712,6 @@ const DADOS_MESES = {
   }
   DADOS_MESES.TRIMESTRE = tri;
 })();
-
-// ============================================================
-//  LEADS POR ORIGEM (GUP) — snapshot mensal, fonte: build_leads_por_origem.py
-//  Contagens cruas; os % são recalculados em renderTabelaOrigem().
-//  Para novo mês: adicionar nova chave (ex.: MAIO: [...]).
-// ============================================================
-const DADOS_LEADS_ORIGEM = {
-  JUNHO: [
-    {origem:"CARRINHO ABANDONADO CONECTA", leads:10998, prod:6000, contratos:502, vidas:598},
-    {origem:"CAMPANHAS MARKETING", leads:9610, prod:2830, contratos:84, vidas:102},
-    {origem:"CONECTA", leads:9520, prod:5893, contratos:442, vidas:522},
-    {origem:"CARRINHO ABANDONADO", leads:5723, prod:2732, contratos:209, vidas:238},
-    {origem:"ESPONTÂNEO", leads:4870, prod:3201, contratos:168, vidas:212},
-    {origem:"EUGENIA", leads:4194, prod:2504, contratos:393, vidas:469},
-    {origem:"REPIQUE COMERCIAL", leads:4090, prod:1919, contratos:99, vidas:134},
-    {origem:"VPC", leads:1526, prod:550, contratos:22, vidas:24},
-    {origem:"OUTROS", leads:1377, prod:848, contratos:54, vidas:68},
-    {origem:"LEADS FRIOS", leads:69, prod:34, contratos:6, vidas:6},
-    {origem:"MÍDIA", leads:17, prod:9, contratos:2, vidas:2},
-    {origem:"TELEVENDAS", leads:5, prod:3, contratos:1, vidas:1},
-    {origem:"FLAMENGO", leads:2, prod:0, contratos:0, vidas:0}
-  ]
-};
 
 // Mês exibido por padrão ao abrir o dashboard:
 let mesAtivo = "MAIO";
@@ -785,22 +840,7 @@ function renderKPIs() {
   const media = real / dias;
   const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
   const pctProj = (proj / meta) * 100;
-  // Var vs mês anterior — comparação no MESMO período (acumulado até o dia),
-  // e não contra o total fechado do mês anterior.
-  const PREV_MES = { JUNHO: "MAIO", MAIO: "ABRIL" };
-  const prevKey = PREV_MES[mesAtivo];
-  const realAteDia = acum(gestorAtivo, diaFim);
-  let baseAnt = g.vendas_ant;
-  let subAntTxt = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
-  let varAbr;
-  if (prevKey && DADOS_MESES[prevKey] && DADOS_MESES[prevKey].gestores[gestorAtivo]) {
-    const arrAnt = DADOS_MESES[prevKey].gestores[gestorAtivo].acumulado;
-    baseAnt = arrAnt[Math.min(diaFim, arrAnt.length) - 1] || 0;
-    subAntTxt = `vs ${CONFIG.mesAnteriorLabel} até dia ${diaFim} (${fmt(baseAnt)})`;
-    varAbr = baseAnt > 0 ? ((realAteDia / baseAnt) - 1) * 100 : 0;
-  } else {
-    varAbr = g.vendas_ant > 0 ? ((proj / g.vendas_ant) - 1) * 100 : 0;
-  }
+  const varAbr = ((proj / g.vendas_ant) - 1) * 100;
   const ref = (diaFim / CONFIG.diasNoMes) * 100;
 
   document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
@@ -820,7 +860,7 @@ function renderKPIs() {
 
   const varSign = varAbr >= 0 ? "+" : "";
   document.getElementById("kAbr").textContent = varSign + fmtDec(varAbr) + "%";
-  document.getElementById("kAbrSub").textContent = subAntTxt;
+  document.getElementById("kAbrSub").textContent = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
   const labAbr = document.getElementById("kAbrLabel");
   if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
   document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
@@ -881,41 +921,20 @@ function destroyChart(id) {
 function renderAcumulado() {
   destroyChart("acumulado");
   const g = CONFIG.gestores[gestorAtivo];
+  const labels = getDayLabels();
+  const data = getAcumData();
   const meta = g.meta;
-  const endMonth = CONFIG.diasNoMes;
-  const start = diaIni;
-  const lastReal = Math.min(diaFim, CONFIG.diaAtual);
-
-  // Eixo X: do dia inicial do filtro até o FIM do mês (a projeção precisa chegar lá)
-  const labels = [];
-  for (let d = start; d <= endMonth; d++) labels.push(`Dia ${d}`);
-  const idxLastReal = lastReal - start;   // último ponto com dado real
-  const idxEnd = labels.length - 1;       // fim do mês
-
-  // Acumulado real: preenche até lastReal, null depois
-  const data = labels.map((_, i) => {
-    const d = start + i;
-    return d <= lastReal ? acum(gestorAtivo, d) : null;
-  });
-
-  // Projeção do mês (acumulado projetado p/ o fim do mês)
-  const acumReal = acum(gestorAtivo, lastReal);
-  const projMes = g.projecao_fixa || (lastReal > 0 ? Math.round(acumReal / lastReal * endMonth) : 0);
-
-  // Linha de projeção: parte do último ponto real e cresce até projMes no último dia.
-  // (null antes de lastReal => a tracejada só aparece como continuação do real)
-  const projecaoLine = labels.map((_, i) => {
-    const d = start + i;
-    if (d < lastReal) return null;
-    if (d === lastReal) return acumReal;
-    if (endMonth <= lastReal) return acumReal;
-    const frac = (d - lastReal) / (endMonth - lastReal);
-    return Math.round(acumReal + (projMes - acumReal) * frac);
-  });
-
   const metaLine = labels.map(() => meta);
-  const kfmt = v => v == null ? "" : (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v);
+  // Projeção: usa projecao_fixa se houver, senão estima por média/dia × dias do mês.
+  // A linha tracejada cresce linearmente do dia 1 até atingir a projeção no fim do mês.
+  const real = data[data.length-1] - (acum(gestorAtivo, diaIni-1) || 0);
+  const diasDecorridos = diaFim - diaIni + 1;
+  const mediaDia = diasDecorridos > 0 ? real / diasDecorridos : 0;
+  const projMes = g.projecao_fixa || Math.round(mediaDia * CONFIG.diasNoMes);
+  const projDia = projMes / CONFIG.diasNoMes;
+  const projecaoLine = labels.map((_,i) => Math.round(projDia * (diaIni + i)));
 
+  const showAllLabels = (diaFim - diaIni + 1) <= 15;
   charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
     type: "line",
     data: {
@@ -923,24 +942,24 @@ function renderAcumulado() {
       datasets: [
         { label: "Acumulado", data, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5,
           datalabels: {
-            display: ctx => ctx.dataIndex === idxLastReal,
+            display: ctx => showAllLabels || ctx.dataIndex === data.length - 1,
             align: "top", anchor: "top",
-            font: { size: 10, weight: "700" }, color: "#185FA5",
-            formatter: kfmt
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v
           }
         },
         { label: "Meta", data: metaLine, borderColor: "#1D9E75", borderDash: [6,3], borderWidth: 1.5, pointRadius: 0, fill: false,
           datalabels: {
-            display: ctx => ctx.dataIndex === idxEnd,
+            display: ctx => ctx.dataIndex === metaLine.length - 1,
             align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#1D9E75",
-            formatter: v => "Meta: " + kfmt(v)
+            formatter: v => "Meta: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
           }
         },
-        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false, spanGaps: true,
+        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false,
           datalabels: {
-            display: ctx => ctx.dataIndex === idxEnd,
-            align: "top", anchor: "end", font: { size: 10, weight:"700" }, color: "#E8623A",
-            formatter: v => "Proj: " + kfmt(v)
+            display: ctx => ctx.dataIndex === projecaoLine.length - 1,
+            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#E8623A",
+            formatter: v => "Proj: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
           }
         }
       ]
@@ -950,8 +969,7 @@ function renderAcumulado() {
       layout: { padding: { right: 55 } },
       plugins: {
         legend: { labels: { font: { size: 11 } } },
-        datalabels: {},
-        tooltip: { callbacks: { label: ctx => ctx.raw == null ? null : `${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
+        datalabels: {}
       },
       scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } }
     }
@@ -1231,6 +1249,194 @@ function renderLeads() {
   });
 }
 
+// ── CHART: LEADS POR ORIGEM ──
+function renderLeadsOrigem() {
+  destroyChart("leadsOrigem");
+  const sec = document.getElementById("leadsOrigemSection");
+  const dados = CONFIG.leadsOrigem;
+  // só exibe se o mês tiver os dados e o gestor ativo for TOTAL (dado é consolidado)
+  const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
+  sec.style.display = exibir ? "" : "none";
+  if (!exibir) return;
+
+  const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
+  const labels = ordenado.map(d => d.label);
+  const valores = ordenado.map(d => d.valor);
+  const total = valores.reduce((a,b)=>a+b,0);
+  const cores = ["#185FA5","#1D9E75","#6c4ed8","#D85A30","#2E86C1","#17A589","#8E44AD",
+                 "#E67E22","#5499C7","#48C9B0","#A569BD","#EB984E","#85929E"];
+
+  charts["leadsOrigem"] = new Chart(document.getElementById("chartLeadsOrigem"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Leads", data: valores,
+        backgroundColor: labels.map((_,i)=>cores[i % cores.length]), borderRadius: 4,
+        datalabels: { anchor:"end", align:"end", font:{size:10,weight:"600"}, color:"#333",
+          formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 36 } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const pct = total>0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+          return ` ${fmt(ctx.raw)} leads (${pct}%)`;
+        }}}
+      },
+      scales: { x: { beginAtZero:true, ticks:{ font:{size:9} } }, y: { ticks:{ font:{size:10} } } }
+    }
+  });
+}
+
+// ── CHART: LEADS POR TIPO ──
+function renderLeadsTipo() {
+  destroyChart("leadsTipo");
+  const dados = CONFIG.leadsTipo;
+  const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
+  if (!exibir) return;
+
+  const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
+  const labels = ordenado.map(d => d.label);
+  const valores = ordenado.map(d => d.valor);
+  const total = valores.reduce((a,b)=>a+b,0);
+  const cores = ["#185FA5","#1D9E75","#D85A30","#6c4ed8","#EB984E"];
+
+  charts["leadsTipo"] = new Chart(document.getElementById("chartLeadsTipo"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Leads", data: valores,
+        backgroundColor: labels.map((_,i)=>cores[i % cores.length]), borderRadius: 4,
+        datalabels: { anchor:"end", align:"end", font:{size:11,weight:"700"}, color:"#333",
+          formatter: v => {
+            const pct = total>0 ? (v/total*100).toFixed(1).replace(".",",") : 0;
+            const val = v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v;
+            return `${val} (${pct}%)`;
+          } } }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 80 } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const pct = total>0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+          return ` ${ctx.label}: ${fmt(ctx.raw)} (${pct}%)`;
+        }}}
+      },
+      scales: { x: { beginAtZero:true, ticks:{ font:{size:9} } }, y: { ticks:{ font:{size:11} } } }
+    }
+  });
+}
+
+// ── TABELA: CONVERSÃO POR ORIGEM ──
+function renderConversao() {
+  const sec = document.getElementById("conversaoSection");
+  const dados = CONFIG.leadsConversao;
+  const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
+  sec.style.display = exibir ? "" : "none";
+  if (!exibir) return;
+
+  const tbody = document.getElementById("tabelaConversao");
+  tbody.innerHTML = "";
+  let tLeads=0, tProd=0, tContr=0, tVidas=0;
+
+  // ordena por leads totais (maior primeiro)
+  const ordenado = [...dados].sort((a,b) => b.leads - a.leads);
+  for (const d of ordenado) {
+    tLeads += d.leads; tProd += d.produtivos; tContr += d.contratos; tVidas += d.vidas;
+    const pctProd = d.leads>0 ? (d.produtivos/d.leads*100) : 0;
+    const convContr = d.leads>0 ? (d.contratos/d.leads*100) : 0;
+    const convVidas = d.leads>0 ? (d.vidas/d.leads*100) : 0;
+    const bcV = convVidas>=8 ? "green" : convVidas>=5 ? "yellow" : "red";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.origem}</td>
+      <td class="td-right num">${fmt(d.leads)}</td>
+      <td class="td-right num">${fmt(d.produtivos)}</td>
+      <td class="td-right">${fmtDec(pctProd)}%</td>
+      <td class="td-right num">${fmt(d.contratos)}</td>
+      <td class="td-right num">${fmt(d.vidas)}</td>
+      <td class="td-right">${fmtDec(convContr)}%</td>
+      <td class="td-right"><span class="badge ${bcV}">${fmtDec(convVidas)}%</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+  // linha de total
+  const pctProdT = tLeads>0 ? (tProd/tLeads*100) : 0;
+  const convContrT = tLeads>0 ? (tContr/tLeads*100) : 0;
+  const convVidasT = tLeads>0 ? (tVidas/tLeads*100) : 0;
+  const trT = document.createElement("tr");
+  trT.style.fontWeight = "700";
+  trT.style.borderTop = "2px solid #185FA5";
+  trT.innerHTML = `
+    <td>Total Geral</td>
+    <td class="td-right num">${fmt(tLeads)}</td>
+    <td class="td-right num">${fmt(tProd)}</td>
+    <td class="td-right">${fmtDec(pctProdT)}%</td>
+    <td class="td-right num">${fmt(tContr)}</td>
+    <td class="td-right num">${fmt(tVidas)}</td>
+    <td class="td-right">${fmtDec(convContrT)}%</td>
+    <td class="td-right">${fmtDec(convVidasT)}%</td>
+  `;
+  tbody.appendChild(trT);
+}
+
+// ── TABELA: ENTRADA DE LEADS POR ORIGEM POR DIA ──
+function renderLeadsDia() {
+  const sec = document.getElementById("leadsDiaSection");
+  const dados = CONFIG.leadsOrigemDia;
+  const exibir = dados && Array.isArray(dados.origens) && dados.origens.length && gestorAtivo === "TOTAL";
+  sec.style.display = exibir ? "" : "none";
+  if (!exibir) return;
+
+  const nDias = dados.dias;
+  // Cabeçalho: Origem | Dia 1..N | Total
+  const head = document.getElementById("leadsDiaHead");
+  let th = '<tr><th style="position:sticky;left:0;background:#185FA5;color:#fff;z-index:2">Origem</th>';
+  for (let d = 1; d <= nDias; d++) th += `<th class="td-right">${d}</th>`;
+  th += '<th class="td-right" style="background:#0d4a85;color:#fff">Total</th></tr>';
+  head.innerHTML = th;
+
+  // Linhas: ordenadas por total (maior primeiro)
+  const comTotal = dados.origens.map(o => ({
+    origem: o.origem,
+    dias: o.dias,
+    total: o.dias.reduce((a,b) => a + (b||0), 0)
+  })).sort((a,b) => b.total - a.total);
+
+  const body = document.getElementById("leadsDiaBody");
+  body.innerHTML = "";
+  const totalPorDia = new Array(nDias).fill(0);
+  let totalGeral = 0;
+
+  for (const o of comTotal) {
+    let tr = `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600">${o.origem}</td>`;
+    for (let d = 0; d < nDias; d++) {
+      const v = o.dias[d] || 0;
+      totalPorDia[d] += v;
+      // sombreamento leve por intensidade
+      const tr_op = v === 0 ? "" : ' style="background:rgba(24,95,165,'+Math.min(0.18, v/6000).toFixed(3)+')"';
+      tr += `<td class="td-right"${tr_op}>${v === 0 ? "–" : fmt(v)}</td>`;
+    }
+    totalGeral += o.total;
+    tr += `<td class="td-right num" style="font-weight:700;background:#eef4fb">${fmt(o.total)}</td></tr>`;
+    body.innerHTML += tr;
+  }
+
+  // Linha total geral
+  let trT = '<tr style="font-weight:700;border-top:2px solid #185FA5"><td style="position:sticky;left:0;background:#eef4fb">Total Geral</td>';
+  for (let d = 0; d < nDias; d++) trT += `<td class="td-right" style="background:#eef4fb">${fmt(totalPorDia[d])}</td>`;
+  trT += `<td class="td-right" style="background:#185FA5;color:#fff">${fmt(totalGeral)}</td></tr>`;
+  body.innerHTML += trT;
+}
+
 // ── TABELA ──
 function renderTabela() {
   const tbody = document.getElementById("tabela");
@@ -1269,37 +1475,6 @@ function renderTabela() {
   }
 }
 
-// ── TABELA LEADS POR ORIGEM (GUP) ──
-function renderTabelaOrigem() {
-  const card = document.getElementById("cardOrigem");
-  const dados = DADOS_LEADS_ORIGEM[mesAtivo];
-  if (!dados) { card.style.display = "none"; return; }   // meses sem dados (Abril/Maio)
-  card.style.display = "";
-  const tbody = document.getElementById("tabelaOrigem");
-  tbody.innerHTML = "";
-  const pct = (a, b) => b ? (a / b * 100) : 0;
-  const linha = (o, bold = false) => {
-    const tr = document.createElement("tr");
-    if (bold) tr.style.fontWeight = "700";
-    tr.innerHTML =
-      `<td>${o.origem}</td>` +
-      `<td class="td-right num">${fmt(o.leads)}</td>` +
-      `<td class="td-right num">${fmt(o.prod)}</td>` +
-      `<td class="td-right">${fmtDec(pct(o.prod, o.leads))}%</td>` +
-      `<td class="td-right num">${fmt(o.contratos)}</td>` +
-      `<td class="td-right num">${fmt(o.vidas)}</td>` +
-      `<td class="td-right">${fmtDec(pct(o.contratos, o.leads))}%</td>` +
-      `<td class="td-right">${fmtDec(pct(o.vidas, o.leads))}%</td>`;
-    tbody.appendChild(tr);
-  };
-  dados.forEach(o => linha(o));
-  const t = dados.reduce((a, o) => ({
-    origem: "TOTAL GERAL", leads: a.leads + o.leads, prod: a.prod + o.prod,
-    contratos: a.contratos + o.contratos, vidas: a.vidas + o.vidas
-  }), {leads: 0, prod: 0, contratos: 0, vidas: 0});
-  linha(t, true);
-}
-
 // Registra plugin globalmente
 Chart.register(ChartDataLabels);
 
@@ -1323,8 +1498,11 @@ function renderAll() {
     renderConv();
     renderMix();
     renderLeads();
+    renderLeadsOrigem();
+    renderLeadsTipo();
+    renderConversao();
+    renderLeadsDia();
     renderTabela();
-    renderTabelaOrigem();
   }
 }
 
