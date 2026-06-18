@@ -865,9 +865,19 @@ function renderKPIs() {
   if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
   document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
 
-  // Conv média = vendas no periodo ÷ leads no periodo (ponderada; mes cheio = celula AH85 da planilha = 8,9%).
-  // (Antes era a media aritmetica dos % diarios, que nao bate com o agregado oficial.)
-  if (g.leads && Array.isArray(g.leads)) {
+  // Conv. Media = vendas do MES / total de leads do CSV (= celula AH91 da planilha = 8,6%).
+  // Usa o total de leads do CSV (leadsConversao, mesma base dos graficos de origem = 66k), NAO a
+  // linha "LEADS TOT" da planilha (que so cobre ate o ultimo dia com dado = 61k). Calculado a partir
+  // dos agregados ja existentes no dashboard, entao independe da posicao da linha na planilha.
+  if (gestorAtivo === "TOTAL" && Array.isArray(CONFIG.leadsConversao) && CONFIG.leadsConversao.length) {
+    const totalLeadsCSV = CONFIG.leadsConversao.reduce((s, d) => s + (d.leads || 0), 0);
+    const vendasMes = acum(gestorAtivo, CONFIG.diaAtual);
+    const convMedia = totalLeadsCSV > 0 ? (vendasMes / totalLeadsCSV) * 100 : null;
+    document.getElementById("kConv").textContent = convMedia !== null ? fmtDec(convMedia) + "%" : "—";
+    document.getElementById("kConvSub").textContent = convMedia !== null ? `${fmt(vendasMes)} vendas ÷ ${fmt(totalLeadsCSV)} leads (mês)` : "Disponível p/ Total";
+    document.getElementById("kpiConv").style.display = "";
+  } else if (g.leads && Array.isArray(g.leads)) {
+    // meses fechados (sem base CSV de origem): vendas no periodo / leads da planilha (cobre o mes todo)
     const leadsSlice = g.leads.slice(diaIni - 1, diaFim).filter(v => v !== null && v !== undefined);
     const leadsPeriodo = leadsSlice.reduce((a,b) => a+b, 0);
     const convMedia = leadsPeriodo > 0 ? (real / leadsPeriodo) * 100 : null;
