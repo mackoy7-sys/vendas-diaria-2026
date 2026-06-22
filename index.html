@@ -241,6 +241,7 @@
     <button class="btn-mes" onclick="setMes('MAIO')">Maio</button>
     <button class="btn-mes active" onclick="setMes('JUNHO')">Junho</button>
     <button class="btn-mes" onclick="setMes('TRIMESTRE')" style="background:#6c4ed8;color:#fff;border-color:#6c4ed8">2º Trimestre</button>
+    <button class="btn-mes" onclick="setMes('COMPARATIVO')" style="background:#0d6e4a;color:#fff;border-color:#0d6e4a">Jun × Mai</button>
     <div class="filter-sep"></div>
     <span class="filter-label">Gestor:</span>
     <button class="btn-gestor active" onclick="setGestor('TOTAL')">Total</button>
@@ -260,7 +261,7 @@
 <div class="container">
 
   <!-- KPIs -->
-  <div class="kpi-row">
+  <div class="kpi-row" id="mainKpis">
     <div class="kpi-card" id="kpi1">
       <div class="kpi-label">Vendas realizadas</div>
       <div class="kpi-value" id="kVendas">—</div>
@@ -321,6 +322,48 @@
           </tr>
         </thead>
         <tbody id="tabelaTri"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAINEL COMPARATIVO JUN × MAI (visível só na visão comparativo) -->
+  <div id="compPanel" style="display:none;">
+    <div style="background:#eaf3ee;border-left:4px solid #0d6e4a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#0d4a32;">
+      📊 <b>Comparativo por dias comparáveis</b> — como Junho ainda está em curso, a comparação usa os <b>mesmos dias do mês</b> em ambos (dias 1 a <span id="compNlabel"></span>). Vendas e produtos seguem o filtro de gestor; conversão e leads são consolidados (Total).
+    </div>
+    <div class="kpi-row" id="compKpis"></div>
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">📈 Vendas Acumuladas — Maio × Junho (dias comparáveis)</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartCompAcum"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🏷️ Realizado por Produto — Maio × Junho</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartCompProduto"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Conversão Diária — Maio × Junho (Total)</div>
+        <div style="position:relative;height:320px;width:100%"><canvas id="chartCompConv"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📥 Volume de Leads Diário — Maio × Junho (Total)</div>
+        <div style="position:relative;height:320px;width:100%"><canvas id="chartCompLeads"></canvas></div>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="chart-title">📋 Resumo Comparativo — Maio × Junho (dias comparáveis)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Métrica</th>
+            <th class="td-right">Maio (1–N)</th>
+            <th class="td-right">Junho (1–N)</th>
+            <th class="td-right">Variação</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaComp"></tbody>
       </table>
     </div>
   </div>
@@ -558,14 +601,14 @@ const DADOS_MESES = {
     diaAtual: 30,
     leadsOrigem: [
       { label: "Carrinho Aband. Conecta", valor: 14873 },
-      { label: "Campanhas Marketing", valor: 12725 },
       { label: "Conecta", valor: 13090 },
+      { label: "Campanhas Marketing", valor: 12725 },
       { label: "Carrinho Abandonado", valor: 8732 },
       { label: "Espontâneo", valor: 7591 },
-      { label: "Eugenia", valor: 5775 },
       { label: "Repique Comercial", valor: 7181 },
-      { label: "VPC", valor: 1709 },
+      { label: "Eugenia", valor: 5775 },
       { label: "Outros", valor: 4140 },
+      { label: "VPC", valor: 1709 },
       { label: "Leads Frios", valor: 105 },
       { label: "Mídia", valor: 27 },
       { label: "Televendas", valor: 13 },
@@ -579,35 +622,35 @@ const DADOS_MESES = {
       { label: "PPO", valor: 346 }
     ],
     leadsConversao: [
-      { origem: "Carrinho Abandonado Conecta", leads: 14873, produtivos: 7531, contratos: 758, vidas: 898 },
-      { origem: "Campanhas Marketing", leads: 12725, produtivos: 3848, contratos: 139, vidas: 190 },
-      { origem: "Conecta", leads: 13090, produtivos: 7550, contratos: 715, vidas: 843 },
-      { origem: "Carrinho Abandonado", leads: 8732, produtivos: 4091, contratos: 363, vidas: 432 },
-      { origem: "Espontâneo", leads: 7591, produtivos: 4835, contratos: 297, vidas: 383 },
-      { origem: "Repique Comercial", leads: 7181, produtivos: 3043, contratos: 144, vidas: 198 },
-      { origem: "Eugenia", leads: 5775, produtivos: 3344, contratos: 665, vidas: 802 },
-      { origem: "VPC", leads: 1709, produtivos: 605, contratos: 28, vidas: 30 },
-      { origem: "Outros", leads: 4140, produtivos: 2659, contratos: 139, vidas: 175 },
-      { origem: "Leads Frios", leads: 105, produtivos: 48, contratos: 9, vidas: 9 },
-      { origem: "Mídia", leads: 27, produtivos: 14, contratos: 4, vidas: 8 },
-      { origem: "Televendas", leads: 13, produtivos: 8, contratos: 1, vidas: 1 },
+      { origem: "Carrinho Abandonado Conecta", leads: 9641, produtivos: 5342, contratos: 440, vidas: 511 },
+      { origem: "Campanhas Marketing", leads: 8976, produtivos: 2795, contratos: 72, vidas: 86 },
+      { origem: "Conecta", leads: 8501, produtivos: 5340, contratos: 388, vidas: 446 },
+      { origem: "Carrinho Abandonado", leads: 5235, produtivos: 2591, contratos: 191, vidas: 211 },
+      { origem: "Espontâneo", leads: 4341, produtivos: 2861, contratos: 152, vidas: 184 },
+      { origem: "Repique Comercial", leads: 3909, produtivos: 1875, contratos: 89, vidas: 115 },
+      { origem: "Eugenia", leads: 3840, produtivos: 2333, contratos: 352, vidas: 408 },
+      { origem: "VPC", leads: 1415, produtivos: 515, contratos: 21, vidas: 23 },
+      { origem: "Outros", leads: 1186, produtivos: 756, contratos: 50, vidas: 64 },
+      { origem: "Leads Frios", leads: 63, produtivos: 32, contratos: 5, vidas: 5 },
+      { origem: "Mídia", leads: 18, produtivos: 11, contratos: 2, vidas: 2 },
+      { origem: "Televendas", leads: 5, produtivos: 4, contratos: 0, vidas: 0 },
       { origem: "Flamengo", leads: 2, produtivos: 0, contratos: 0, vidas: 0 }
     ],
     leadsOrigemDia: {
       dias: 21,
       origens: [
         { origem: "Carrinho Abandonado Conecta", dias: [1151,1031,1051,602,873,308,182,1261,1237,1123,942,694,386,396,1216,992,475,402,276,119,156] },
-        { origem: "Campanhas Marketing", dias: [1119,553,355,1521,1360,1802,410,285,499,735,452,407,219,148,409,266,994,517,395,191,88] },
         { origem: "Conecta", dias: [1326,837,820,469,680,340,140,1230,981,998,763,425,297,326,794,782,559,486,414,281,142] },
+        { origem: "Campanhas Marketing", dias: [1119,553,355,1521,1360,1802,410,285,499,735,452,407,219,148,409,266,994,517,395,191,88] },
         { origem: "Carrinho Abandonado", dias: [572,605,542,411,519,398,137,532,569,500,439,249,141,146,480,650,610,555,401,126,150] },
         { origem: "Espontâneo", dias: [1056,808,403,131,177,98,71,317,375,481,440,228,149,150,445,573,507,363,307,272,240] },
-        { origem: "Eugenia", dias: [766,590,517,184,352,201,104,400,391,347,252,161,63,49,400,313,270,190,114,70,41] },
         { origem: "Repique Comercial", dias: [570,606,587,407,549,289,53,140,291,267,172,107,34,35,199,1379,515,548,283,131,19] },
-        { origem: "VPC", dias: [316,608,46,9,9,12,7,147,229,24,11,101,3,6,40,14,43,44,33,4,3] },
+        { origem: "Eugenia", dias: [766,590,517,184,352,201,104,400,391,347,252,161,63,49,400,313,270,190,114,70,41] },
         { origem: "Outros", dias: [222,105,77,39,77,34,7,95,214,198,188,135,18,18,166,179,732,672,464,278,222] },
-        { origem: "Leads Frios", dias: [8,10,6,5,11,0,3,4,8,7,7,3,2,0,5,3,8,7,5,3,0] },
-        { origem: "Mídia", dias: [1,0,1,0,3,1,1,1,3,4,2,0,0,0,2,0,1,4,3,0,0] },
-        { origem: "Televendas", dias: [0,0,0,0,0,0,0,1,3,1,0,0,0,0,2,2,1,1,2,0,0] },
+        { origem: "VPC", dias: [316,608,46,9,9,12,7,147,229,24,11,101,3,6,40,14,43,44,33,4,3] },
+        { origem: "Leads Frios", dias: [8,10,6,4,5,11,0,3,4,8,7,7,3,2,0,5,3,8,7,2,2] },
+        { origem: "Mídia", dias: [1,0,1,0,0,3,1,1,3,4,2,0,0,0,2,0,1,4,3,1,0] },
+        { origem: "Televendas", dias: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,1,1,2,2,3] },
         { origem: "Flamengo", dias: [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] }
       ]
     },
@@ -618,13 +661,13 @@ const DADOS_MESES = {
                     3758,4023,4136,4230,4671,5087,5477,5809,6060,6209,
                     6259,6303,6316,6329,6332,6345,6366,6376,6378,6380],
         pf: 4191, pme: 1914, adesao: 275,
-        conv: [7.6,7.3,9.9,2.6,7.4,2.4,7.5,9.5,9.4,10.2,
-                    11.1,10.6,8.6,7.4,10.6,8.1,8.2,8.7,9.4,0.0,
-                    0.0,null,null,null,null,null,null,null,null,null],
-        leads: [7104,5749,4404,3777,4608,3483,1115,4411,4799,4684,
-                    3665,2507,1310,1272,4154,5146,4706,3775,2655,0,
-                    0,null,null,null,null,null,null,null,null,null],
-        vendas_ant: 10563, projecao_fixa: 8330
+        conv: [8.0,7.0,10.0,3.0,7.0,2.0,8.0,9.0,9.0,10.0,
+               11.0,11.0,9.0,7.0,11.0,8.0,8.0,9.0,9.0,10.0,
+               5.0,null,null,null,null,null,null,null,null,null],
+        leads: [7109,5753,4405,3778,4610,3483,1115,4413,4800,4685,
+                3668,2510,1312,1274,4158,5153,4715,3789,2697,1475,
+                1061,null,null,null,null,null,null,null,null,null],
+        vendas_ant: 10569, projecao_fixa: 8330
       },
       FABIO: {
         label: "Fabio", meta: 6600,
@@ -632,7 +675,7 @@ const DADOS_MESES = {
                     1939,2071,2152,2222,2431,2649,2839,3009,3123,3206,
                     3236,3268,3281,3291,3294,3305,3326,3336,3338,3340],
         pf: 1659, pme: 1465, adesao: 216,
-        conv: null, leads: null, vendas_ant: 6000, projecao_fixa: null
+        conv: null, leads: null, vendas_ant: 6004, projecao_fixa: null
       },
       JOSY: {
         label: "Josy", meta: 4960,
@@ -640,7 +683,7 @@ const DADOS_MESES = {
                     1534,1643,1670,1690,1891,2071,2254,2388,2501,2564,
                     2577,2589,2589,2592,2592,2594,2594,2594,2594,2594],
         pf: 2089, pme: 449, adesao: 56,
-        conv: null, leads: null, vendas_ant: 3986, projecao_fixa: null
+        conv: null, leads: null, vendas_ant: 3988, projecao_fixa: null
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 600,
@@ -749,9 +792,17 @@ buildSelects();
 // ── TROCA DE MÊS ──
 function setMes(m) {
   mesAtivo = m;
-  CONFIG = DADOS_MESES[mesAtivo];
   document.querySelectorAll(".btn-mes").forEach(b => b.classList.remove("active"));
   if (typeof event !== "undefined" && event && event.target) event.target.classList.add("active");
+
+  // Modo comparativo: não troca o CONFIG (usa MAIO e JUNHO diretamente)
+  if (m === "COMPARATIVO") {
+    document.getElementById("mesLabel").textContent = "Comparativo Junho × Maio";
+    renderAll();
+    return;
+  }
+
+  CONFIG = DADOS_MESES[mesAtivo];
   // resetar período para o mês inteiro disponível
   diaIni = 1;
   diaFim = CONFIG.diaAtual;
@@ -865,24 +916,13 @@ function renderKPIs() {
   if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
   document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
 
-  // Conv. Media = vendas do MES / total de leads do CSV (= celula AH91 da planilha = 8,6%).
-  // Usa o total de leads do CSV (leadsConversao, mesma base dos graficos de origem = 66k), NAO a
-  // linha "LEADS TOT" da planilha (que so cobre ate o ultimo dia com dado = 61k). Calculado a partir
-  // dos agregados ja existentes no dashboard, entao independe da posicao da linha na planilha.
-  if (gestorAtivo === "TOTAL" && Array.isArray(CONFIG.leadsConversao) && CONFIG.leadsConversao.length) {
-    const totalLeadsCSV = CONFIG.leadsConversao.reduce((s, d) => s + (d.leads || 0), 0);
-    const vendasMes = acum(gestorAtivo, CONFIG.diaAtual);
-    const convMedia = totalLeadsCSV > 0 ? (vendasMes / totalLeadsCSV) * 100 : null;
+  // Conv média
+  if (g.conv && Array.isArray(g.conv)) {
+    const convSlice = g.conv.slice(diaIni - 1, diaFim);
+    const vals = convSlice.filter(v => v !== null && v !== undefined);
+    const convMedia = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
     document.getElementById("kConv").textContent = convMedia !== null ? fmtDec(convMedia) + "%" : "—";
-    document.getElementById("kConvSub").textContent = convMedia !== null ? `${fmt(vendasMes)} vendas ÷ ${fmt(totalLeadsCSV)} leads (mês)` : "Disponível p/ Total";
-    document.getElementById("kpiConv").style.display = "";
-  } else if (g.leads && Array.isArray(g.leads)) {
-    // meses fechados (sem base CSV de origem): vendas no periodo / leads da planilha (cobre o mes todo)
-    const leadsSlice = g.leads.slice(diaIni - 1, diaFim).filter(v => v !== null && v !== undefined);
-    const leadsPeriodo = leadsSlice.reduce((a,b) => a+b, 0);
-    const convMedia = leadsPeriodo > 0 ? (real / leadsPeriodo) * 100 : null;
-    document.getElementById("kConv").textContent = convMedia !== null ? fmtDec(convMedia) + "%" : "—";
-    document.getElementById("kConvSub").textContent = convMedia !== null ? `vendas ÷ leads (${leadsSlice.length} dias)` : "Disponível p/ Total";
+    document.getElementById("kConvSub").textContent = convMedia !== null ? `${vals.length} dias c/ dado` : "Disponível p/ Total";
     document.getElementById("kpiConv").style.display = "";
   } else {
     document.getElementById("kConv").textContent = "—";
@@ -1492,12 +1532,17 @@ Chart.register(ChartDataLabels);
 // ── RENDER ALL ──
 function renderAll() {
   const isTri = !!CONFIG.isTrimestre;
+  const isComp = mesAtivo === "COMPARATIVO";
   // alterna blocos
-  document.querySelectorAll(".normal-view").forEach(el => el.style.display = isTri ? "none" : "");
+  document.querySelectorAll(".normal-view").forEach(el => el.style.display = (isTri || isComp) ? "none" : "");
   document.getElementById("triPanel").style.display = isTri ? "" : "none";
-  // desabilita seletor de período no trimestre
-  document.getElementById("diaIni").disabled = isTri;
-  document.getElementById("diaFim").disabled = isTri;
+  document.getElementById("compPanel").style.display = isComp ? "" : "none";
+  document.getElementById("mainKpis").style.display = isComp ? "none" : "";
+  // desabilita seletor de período no trimestre/comparativo
+  document.getElementById("diaIni").disabled = isTri || isComp;
+  document.getElementById("diaFim").disabled = isTri || isComp;
+
+  if (isComp) { renderComparativo(); return; }
 
   renderKPIs();
   if (isTri) {
@@ -1589,6 +1634,163 @@ function renderTrimestre() {
     `;
     tbody.appendChild(tr);
   }
+}
+
+// ── RENDER COMPARATIVO (Junho × Maio, dias comparáveis) ──
+function renderComparativo() {
+  const mesA = "MAIO", mesB = "JUNHO";
+  const corA = "#D85A30", corB = "#185FA5"; // Maio = laranja, Junho = azul
+
+  // dias comparáveis = último dia com leads preenchido em Junho
+  const junLeads = DADOS_MESES[mesB].gestores.TOTAL.leads;
+  let N = 0;
+  for (let i = 0; i < junLeads.length; i++) {
+    if (junLeads[i] !== null && junLeads[i] !== undefined) N = i + 1;
+  }
+  if (N < 1) N = DADOS_MESES[mesB].diaAtual;
+
+  const g = gestorAtivo;
+  const labelG = DADOS_MESES[mesB].gestores[g].label;
+
+  const acumM = (mes, gg, dia) => {
+    const a = DADOS_MESES[mes].gestores[gg].acumulado;
+    return dia < 1 ? 0 : (a[Math.min(dia, a.length) - 1] || 0);
+  };
+  const prodPer = (mes, gg) => {
+    const G = DADOS_MESES[mes].gestores[gg];
+    const tot = G.pf + G.pme + G.adesao;
+    const real = acumM(mes, gg, N);
+    const r = tot > 0 ? real / tot : 0;
+    return { pf: Math.round(G.pf * r), pme: Math.round(G.pme * r), adesao: Math.round(G.adesao * r) };
+  };
+  const leadsSum = (mes) => {
+    const L = DADOS_MESES[mes].gestores.TOTAL.leads;
+    let s = 0; for (let i = 0; i < N; i++) s += (L[i] || 0);
+    return s;
+  };
+
+  const realA = acumM(mesA, g, N), realB = acumM(mesB, g, N);
+  const medA = realA / N, medB = realB / N;
+  const prodA = prodPer(mesA, g), prodB = prodPer(mesB, g);
+
+  // conversão & leads (consolidado Total)
+  const vTotA = acumM(mesA, "TOTAL", N), vTotB = acumM(mesB, "TOTAL", N);
+  const lA = leadsSum(mesA), lB = leadsSum(mesB);
+  const convA = lA > 0 ? (vTotA / lA * 100) : 0;
+  const convB = lB > 0 ? (vTotB / lB * 100) : 0;
+  const lpvA = vTotA > 0 ? lA / vTotA : 0;
+  const lpvB = vTotB > 0 ? lB / vTotB : 0;
+
+  const delta = (a, b) => a !== 0 ? ((b - a) / a * 100) : 0;
+  const deltaBadge = (a, b, inv) => {
+    const d = delta(a, b);
+    const good = inv ? d <= 0 : d >= 0;
+    const sign = d >= 0 ? "+" : "";
+    return `<span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span>`;
+  };
+
+  document.getElementById("compNlabel").textContent = N;
+  document.getElementById("diaAtualLabel").textContent = `dias 1–${N} (comparáveis)`;
+  document.getElementById("filtroLabel").textContent = `Jun × Mai · ${labelG}`;
+
+  // ── KPI CARDS ──
+  const kpis = [
+    { lab: `Realizado (${labelG})`, val: fmt(realB), sub: `Mai: ${fmt(realA)}`, badge: deltaBadge(realA, realB, false), cor: corB },
+    { lab: "Média / dia", val: fmtDec(medB, 0), sub: `Mai: ${fmtDec(medA, 0)}`, badge: deltaBadge(medA, medB, false), cor: corB },
+    { lab: "Conversão (Total)", val: fmtDec(convB) + "%", sub: `Mai: ${fmtDec(convA)}%`, badge: deltaBadge(convA, convB, false), cor: "#e67e22" },
+    { lab: "Volume Leads (Total)", val: fmt(lB), sub: `Mai: ${fmt(lA)}`, badge: deltaBadge(lA, lB, false), cor: "#9b59b6" },
+    { lab: "Leads / Venda (Total)", val: fmtDec(lpvB), sub: `Mai: ${fmtDec(lpvA)}`, badge: deltaBadge(lpvA, lpvB, true), cor: "#6c757d" }
+  ];
+  document.getElementById("compKpis").innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="border-left-color:${k.cor}">
+      <div class="kpi-label">${k.lab}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub} &nbsp; ${k.badge}</div>
+    </div>`).join("");
+
+  const labels = [];
+  for (let d = 1; d <= N; d++) labels.push("Dia " + d);
+
+  // ── CHART: ACUMULADO ──
+  destroyChart("compAcum");
+  const acA = [], acB = [];
+  for (let d = 1; d <= N; d++) { acA.push(acumM(mesA, g, d)); acB.push(acumM(mesB, g, d)); }
+  charts["compAcum"] = new Chart(document.getElementById("chartCompAcum"), {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Maio", data: acA, borderColor: corA, borderWidth: 2.5, fill: false, tension: .3, pointRadius: 2,
+        datalabels: { display: ctx => ctx.dataIndex === acA.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: corA, formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } },
+      { label: "Junho", data: acB, borderColor: corB, backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .3, pointRadius: 2,
+        datalabels: { display: ctx => ctx.dataIndex === acB.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: corB, formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { right: 40 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } } } }
+  });
+
+  // ── CHART: PRODUTO ──
+  destroyChart("compProduto");
+  charts["compProduto"] = new Chart(document.getElementById("chartCompProduto"), {
+    type: "bar",
+    data: { labels: ["PF", "PME", "Adesão"], datasets: [
+      { label: "Maio", data: [prodA.pf, prodA.pme, prodA.adesao], backgroundColor: corA, borderRadius: 4,
+        datalabels: { anchor: "end", align: "end", font: { size: 10, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } },
+      { label: "Junho", data: [prodB.pf, prodB.pme, prodB.adesao], backgroundColor: corB, borderRadius: 4,
+        datalabels: { anchor: "end", align: "end", font: { size: 10, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } }
+    ] },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 44 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } } }
+  });
+
+  // ── CHART: CONVERSÃO DIÁRIA ──
+  destroyChart("compConv");
+  const convArrA = DADOS_MESES[mesA].gestores.TOTAL.conv, convArrB = DADOS_MESES[mesB].gestores.TOTAL.conv;
+  const cvA = [], cvB = [];
+  for (let d = 1; d <= N; d++) { cvA.push(convArrA ? convArrA[d-1] : null); cvB.push(convArrB ? convArrB[d-1] : null); }
+  charts["compConv"] = new Chart(document.getElementById("chartCompConv"), {
+    type: "bar",
+    data: { labels, datasets: [
+      { label: "Maio", data: cvA, backgroundColor: corA, borderRadius: 3, datalabels: { display: false } },
+      { label: "Junho", data: cvB, backgroundColor: corB, borderRadius: 3, datalabels: { display: false } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ": " + (ctx.raw != null ? ctx.raw + "%" : "—") } } },
+      scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 }, callback: v => v + "%" } } } }
+  });
+
+  // ── CHART: LEADS DIÁRIO ──
+  destroyChart("compLeads");
+  const lArrA = DADOS_MESES[mesA].gestores.TOTAL.leads, lArrB = DADOS_MESES[mesB].gestores.TOTAL.leads;
+  const ldA = [], ldB = [];
+  for (let d = 1; d <= N; d++) { ldA.push(lArrA ? lArrA[d-1] : null); ldB.push(lArrB ? lArrB[d-1] : null); }
+  charts["compLeads"] = new Chart(document.getElementById("chartCompLeads"), {
+    type: "bar",
+    data: { labels, datasets: [
+      { label: "Maio", data: ldA, backgroundColor: corA, borderRadius: 3, datalabels: { display: false } },
+      { label: "Junho", data: ldB, backgroundColor: corB, borderRadius: 3, datalabels: { display: false } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 } } } } }
+  });
+
+  // ── TABELA RESUMO ──
+  const rows = [
+    ["Realizado (" + labelG + ")", fmt(realA), fmt(realB), delta(realA, realB), false],
+    ["Média / dia", fmtDec(medA, 0), fmtDec(medB, 0), delta(medA, medB), false],
+    ["PF", fmt(prodA.pf), fmt(prodB.pf), delta(prodA.pf, prodB.pf), false],
+    ["PME", fmt(prodA.pme), fmt(prodB.pme), delta(prodA.pme, prodB.pme), false],
+    ["Adesão", fmt(prodA.adesao), fmt(prodB.adesao), delta(prodA.adesao, prodB.adesao), false],
+    ["Conversão % (Total)", fmtDec(convA) + "%", fmtDec(convB) + "%", delta(convA, convB), false],
+    ["Volume Leads (Total)", fmt(lA), fmt(lB), delta(lA, lB), false],
+    ["Leads / Venda (Total)", fmtDec(lpvA), fmtDec(lpvB), delta(lpvA, lpvB), true]
+  ];
+  document.getElementById("tabelaComp").innerHTML = rows.map(r => {
+    const d = r[3], good = r[4] ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
+    return `<tr><td>${r[0]}</td><td class="td-right num">${r[1]}</td><td class="td-right num">${r[2]}</td><td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td></tr>`;
+  }).join("");
 }
 
 // Inicia
