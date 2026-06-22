@@ -329,7 +329,7 @@
   <!-- PAINEL COMPARATIVO JUN × MAI (visível só na visão comparativo) -->
   <div id="compPanel" style="display:none;">
     <div style="background:#eaf3ee;border-left:4px solid #0d6e4a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#0d4a32;">
-      📊 <b>Comparativo por dias comparáveis</b> — como Junho ainda está em curso, a comparação usa os <b>mesmos dias do mês</b> em ambos (dias 1 a <span id="compNlabel"></span>). Vendas e produtos seguem o filtro de gestor; conversão e leads são consolidados (Total).
+      📊 <b>Comparativo por dias comparáveis</b> — como Junho ainda está em curso, a comparação usa os <b>mesmos dias do mês</b> em ambos (dias 1 a <span id="compNlabel"></span>). Vendas e produtos seguem o filtro de gestor; conversão e leads são consolidados (Total). Os comparativos de leads <b>por origem e por canal</b> usam <b>média de leads/dia</b> (Maio ÷ 31 × Junho ÷ <span id="compNlabel2"></span>), normalizando a diferença de dias entre os meses.
     </div>
     <div class="kpi-row" id="compKpis"></div>
     <div class="chart-grid-2">
@@ -350,6 +350,16 @@
       <div class="chart-card">
         <div class="chart-title">📥 Volume de Leads Diário — Maio × Junho (Total)</div>
         <div style="position:relative;height:320px;width:100%"><canvas id="chartCompLeads"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Leads/dia por Origem — Maio × Junho</div>
+        <div style="position:relative;height:400px;width:100%"><canvas id="chartCompOrigem"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🏷️ Leads/dia por Canal — Maio × Junho</div>
+        <div style="position:relative;height:400px;width:100%"><canvas id="chartCompCanal"></canvas></div>
       </div>
     </div>
     <div class="table-card">
@@ -545,6 +555,28 @@ const DADOS_MESES = {
     mesAnteriorLabel: "Abril",
     diasNoMes: 31,
     diaAtual: 31,
+    leadsOrigem: [
+      { label: "Campanhas Marketing", valor: 21872 },
+      { label: "Repique Comercial", valor: 18839 },
+      { label: "Carrinho Aband. Conecta", valor: 18317 },
+      { label: "Carrinho Abandonado", valor: 17514 },
+      { label: "Espontâneo", valor: 16936 },
+      { label: "Conecta", valor: 13529 },
+      { label: "Eugenia", valor: 9838 },
+      { label: "Outros", valor: 8862 },
+      { label: "VPC", valor: 3373 },
+      { label: "Mídia", valor: 507 },
+      { label: "Leads Frios", valor: 391 },
+      { label: "Televendas", valor: 233 },
+      { label: "Flamengo", valor: 60 },
+      { label: "Acompanhantes", valor: 3 }
+    ],
+    leadsTipo: [
+      { label: "PF", valor: 77762 },
+      { label: "Outros", valor: 25678 },
+      { label: "PME", valor: 25339 },
+      { label: "Adesão", valor: 1495 }
+    ],
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 11600,
@@ -1774,6 +1806,59 @@ function renderComparativo() {
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
       scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 } } } } }
+  });
+
+  // ── LEADS/DIA POR ORIGEM (Maio × Junho, média do mês) ──
+  const compN2 = document.getElementById("compNlabel2"); if (compN2) compN2.textContent = N;
+  const diasMaio = DADOS_MESES[mesA].diaAtual;   // 31
+  const diasJun = N;                              // dias com leads em Junho (21)
+  const mapBy = (mes, campo) => { const o = {}; (DADOS_MESES[mes][campo] || []).forEach(x => o[x.label] = x.valor); return o; };
+
+  destroyChart("compOrigem");
+  const oriA = mapBy(mesA, "leadsOrigem"), oriB = mapBy(mesB, "leadsOrigem");
+  const oriLabels = Array.from(new Set([...Object.keys(oriB), ...Object.keys(oriA)]));
+  oriLabels.sort((x, y) => ((oriB[y] || 0) / diasJun + (oriA[y] || 0) / diasMaio) - ((oriB[x] || 0) / diasJun + (oriA[x] || 0) / diasMaio));
+  const oriDiaA = oriLabels.map(l => Math.round((oriA[l] || 0) / diasMaio));
+  const oriDiaB = oriLabels.map(l => Math.round((oriB[l] || 0) / diasJun));
+  const tipTotDias = (mapObj, l, dias) => `${(mapObj[l] || 0).toLocaleString("pt-BR")} em ${dias}d`;
+  charts["compOrigem"] = new Chart(document.getElementById("chartCompOrigem"), {
+    type: "bar",
+    data: { labels: oriLabels, datasets: [
+      { label: "Maio", data: oriDiaA, backgroundColor: corA, borderRadius: 3,
+        datalabels: { anchor: "end", align: "end", font: { size: 8, weight: "600" }, color: "#555", formatter: v => v > 0 ? fmt(v) : "" } },
+      { label: "Junho", data: oriDiaB, backgroundColor: corB, borderRadius: 3,
+        datalabels: { anchor: "end", align: "end", font: { size: 8, weight: "600" }, color: "#555", formatter: v => v > 0 ? fmt(v) : "" } }
+    ] },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 42 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const mes = ctx.dataset.label, l = ctx.label;
+          return `${mes}: ${fmt(ctx.raw)}/dia  (${tipTotDias(mes === "Maio" ? oriA : oriB, l, mes === "Maio" ? diasMaio : diasJun)})`;
+        } } } },
+      scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
+  });
+
+  // ── LEADS/DIA POR CANAL / TIPO (Maio × Junho, média do mês) ──
+  destroyChart("compCanal");
+  const tA = mapBy(mesA, "leadsTipo"), tB = mapBy(mesB, "leadsTipo");
+  const tLabels = Array.from(new Set([...Object.keys(tB), ...Object.keys(tA)]));
+  const tDiaA = tLabels.map(l => Math.round((tA[l] || 0) / diasMaio));
+  const tDiaB = tLabels.map(l => Math.round((tB[l] || 0) / diasJun));
+  charts["compCanal"] = new Chart(document.getElementById("chartCompCanal"), {
+    type: "bar",
+    data: { labels: tLabels, datasets: [
+      { label: "Maio", data: tDiaA, backgroundColor: corA, borderRadius: 4,
+        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "600" }, color: corA, formatter: v => v > 0 ? fmt(v) : "" } },
+      { label: "Junho", data: tDiaB, backgroundColor: corB, borderRadius: 4,
+        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "600" }, color: corB, formatter: v => v > 0 ? fmt(v) : "" } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const mes = ctx.dataset.label, l = ctx.label;
+          return `${mes}: ${fmt(ctx.raw)}/dia  (${tipTotDias(mes === "Maio" ? tA : tB, l, mes === "Maio" ? diasMaio : diasJun)})`;
+        } } } },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } } }
   });
 
   // ── TABELA RESUMO ──
