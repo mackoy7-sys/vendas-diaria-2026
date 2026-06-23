@@ -950,10 +950,12 @@ function renderKPIs() {
 
   // Conv média
   if (g.conv && Array.isArray(g.conv)) {
-    const _cl = (function(){ let s=0,n=0; if (g.leads && Array.isArray(g.leads)) { for (let d=diaIni; d<=diaFim; d++){ const L=g.leads[d-1]; if (L!==null && L!==undefined){ s+=L; n++; } } } return {s:s,n:n}; })();
-    const convMedia = _cl.s > 0 ? (real / _cl.s) * 100 : null;   // ponderada vendas/leads = AH91
+    const _cl = (function(){ let s=0,n=0,last=0; if (g.leads && Array.isArray(g.leads)) { for (let d=diaIni; d<=diaFim; d++){ const L=g.leads[d-1]; if (L!==null && L!==undefined){ s+=L; n++; last=d; } } } return {s:s,n:n,last:last}; })();
+    // Conversão ponderada = vendas ÷ leads, restrita aos MESMOS dias com leads (numerador e denominador no mesmo período)
+    const vendasConv = _cl.last >= diaIni ? vendas(gestorAtivo, diaIni, _cl.last) : 0;
+    const convMedia = _cl.s > 0 ? (vendasConv / _cl.s) * 100 : null;
     document.getElementById("kConv").textContent = convMedia !== null ? fmtDec(convMedia) + "%" : "—";
-    document.getElementById("kConvSub").textContent = convMedia !== null ? `${_cl.n} dias c/ leads` : "Disponível p/ Total";
+    document.getElementById("kConvSub").textContent = convMedia !== null ? `vendas÷leads · ${_cl.n} dias` : "Disponível p/ Total";
     document.getElementById("kpiConv").style.display = "";
   } else {
     document.getElementById("kConv").textContent = "—";
