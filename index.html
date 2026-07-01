@@ -1811,6 +1811,10 @@ function rankingRowHtml(cls, label, pf, pme, adesao, meta, indent, chevronId) {
     <td class="td-right num">${fmt(adesao)}</td>
   </tr>`;
 }
+function pctMetaRank(r) {
+  const total = r.pf + r.pme + r.adesao;
+  return r.meta > 0 ? (total / r.meta) * 100 : -Infinity;
+}
 function renderRankingSupervisores(tbody, gid, detK) {
   const bySup = {};
   detK.forEach(r => {
@@ -1819,14 +1823,14 @@ function renderRankingSupervisores(tbody, gid, detK) {
     s.pf += r.pf; s.pme += r.pme; s.adesao += r.adesao; s.meta += r.meta;
     s.itens.push(r);
   });
-  const sups = Object.values(bySup).sort((a, b) => (b.pf + b.pme + b.adesao) - (a.pf + a.pme + a.adesao));
+  const sups = Object.values(bySup).sort((a, b) => pctMetaRank(b) - pctMetaRank(a));
   sups.forEach((s, si) => {
     const sid = gid + "_s" + si;
     tbody.insertAdjacentHTML("beforeend",
       rankingRowHtml(`rt_det ${gid}`, s.supervisor, s.pf, s.pme, s.adesao, s.meta, 1, "rti_" + sid)
         .replace("<tr class=", `<tr data-g="${sid}" onclick="event.stopPropagation();rtToggle(this.dataset.g)" class=`));
     s.itens
-      .sort((a, b) => (b.pf + b.pme + b.adesao) - (a.pf + a.pme + a.adesao))
+      .sort((a, b) => pctMetaRank(b) - pctMetaRank(a))
       .forEach(p => {
         tbody.insertAdjacentHTML("beforeend",
           rankingRowHtml(`rt_det ${sid}`, p.promotor, p.pf, p.pme, p.adesao, p.meta, 2, ""));
