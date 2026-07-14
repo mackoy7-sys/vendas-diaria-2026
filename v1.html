@@ -330,14 +330,16 @@
   <!-- PAINEL COMPARATIVO JUN × MAI (visível só na visão comparativo) -->
   <div id="compPanel" style="display:none;">
     <div style="background:#eaf3ee;border-left:4px solid #0d6e4a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0d4a32;">
-      📊 <b>Comparativo entre meses</b> — escolha os dois meses. A comparação usa <b>dias comparáveis</b> (dias 1 a <span id="compNlabel"></span> — o menor período com dados nos dois meses). Vendas e produtos seguem o filtro de gestor; conversão e leads são consolidados (Total). Leads <b>por origem e por canal</b> usam <b>média de leads/dia</b> (total de cada mês ÷ seus dias com dados).
+      📊 <b>Comparativo entre meses</b> — escolha 2 ou 3 meses. A comparação usa <b>dias comparáveis</b> (dias 1 a <span id="compNlabel"></span> — o menor período com dados nos meses selecionados). Vendas e produtos seguem o filtro de gestor; conversão e leads são consolidados (Total). Leads <b>por origem e por canal</b> usam <b>média de leads/dia</b> (total de cada mês ÷ seus dias com dados).
     </div>
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
       <span style="font-size:12px;color:#555;font-weight:600;">Comparar:</span>
       <select id="compSelA" onchange="setCompMes()" style="padding:6px 10px;border:1.5px solid #cfd6de;border-radius:7px;font-size:13px;background:#fff;color:#1a1a2e;cursor:pointer;"></select>
       <span style="font-size:13px;color:#888;font-weight:700;">×</span>
       <select id="compSelB" onchange="setCompMes()" style="padding:6px 10px;border:1.5px solid #cfd6de;border-radius:7px;font-size:13px;background:#fff;color:#1a1a2e;cursor:pointer;"></select>
-      <span style="font-size:11px;color:#999;">(o 2º mês é o destaque nos indicadores)</span>
+      <span style="font-size:13px;color:#888;font-weight:700;">×</span>
+      <select id="compSelC" onchange="setCompMes()" style="padding:6px 10px;border:1.5px solid #cfd6de;border-radius:7px;font-size:13px;background:#fff;color:#1a1a2e;cursor:pointer;"></select>
+      <span style="font-size:11px;color:#999;">(3º mês opcional; o último é o destaque)</span>
     </div>
     <div class="kpi-row" id="compKpis"></div>
     <div class="chart-grid-2">
@@ -374,12 +376,7 @@
       <div class="chart-title" id="ctCompTable">📋 Resumo Comparativo (dias comparáveis)</div>
       <table>
         <thead>
-          <tr>
-            <th>Métrica</th>
-            <th class="td-right" id="thCompA">Mês A</th>
-            <th class="td-right" id="thCompB">Mês B</th>
-            <th class="td-right">Variação</th>
-          </tr>
+          <tr id="compHeadRow"></tr>
         </thead>
         <tbody id="tabelaComp"></tbody>
       </table>
@@ -2329,48 +2326,53 @@ function renderTrimestre() {
   }
 }
 
-// ── COMPARATIVO ENTRE MESES (seleção dinâmica) ──
-let compMesA = null, compMesB = null;
+// ── COMPARATIVO ENTRE MESES (seleção dinâmica, até 3 meses) ──
+let compMeses = null; // array de 2-3 chaves de mês
 function mesesComparaveis() {
   return ["ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"]
     .filter(m => DADOS_MESES[m]);
 }
 function buildCompSelects() {
   const ms = mesesComparaveis();
-  if (!compMesB || !DADOS_MESES[compMesB]) compMesB = ms[ms.length - 1];       // mais recente
-  if (!compMesA || !DADOS_MESES[compMesA]) compMesA = ms[ms.length - 2] || ms[0]; // anterior
   const nomeCurto = m => DADOS_MESES[m].mesLabel.split(" ")[0];
-  const opts = sel => ms.map(m => `<option value="${m}" ${m === sel ? "selected" : ""}>${nomeCurto(m)}</option>`).join("");
-  const sA = document.getElementById("compSelA"), sB = document.getElementById("compSelB");
-  if (sA) sA.innerHTML = opts(compMesA);
-  if (sB) sB.innerHTML = opts(compMesB);
+  if (!compMeses) {
+    compMeses = ms.length >= 3 ? ms.slice(-3) : ms.slice();
+  }
+  const opts = (val, incluirNenhum) =>
+    (incluirNenhum ? '<option value="">— (nenhum)</option>' : "") +
+    ms.map(m => `<option value="${m}" ${m === val ? "selected" : ""}>${nomeCurto(m)}</option>`).join("");
+  const sA = document.getElementById("compSelA"), sB = document.getElementById("compSelB"), sC = document.getElementById("compSelC");
+  if (sA) sA.innerHTML = opts(compMeses[0], false);
+  if (sB) sB.innerHTML = opts(compMeses[1], false);
+  if (sC) sC.innerHTML = opts(compMeses[2] || "", true);
 }
 function setCompMes() {
-  compMesA = document.getElementById("compSelA").value;
-  compMesB = document.getElementById("compSelB").value;
+  const vals = ["compSelA","compSelB","compSelC"]
+    .map(id => { const e = document.getElementById(id); return e ? e.value : ""; })
+    .filter(v => v);
+  compMeses = vals.filter((v, i) => vals.indexOf(v) === i); // remove duplicados
+  if (compMeses.length < 2) { compMeses = mesesComparaveis().slice(-2); buildCompSelects(); }
   renderComparativo();
 }
 
-// ── RENDER COMPARATIVO (mês A × mês B, dias comparáveis) ──
+// ── RENDER COMPARATIVO (2-3 meses, dias comparáveis) ──
 function renderComparativo() {
-  if (!compMesA || !compMesB) buildCompSelects();
-  const mesA = compMesA, mesB = compMesB;
-  const corA = "#D85A30", corB = "#185FA5"; // mês A = laranja, mês B = azul
+  if (!compMeses || compMeses.length < 2) buildCompSelects();
+  const ms = compMeses.filter(m => DADOS_MESES[m]);
+  const K = ms.length, P = K - 1;                  // P = mês em destaque (último)
+  const cores = ["#D85A30", "#185FA5", "#6c4ed8"]; // laranja, azul, roxo
 
-  const full = m => DADOS_MESES[m].mesLabel.split(" ")[0];   // "Junho"
-  const curto = m => full(m).slice(0, 3);                    // "Jun"
-  const FA = full(mesA), FB = full(mesB), LA = curto(mesA), LB = curto(mesB);
-
+  const full = m => DADOS_MESES[m].mesLabel.split(" ")[0];
+  const curto = m => full(m).slice(0, 3);
   const lastLead = m => {
     const L = DADOS_MESES[m].gestores.TOTAL.leads; let n = 0;
     if (Array.isArray(L)) for (let i = 0; i < L.length; i++) if (L[i] !== null && L[i] !== undefined) n = i + 1;
     return n || DADOS_MESES[m].diaAtual;
   };
-  // dias comparáveis = menor período com leads nos dois meses
-  const N = Math.max(1, Math.min(lastLead(mesA), lastLead(mesB)));
+  const N = Math.max(1, Math.min(...ms.map(lastLead)));
 
   const g = gestorAtivo;
-  const labelG = DADOS_MESES[mesB].gestores[g].label;
+  const labelG = DADOS_MESES[ms[P]].gestores[g].label;
 
   const acumM = (mes, gg, dia) => {
     const a = DADOS_MESES[mes].gestores[gg].acumulado;
@@ -2379,57 +2381,49 @@ function renderComparativo() {
   const prodPer = (mes, gg) => {
     const G = DADOS_MESES[mes].gestores[gg];
     const tot = G.pf + G.pme + G.adesao;
-    const real = acumM(mes, gg, N);
-    const r = tot > 0 ? real / tot : 0;
+    const rr = acumM(mes, gg, N), r = tot > 0 ? rr / tot : 0;
     return { pf: Math.round(G.pf * r), pme: Math.round(G.pme * r), adesao: Math.round(G.adesao * r) };
   };
-  const leadsSum = (mes) => {
+  const leadsSum = mes => {
     const L = DADOS_MESES[mes].gestores.TOTAL.leads;
-    let s = 0; for (let i = 0; i < N; i++) s += (L[i] || 0);
+    let s = 0; for (let i = 0; i < N; i++) s += (L && L[i] || 0);
     return s;
   };
 
-  const realA = acumM(mesA, g, N), realB = acumM(mesB, g, N);
-  const medA = realA / N, medB = realB / N;
-  const prodA = prodPer(mesA, g), prodB = prodPer(mesB, g);
-
-  // conversão & leads (consolidado Total)
-  const vTotA = acumM(mesA, "TOTAL", N), vTotB = acumM(mesB, "TOTAL", N);
-  const lA = leadsSum(mesA), lB = leadsSum(mesB);
-  const convA = lA > 0 ? (vTotA / lA * 100) : 0;
-  const convB = lB > 0 ? (vTotB / lB * 100) : 0;
-  const lpvA = vTotA > 0 ? lA / vTotA : 0;
-  const lpvB = vTotB > 0 ? lB / vTotB : 0;
+  const real = ms.map(m => acumM(m, g, N));
+  const med = real.map(v => v / N);
+  const prod = ms.map(m => prodPer(m, g));
+  const vTot = ms.map(m => acumM(m, "TOTAL", N));
+  const leadsArr = ms.map(leadsSum);
+  const conv = ms.map((m, i) => leadsArr[i] > 0 ? vTot[i] / leadsArr[i] * 100 : 0);
+  const lpv = ms.map((m, i) => vTot[i] > 0 ? leadsArr[i] / vTot[i] : 0);
 
   const delta = (a, b) => a !== 0 ? ((b - a) / a * 100) : 0;
-  const deltaBadge = (a, b, inv) => {
-    const d = delta(a, b);
-    const good = inv ? d <= 0 : d >= 0;
-    const sign = d >= 0 ? "+" : "";
+  const badgeHTML = (a, b, inv) => {
+    const d = delta(a, b), good = inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
     return `<span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span>`;
   };
-
   const setTxt = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+
+  const titulo = ms.map(full).join(" × ");
   setTxt("compNlabel", N);
   setTxt("diaAtualLabel", `dias 1–${N} (comparáveis)`);
-  setTxt("filtroLabel", `${LB} × ${LA} · ${labelG}`);
-  setTxt("ctCompAcum", `📈 Vendas Acumuladas — ${FA} × ${FB} (dias comparáveis)`);
-  setTxt("ctCompProduto", `🏷️ Realizado por Produto — ${FA} × ${FB}`);
-  setTxt("ctCompConv", `🎯 Conversão Diária — ${FA} × ${FB} (Total)`);
-  setTxt("ctCompLeads", `📥 Volume de Leads Diário — ${FA} × ${FB} (Total)`);
-  setTxt("ctCompOrigem", `🎯 Leads/dia por Origem — ${FA} × ${FB}`);
-  setTxt("ctCompCanal", `🏷️ Leads/dia por Canal — ${FA} × ${FB}`);
-  setTxt("ctCompTable", `📋 Resumo Comparativo — ${FA} × ${FB} (dias comparáveis)`);
-  setTxt("thCompA", `${FA} (1–${N})`);
-  setTxt("thCompB", `${FB} (1–${N})`);
+  setTxt("filtroLabel", `${ms.map(curto).join(" × ")} · ${labelG}`);
+  setTxt("ctCompAcum", `📈 Vendas Acumuladas — ${titulo} (dias comparáveis)`);
+  setTxt("ctCompProduto", `🏷️ Realizado por Produto — ${titulo}`);
+  setTxt("ctCompConv", `🎯 Conversão Diária — ${titulo} (Total)`);
+  setTxt("ctCompLeads", `📥 Volume de Leads Diário — ${titulo} (Total)`);
+  setTxt("ctCompOrigem", `🎯 Leads/dia por Origem — ${titulo}`);
+  setTxt("ctCompCanal", `🏷️ Leads/dia por Canal — ${titulo}`);
+  setTxt("ctCompTable", `📋 Resumo Comparativo — ${titulo} (dias comparáveis)`);
 
-  // ── KPI CARDS ──
+  const subOutros = (vals, fmtFn) => ms.slice(0, P).map((m, i) => `${curto(m)}: ${fmtFn(vals[i])}`).join(" · ");
   const kpis = [
-    { lab: `Realizado (${labelG})`, val: fmt(realB), sub: `${LA}:${fmt(realA)}`, badge: deltaBadge(realA, realB, false), cor: corB },
-    { lab: "Média / dia", val: fmtDec(medB, 0), sub: `${LA}:${fmtDec(medA, 0)}`, badge: deltaBadge(medA, medB, false), cor: corB },
-    { lab: "Conversão (Total)", val: fmtDec(convB) + "%", sub: `${LA}:${fmtDec(convA)}%`, badge: deltaBadge(convA, convB, false), cor: "#e67e22" },
-    { lab: "Volume Leads (Total)", val: fmt(lB), sub: `${LA}:${fmt(lA)}`, badge: deltaBadge(lA, lB, false), cor: "#9b59b6" },
-    { lab: "Leads / Venda (Total)", val: fmtDec(lpvB), sub: `${LA}:${fmtDec(lpvA)}`, badge: deltaBadge(lpvA, lpvB, true), cor: "#6c757d" }
+    { lab: `Realizado (${labelG})`, val: fmt(real[P]), sub: subOutros(real, fmt), badge: badgeHTML(real[0], real[P], false), cor: cores[P] },
+    { lab: "Média / dia", val: fmtDec(med[P], 0), sub: subOutros(med, v => fmtDec(v, 0)), badge: badgeHTML(med[0], med[P], false), cor: cores[P] },
+    { lab: "Conversão (Total)", val: fmtDec(conv[P]) + "%", sub: subOutros(conv, v => fmtDec(v) + "%"), badge: badgeHTML(conv[0], conv[P], false), cor: "#e67e22" },
+    { lab: "Volume Leads (Total)", val: fmt(leadsArr[P]), sub: subOutros(leadsArr, fmt), badge: badgeHTML(leadsArr[0], leadsArr[P], false), cor: "#9b59b6" },
+    { lab: "Leads / Venda (Total)", val: fmtDec(lpv[P]), sub: subOutros(lpv, v => fmtDec(v)), badge: badgeHTML(lpv[0], lpv[P], true), cor: "#6c757d" }
   ];
   document.getElementById("compKpis").innerHTML = kpis.map(k => `
     <div class="kpi-card" style="border-left-color:${k.cor}">
@@ -2441,142 +2435,110 @@ function renderComparativo() {
   const labels = [];
   for (let d = 1; d <= N; d++) labels.push("Dia " + d);
 
-  // ── CHART: ACUMULADO ──
+  // ACUMULADO (linhas)
   destroyChart("compAcum");
-  const acA = [], acB = [];
-  for (let d = 1; d <= N; d++) { acA.push(acumM(mesA, g, d)); acB.push(acumM(mesB, g, d)); }
   charts["compAcum"] = new Chart(document.getElementById("chartCompAcum"), {
     type: "line",
-    data: { labels, datasets: [
-      { label: FA, data: acA, borderColor: corA, borderWidth: 2.5, fill: false, tension: .3, pointRadius: 2,
-        datalabels: { display: ctx => ctx.dataIndex === acA.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: corA, formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } },
-      { label: FB, data: acB, borderColor: corB, backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .3, pointRadius: 2,
-        datalabels: { display: ctx => ctx.dataIndex === acB.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: corB, formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }
-    ] },
+    data: { labels, datasets: ms.map((m, i) => {
+      const dt = []; for (let d = 1; d <= N; d++) dt.push(acumM(m, g, d));
+      return { label: full(m), data: dt, borderColor: cores[i], backgroundColor: cores[i] + "14", borderWidth: 2.5, fill: false, tension: .3, pointRadius: 2,
+        datalabels: { display: ctx => ctx.dataIndex === dt.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: cores[i], formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } };
+    }) },
     options: { responsive: true, maintainAspectRatio: false, layout: { padding: { right: 40 } },
       plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
       scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } } } }
   });
 
-  // ── CHART: PRODUTO ──
+  // PRODUTO
   destroyChart("compProduto");
   charts["compProduto"] = new Chart(document.getElementById("chartCompProduto"), {
     type: "bar",
-    data: { labels: ["PF", "PME", "Adesão"], datasets: [
-      { label: FA, data: [prodA.pf, prodA.pme, prodA.adesao], backgroundColor: corA, borderRadius: 4,
-        datalabels: { anchor: "end", align: "end", font: { size: 10, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } },
-      { label: FB, data: [prodB.pf, prodB.pme, prodB.adesao], backgroundColor: corB, borderRadius: 4,
-        datalabels: { anchor: "end", align: "end", font: { size: 10, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } }
-    ] },
+    data: { labels: ["PF", "PME", "Adesão"], datasets: ms.map((m, i) => ({
+      label: full(m), data: [prod[i].pf, prod[i].pme, prod[i].adesao], backgroundColor: cores[i], borderRadius: 4,
+      datalabels: { anchor: "end", align: "end", font: { size: 9, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } })) },
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 44 } },
       plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
       scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } } }
   });
 
-  // ── CHART: CONVERSÃO DIÁRIA ──
+  // CONVERSÃO DIÁRIA
   destroyChart("compConv");
-  const convArrA = DADOS_MESES[mesA].gestores.TOTAL.conv, convArrB = DADOS_MESES[mesB].gestores.TOTAL.conv;
-  const cvA = [], cvB = [];
-  for (let d = 1; d <= N; d++) { cvA.push(convArrA ? convArrA[d-1] : null); cvB.push(convArrB ? convArrB[d-1] : null); }
   charts["compConv"] = new Chart(document.getElementById("chartCompConv"), {
     type: "bar",
-    data: { labels, datasets: [
-      { label: FA, data: cvA, backgroundColor: corA, borderRadius: 3, datalabels: { display: false } },
-      { label: FB, data: cvB, backgroundColor: corB, borderRadius: 3, datalabels: { display: false } }
-    ] },
+    data: { labels, datasets: ms.map((m, i) => {
+      const arr = DADOS_MESES[m].gestores.TOTAL.conv, dt = [];
+      for (let d = 1; d <= N; d++) dt.push(arr ? arr[d-1] : null);
+      return { label: full(m), data: dt, backgroundColor: cores[i], borderRadius: 3, datalabels: { display: false } };
+    }) },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
         tooltip: { callbacks: { label: ctx => ctx.dataset.label + ": " + (ctx.raw != null ? ctx.raw + "%" : "—") } } },
       scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 }, callback: v => v + "%" } } } }
   });
 
-  // ── CHART: LEADS DIÁRIO ──
+  // LEADS DIÁRIO
   destroyChart("compLeads");
-  const lArrA = DADOS_MESES[mesA].gestores.TOTAL.leads, lArrB = DADOS_MESES[mesB].gestores.TOTAL.leads;
-  const ldA = [], ldB = [];
-  for (let d = 1; d <= N; d++) { ldA.push(lArrA ? lArrA[d-1] : null); ldB.push(lArrB ? lArrB[d-1] : null); }
   charts["compLeads"] = new Chart(document.getElementById("chartCompLeads"), {
     type: "bar",
-    data: { labels, datasets: [
-      { label: FA, data: ldA, backgroundColor: corA, borderRadius: 3, datalabels: { display: false } },
-      { label: FB, data: ldB, backgroundColor: corB, borderRadius: 3, datalabels: { display: false } }
-    ] },
+    data: { labels, datasets: ms.map((m, i) => {
+      const arr = DADOS_MESES[m].gestores.TOTAL.leads, dt = [];
+      for (let d = 1; d <= N; d++) dt.push(arr ? arr[d-1] : null);
+      return { label: full(m), data: dt, backgroundColor: cores[i], borderRadius: 3, datalabels: { display: false } };
+    }) },
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
       scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 } } } } }
   });
 
-  // ── LEADS/DIA POR ORIGEM E CANAL (média = total do mês ÷ dias com dados) ──
-  const temBreakdown = Array.isArray(DADOS_MESES[mesA].leadsOrigem) && Array.isArray(DADOS_MESES[mesB].leadsOrigem);
+  // ORIGEM / CANAL (média leads/dia = total ÷ dias com dados de cada mês)
+  const temBreakdown = ms.every(m => Array.isArray(DADOS_MESES[m].leadsOrigem));
   const brRow = document.getElementById("compBreakdownRow");
   if (brRow) brRow.style.display = temBreakdown ? "" : "none";
   if (temBreakdown) {
-    const diasNormA = lastLead(mesA), diasNormB = lastLead(mesB);
+    const diasNorm = ms.map(lastLead);
     const mapBy = (mes, campo) => { const o = {}; (DADOS_MESES[mes][campo] || []).forEach(x => o[x.label] = x.valor); return o; };
-    const tipTot = (mapObj, l, dias) => `${(mapObj[l] || 0).toLocaleString("pt-BR")} em ${dias}d`;
-
-    destroyChart("compOrigem");
-    const oriA = mapBy(mesA, "leadsOrigem"), oriB = mapBy(mesB, "leadsOrigem");
-    const oriLabels = Array.from(new Set([...Object.keys(oriB), ...Object.keys(oriA)]));
-    oriLabels.sort((x, y) => ((oriB[y] || 0) / diasNormB + (oriA[y] || 0) / diasNormA) - ((oriB[x] || 0) / diasNormB + (oriA[x] || 0) / diasNormA));
-    const oriDiaA = oriLabels.map(l => Math.round((oriA[l] || 0) / diasNormA));
-    const oriDiaB = oriLabels.map(l => Math.round((oriB[l] || 0) / diasNormB));
-    charts["compOrigem"] = new Chart(document.getElementById("chartCompOrigem"), {
-      type: "bar",
-      data: { labels: oriLabels, datasets: [
-        { label: FA, data: oriDiaA, backgroundColor: corA, borderRadius: 3,
-          datalabels: { anchor: "end", align: "end", font: { size: 8, weight: "600" }, color: "#555", formatter: v => v > 0 ? fmt(v) : "" } },
-        { label: FB, data: oriDiaB, backgroundColor: corB, borderRadius: 3,
-          datalabels: { anchor: "end", align: "end", font: { size: 8, weight: "600" }, color: "#555", formatter: v => v > 0 ? fmt(v) : "" } }
-      ] },
-      options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 42 } },
-        plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
-          tooltip: { callbacks: { label: ctx => {
-            const isA = ctx.datasetIndex === 0, l = ctx.label;
-            return `${ctx.dataset.label}: ${fmt(ctx.raw)}/dia  (${tipTot(isA ? oriA : oriB, l, isA ? diasNormA : diasNormB)})`;
-          } } } },
-        scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-    });
-
-    destroyChart("compCanal");
-    const tA = mapBy(mesA, "leadsTipo"), tB = mapBy(mesB, "leadsTipo");
-    const tLabels = Array.from(new Set([...Object.keys(tB), ...Object.keys(tA)]));
-    const tDiaA = tLabels.map(l => Math.round((tA[l] || 0) / diasNormA));
-    const tDiaB = tLabels.map(l => Math.round((tB[l] || 0) / diasNormB));
-    charts["compCanal"] = new Chart(document.getElementById("chartCompCanal"), {
-      type: "bar",
-      data: { labels: tLabels, datasets: [
-        { label: FA, data: tDiaA, backgroundColor: corA, borderRadius: 4,
-          datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "600" }, color: corA, formatter: v => v > 0 ? fmt(v) : "" } },
-        { label: FB, data: tDiaB, backgroundColor: corB, borderRadius: 4,
-          datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "600" }, color: corB, formatter: v => v > 0 ? fmt(v) : "" } }
-      ] },
-      options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
-        plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
-          tooltip: { callbacks: { label: ctx => {
-            const isA = ctx.datasetIndex === 0, l = ctx.label;
-            return `${ctx.dataset.label}: ${fmt(ctx.raw)}/dia  (${tipTot(isA ? tA : tB, l, isA ? diasNormA : diasNormB)})`;
-          } } } },
-        scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } } }
-    });
+    const mkBreak = (canvasId, chartKey, campo, horiz) => {
+      const maps = ms.map(m => mapBy(m, campo));
+      const cats = Array.from(new Set(maps.flatMap(o => Object.keys(o))));
+      cats.sort((x, y) => maps.reduce((s, o, i) => s + (o[y]||0)/diasNorm[i], 0) - maps.reduce((s, o, i) => s + (o[x]||0)/diasNorm[i], 0));
+      destroyChart(chartKey);
+      charts[chartKey] = new Chart(document.getElementById(canvasId), {
+        type: "bar",
+        data: { labels: cats, datasets: ms.map((m, i) => ({
+          label: full(m), data: cats.map(l => Math.round((maps[i][l]||0)/diasNorm[i])), backgroundColor: cores[i], borderRadius: 3,
+          datalabels: { anchor: "end", align: horiz ? "end" : "top", font: { size: 8, weight: "600" }, color: horiz ? "#555" : cores[i], formatter: v => v > 0 ? fmt(v) : "" } })) },
+        options: { indexAxis: horiz ? "y" : "x", responsive: true, maintainAspectRatio: false, layout: { padding: horiz ? { right: 42 } : { top: 18 } },
+          plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+            tooltip: { callbacks: { label: ctx => {
+              const i = ctx.datasetIndex, l = ctx.label, tot = (maps[i][l]||0);
+              return `${ctx.dataset.label}: ${fmt(ctx.raw)}/dia  (${tot.toLocaleString("pt-BR")} em ${diasNorm[i]}d)`;
+            } } } },
+          scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: horiz ? 9 : 10 } } } } }
+      });
+    };
+    mkBreak("chartCompOrigem", "compOrigem", "leadsOrigem", true);
+    mkBreak("chartCompCanal", "compCanal", "leadsTipo", false);
   } else {
     destroyChart("compOrigem"); destroyChart("compCanal");
   }
 
-  // ── TABELA RESUMO ──
-  const rows = [
-    ["Realizado (" + labelG + ")", fmt(realA), fmt(realB), delta(realA, realB), false],
-    ["Média / dia", fmtDec(medA, 0), fmtDec(medB, 0), delta(medA, medB), false],
-    ["PF", fmt(prodA.pf), fmt(prodB.pf), delta(prodA.pf, prodB.pf), false],
-    ["PME", fmt(prodA.pme), fmt(prodB.pme), delta(prodA.pme, prodB.pme), false],
-    ["Adesão", fmt(prodA.adesao), fmt(prodB.adesao), delta(prodA.adesao, prodB.adesao), false],
-    ["Conversão % (Total)", fmtDec(convA) + "%", fmtDec(convB) + "%", delta(convA, convB), false],
-    ["Volume Leads (Total)", fmt(lA), fmt(lB), delta(lA, lB), false],
-    ["Leads / Venda (Total)", fmtDec(lpvA), fmtDec(lpvB), delta(lpvA, lpvB), true]
+  // TABELA (cabeçalho + linhas dinâmicos)
+  const headRow = document.getElementById("compHeadRow");
+  if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + `<th class="td-right">Var. ${curto(ms[P])} vs ${curto(ms[0])}</th>`;
+  const linhas = [
+    { lab: "Realizado (" + labelG + ")", vals: real, f: fmt, inv: false },
+    { lab: "Média / dia", vals: med, f: v => fmtDec(v, 0), inv: false },
+    { lab: "PF", vals: prod.map(p => p.pf), f: fmt, inv: false },
+    { lab: "PME", vals: prod.map(p => p.pme), f: fmt, inv: false },
+    { lab: "Adesão", vals: prod.map(p => p.adesao), f: fmt, inv: false },
+    { lab: "Conversão % (Total)", vals: conv, f: v => fmtDec(v) + "%", inv: false },
+    { lab: "Volume Leads (Total)", vals: leadsArr, f: fmt, inv: false },
+    { lab: "Leads / Venda (Total)", vals: lpv, f: v => fmtDec(v), inv: true }
   ];
-  document.getElementById("tabelaComp").innerHTML = rows.map(r => {
-    const d = r[3], good = r[4] ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
-    return `<tr><td>${r[0]}</td><td class="td-right num">${r[1]}</td><td class="td-right num">${r[2]}</td><td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td></tr>`;
+  document.getElementById("tabelaComp").innerHTML = linhas.map(r => {
+    const cels = r.vals.map(v => `<td class="td-right num">${r.f(v)}</td>`).join("");
+    const d = delta(r.vals[0], r.vals[P]), good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
+    return `<tr><td>${r.lab}</td>${cels}<td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td></tr>`;
   }).join("");
 }
 
