@@ -381,6 +381,16 @@
         <tbody id="tabelaComp"></tbody>
       </table>
     </div>
+    <div class="table-card" id="compConvVidasCard">
+      <div class="chart-title" id="ctCompConvVidas">🧬 Conversão de Vidas por Origem — por mês (%)</div>
+      <div id="compCVNote" style="font-size:11px;color:#888;margin-bottom:8px;"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr id="compCVHead"></tr></thead>
+          <tbody id="compCVBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- ROW 1: Acumulado + Volume (largura total para melhor visualização) -->
@@ -2540,6 +2550,31 @@ function renderComparativo() {
     const d = delta(r.vals[0], r.vals[P]), good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
     return `<tr><td>${r.lab}</td>${cels}<td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td></tr>`;
   }).join("");
+
+  // ── CONVERSÃO DE VIDAS POR ORIGEM × MÊS ──
+  (function () {
+    const card = document.getElementById("compConvVidasCard");
+    if (!card) return;
+    const mcv = ms.filter(m => Array.isArray(DADOS_MESES[m].leadsConversao)); // meses com o dado
+    if (mcv.length === 0) { card.style.display = "none"; return; }
+    card.style.display = "";
+    setTxt("ctCompConvVidas", `🧬 Conversão de Vidas por Origem — ${mcv.map(full).join(" × ")} (%)`);
+    const omit = ms.filter(m => !Array.isArray(DADOS_MESES[m].leadsConversao)).map(full);
+    setTxt("compCVNote", (omit.length ? `Sem dado de conversão por origem em: ${omit.join(", ")}. ` : "") +
+      "Conv. Vidas = vidas ÷ leads totais (acumulado do mês). Cores: verde ≥8% · amarelo ≥5% · vermelho <5%.");
+    const perMes = mcv.map(m => { const o = {}; DADOS_MESES[m].leadsConversao.forEach(x => o[x.origem] = x); return o; });
+    const origens = Array.from(new Set(mcv.flatMap((m, i) => Object.keys(perMes[i]))));
+    origens.sort((a, b) => perMes.reduce((s, o) => s + (o[b] ? o[b].leads : 0), 0) - perMes.reduce((s, o) => s + (o[a] ? o[a].leads : 0), 0));
+    document.getElementById("compCVHead").innerHTML = `<th>Origem</th>` + mcv.map(m => `<th class="td-right">${full(m)}</th>`).join("");
+    const cell = (org, i) => {
+      const r = perMes[i][org];
+      if (!r || !r.leads) return `<td class="td-right">—</td>`;
+      const pct = r.vidas / r.leads * 100, cls = pct >= 8 ? "green" : pct >= 5 ? "yellow" : "red";
+      return `<td class="td-right"><span class="badge ${cls}">${fmtDec(pct)}%</span></td>`;
+    };
+    document.getElementById("compCVBody").innerHTML = origens.map(org =>
+      `<tr><td>${org}</td>${mcv.map((m, i) => cell(org, i)).join("")}</tr>`).join("");
+  })();
 }
 
 // Inicia
