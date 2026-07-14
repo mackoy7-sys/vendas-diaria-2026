@@ -1884,39 +1884,35 @@ function renderConv() {
   destroyChart("conv");
   const g = CONFIG.gestores[gestorAtivo];
   const showConv = g.conv && Array.isArray(g.conv);
-  const labels = getDayLabels();
-  let data = labels.map(() => null);
-  let bgColors = labels.map(() => "#cccccc");
+  const labels = [];
+  const data = [];
+  const bgColors = [];
 
   if (showConv) {
-    data = [];
-    bgColors = [];
     for (let d = diaIni; d <= diaFim; d++) {
       const v = g.conv[d-1];
+      if (v === null || v === undefined) continue;
+      labels.push(`Dia ${d}`);
       data.push(v);
-      if (v === null || v === undefined) bgColors.push("rgba(200,200,200,0.3)");
-      else if (v >= 8) bgColors.push("#0F6E56");
-      else if (v >= 5) bgColors.push("#854F0B");
-      else bgColors.push("#993C1D");
+      bgColors.push(v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D");
     }
   }
 
-  const showConvLabels = (diaFim - diaIni + 1) <= 20;
+  const showConvLabels = labels.length <= 20;
   charts["conv"] = new Chart(document.getElementById("chartConv"), {
     type: "bar",
     data: {
       labels,
       datasets: [{ label: "Conv %", data, backgroundColor: bgColors, borderRadius: 3,
         datalabels: {
-          display: ctx => showConvLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+          display: showConvLabels,
           anchor: "end", align: "top",
           font: { size: 9, weight: "600" },
           color: ctx => {
             const v = ctx.dataset.data[ctx.dataIndex];
-            if (v === null) return "transparent";
             return v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D";
           },
-          formatter: v => v !== null ? v + "%" : ""
+          formatter: v => v + "%"
         }
       }]
     },
@@ -1924,7 +1920,7 @@ function renderConv() {
       responsive: true, maintainAspectRatio: true,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw}%` : "—" } },
+        tooltip: { callbacks: { label: ctx => `${ctx.raw}%` } },
         datalabels: {}
       },
       scales: {

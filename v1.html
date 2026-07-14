@@ -1717,39 +1717,35 @@ function renderConv() {
   destroyChart("conv");
   const g = CONFIG.gestores[gestorAtivo];
   const showConv = g.conv && Array.isArray(g.conv);
-  const labels = getDayLabels();
-  let data = labels.map(() => null);
-  let bgColors = labels.map(() => "#cccccc");
+  const labels = [];
+  const data = [];
+  const bgColors = [];
 
   if (showConv) {
-    data = [];
-    bgColors = [];
     for (let d = diaIni; d <= diaFim; d++) {
       const v = g.conv[d-1];
+      if (v === null || v === undefined) continue;
+      labels.push(`Dia ${d}`);
       data.push(v);
-      if (v === null || v === undefined) bgColors.push("rgba(200,200,200,0.3)");
-      else if (v >= 8) bgColors.push("#0F6E56");
-      else if (v >= 5) bgColors.push("#854F0B");
-      else bgColors.push("#993C1D");
+      bgColors.push(v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D");
     }
   }
 
-  const showConvLabels = (diaFim - diaIni + 1) <= 20;
+  const showConvLabels = labels.length <= 20;
   charts["conv"] = new Chart(document.getElementById("chartConv"), {
     type: "bar",
     data: {
       labels,
       datasets: [{ label: "Conv %", data, backgroundColor: bgColors, borderRadius: 3,
         datalabels: {
-          display: ctx => showConvLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+          display: showConvLabels,
           anchor: "end", align: "top",
           font: { size: 9, weight: "600" },
           color: ctx => {
             const v = ctx.dataset.data[ctx.dataIndex];
-            if (v === null) return "transparent";
             return v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D";
           },
-          formatter: v => v !== null ? v + "%" : ""
+          formatter: v => v + "%"
         }
       }]
     },
@@ -1757,7 +1753,7 @@ function renderConv() {
       responsive: true, maintainAspectRatio: true,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw}%` : "—" } },
+        tooltip: { callbacks: { label: ctx => `${ctx.raw}%` } },
         datalabels: {}
       },
       scales: {
@@ -1822,21 +1818,19 @@ function renderLeads() {
   document.getElementById("leadsSection").style.display = showLeads ? "" : "none";
   if (!showLeads) return;
 
-  const labels = getDayLabels();
+  const labels = [];
   const leadsData = [];
-  const volData = [];
   for (let d = diaIni; d <= diaFim; d++) {
-    leadsData.push(g.leads[d-1] ?? null);
-    const arr = g.acumulado;
-    const vol = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
-    volData.push(vol);
+    const v = g.leads[d-1];
+    if (v === null || v === undefined) continue;
+    labels.push(`Dia ${d}`);
+    leadsData.push(v);
   }
 
-  const leadsValidos = leadsData.filter(v => v !== null);
-  const mediaLeads = leadsValidos.length ? leadsValidos.reduce((a,b)=>a+b,0)/leadsValidos.length : 0;
-  const mediaLeadsLine = leadsData.map(v => v !== null ? mediaLeads : null);
+  const mediaLeads = leadsData.length ? leadsData.reduce((a,b)=>a+b,0)/leadsData.length : 0;
+  const mediaLeadsLine = leadsData.map(() => mediaLeads);
 
-  const showLeadLabels = (diaFim - diaIni + 1) <= 15;
+  const showLeadLabels = labels.length <= 15;
   charts["leads"] = new Chart(document.getElementById("chartLeads"), {
     type: "bar",
     data: {
@@ -1844,10 +1838,10 @@ function renderLeads() {
       datasets: [
         { label: "Leads", data: leadsData, backgroundColor: "rgba(24,95,165,.6)", borderRadius: 3, order: 2,
           datalabels: {
-            display: ctx => showLeadLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            display: showLeadLabels,
             anchor: "end", align: "top",
             font: { size: 9, weight: "600" }, color: "#185FA5",
-            formatter: v => v !== null ? (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v) : ""
+            formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v
           }
         },
         { label: "Média", data: mediaLeadsLine, type: "line", borderColor: "#E8623A", borderDash: [5,3], borderWidth: 2, pointRadius: 0, fill: false, order: 1,
