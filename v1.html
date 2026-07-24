@@ -405,8 +405,8 @@
     </div>
   </div>
 
-  <!-- ROW 2: Média produto + Conversão + Mix -->
-  <div class="chart-grid-3 normal-view">
+  <!-- ROW 2: Média produto + Conversão -->
+  <div class="chart-grid-2 normal-view">
     <div class="chart-card">
       <div class="chart-title">🏷️ Total de Vendas por Produto</div>
       <canvas id="chartProduto"></canvas>
@@ -415,9 +415,18 @@
       <div class="chart-title">🎯 Taxa de Conversão Diária</div>
       <canvas id="chartConv"></canvas>
     </div>
+  </div>
+
+  <!-- ROW 2b: Mix + PPO por Plano -->
+  <div class="chart-grid-2 normal-view">
     <div class="chart-card">
       <div class="chart-title">🍩 Mix por Tipo de Venda</div>
       <canvas id="chartMix"></canvas>
+    </div>
+    <!-- PPO vem so' da base digital (DIRETORIA='PPO') -- o RESUMO manual nao distingue PPO -->
+    <div class="chart-card" id="secPpoPlano">
+      <div class="chart-title">🩺 Vidas PPO por Plano</div>
+      <canvas id="chartPpoPlano"></canvas>
     </div>
   </div>
 
@@ -1044,7 +1053,8 @@ const DADOS_MESES = {
                     2565,2624,2926,3201,3542,3860,4102,4199,4272,4653,
                     4922,5234,5466,5500,5559,5600,5639,5651,5659,5682,
                     5694],
-        pf: 3275, pme: 2137, adesao: 282, sintro: 904,
+        pf: 3275, pme: 2137, adesao: 282, sintro: 904, ppo: 60,
+        ppoPlanos: [{ label: "ADVANCE", valor: 57 }, { label: "PREMIUM", valor: 3 }],
         conv: [9.6,3.0,4.8,3.0,4.1,4.6,5.7,5.8,5.8,7.9,
                     5.0,4.6,4.9,6.0,6.8,6.8,6.4,4.9,7.5,5.6,
                     5.7,6.7,6.3,null,null,null,null,null,null,null,
@@ -1061,7 +1071,8 @@ const DADOS_MESES = {
                     1255,1292,1413,1551,1728,1898,2036,2079,2117,2293,
                     2428,2592,2678,2690,2724,2745,2774,2784,2792,2815,
                     2824],
-        pf: 1330, pme: 1321, adesao: 173, sintro: 91,
+        pf: 1330, pme: 1321, adesao: 173, sintro: 91, ppo: 36,
+        ppoPlanos: [{ label: "ADVANCE", valor: 36 }],
         conv: null, leads: null, vendas_ant: 4629, projecao_fixa: 3448, ativos: 94
       },
       JOSY: {
@@ -1070,7 +1081,8 @@ const DADOS_MESES = {
                     1135,1155,1324,1449,1594,1729,1826,1878,1913,2106,
                     2231,2365,2491,2512,2537,2557,2567,2569,2569,2569,
                     2572],
-        pf: 1666, pme: 816, adesao: 90, sintro: 400,
+        pf: 1666, pme: 816, adesao: 90, sintro: 400, ppo: 14,
+        ppoPlanos: [{ label: "ADVANCE", valor: 14 }],
         conv: null, leads: null, vendas_ant: 3603, projecao_fixa: 3261, ativos: 77
       },
       ADMINISTRATIVO: {
@@ -1079,7 +1091,8 @@ const DADOS_MESES = {
                     175,177,189,201,220,233,240,242,242,254,
                     263,277,297,298,298,298,298,298,298,298,
                     298],
-        pf: 279, pme: 0, adesao: 19, sintro: 148,
+        pf: 279, pme: 0, adesao: 19, sintro: 148, ppo: 10,
+        ppoPlanos: [{ label: "ADVANCE", valor: 7 }, { label: "PREMIUM", valor: 3 }],
         conv: null, leads: null, vendas_ant: 646, projecao_fixa: 383, ativos: 0
       },
       ACTIONLINE: {
@@ -1088,7 +1101,8 @@ const DADOS_MESES = {
                     0,0,0,0,0,0,0,0,0,0,
                     0,0,0,0,0,0,0,0,0,0,
                     0],
-        pf: 0, pme: 0, adesao: 0, sintro: 265,
+        pf: 0, pme: 0, adesao: 0, sintro: 265, ppo: 0,
+        ppoPlanos: [],
         conv: null, leads: null, vendas_ant: 103, projecao_fixa: 0, ativos: 7
       }
     },
@@ -1753,6 +1767,47 @@ function renderProduto() {
   });
 }
 
+// ── CHART: PPO POR PLANO (base digital, DIRETORIA='PPO' -- o manual RESUMO nao tem PPO) ──
+// Agrupamento de NM_PLANO pela regra oficial grupo_plano() (utils.py) -- ex.: ADVANCE/PREMIUM/INFINITY.
+function renderPpoPlano() {
+  destroyChart("ppoPlano");
+  const g = CONFIG.gestores[gestorAtivo];
+  const dados = Array.isArray(g.ppoPlanos) ? g.ppoPlanos : [];
+  const sec = document.getElementById("secPpoPlano");
+  sec.style.display = dados.length ? "" : "none";
+  if (!dados.length) return;
+
+  const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
+  const labels = ordenado.map(d => d.label);
+  const valores = ordenado.map(d => d.valor);
+  const total = valores.reduce((a,b) => a+b, 0);
+  const cores = ["#6c4ed8","#185FA5","#1D9E75","#D85A30","#E67E22","#5499C7","#48C9B0","#A569BD"];
+
+  charts["ppoPlano"] = new Chart(document.getElementById("chartPpoPlano"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Vidas PPO", data: valores,
+        backgroundColor: labels.map((_,i) => cores[i % cores.length]), borderRadius: 5,
+        datalabels: { anchor: "end", align: "right", font: { size: 11, weight: "700" }, color: "#333",
+          formatter: v => v > 0 ? v : "" } }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: true,
+      layout: { padding: { right: 30 } },
+      plugins: {
+        legend: { display: false }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const pct = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+          return ` ${ctx.raw} vidas (${pct}%)`;
+        }}}
+      },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
+    }
+  });
+}
+
 // ── CHART: CONVERSÃO ──
 function renderConv() {
   destroyChart("conv");
@@ -2321,6 +2376,7 @@ function renderAll() {
     renderAcumulado();
     renderVolume();
     renderProduto();
+    renderPpoPlano();
     renderConv();
     renderMix();
     renderLeads();
