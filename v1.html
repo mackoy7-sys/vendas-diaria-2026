@@ -496,6 +496,7 @@
           <th class="td-right">% Proj</th>
           <th class="td-right">Média/dia</th>
           <th class="td-right" title="Média de Venda por Promotor (vidas ÷ vendedores ativos)">MVP</th>
+          <th class="td-right" title="Quantidade de vendedores ativos usada como base do MVP">Vendedores</th>
           <th class="td-right">Var vs <span id="thVarAnt">Abr</span></th>
           <th class="td-right">PF</th>
           <th class="td-right">PME</th>
@@ -2174,6 +2175,7 @@ function renderTabela() {
       <td class="td-right">${temMeta ? pctProj + '%' : '—'}</td>
       <td class="td-right num">${fmtDec(media,0)}</td>
       <td class="td-right num">${mvp}</td>
+      <td class="td-right num">${g.ativos > 0 ? fmt(g.ativos) : '—'}</td>
       <td class="td-right" style="color:${parseFloat(varAbr)>=0?'#1D9E75':'#D85A30'}">${varAbr>=0?'+':''}${varAbr}%</td>
       <td class="td-right num">${fmt(Math.round(g.pf*ratio))}</td>
       <td class="td-right num">${fmt(Math.round(g.pme*ratio))}</td>
@@ -2194,6 +2196,7 @@ function rankingRowHtml(cls, label, pf, pme, adesao, meta, indent, chevronId, at
   // num Promotor individual (indent 2) MVP seria dividir a venda de 1 pessoa pela contagem dela mesma,
   // e Var/Projecao nao tem fonte por promotor (RANKING do mes anterior e' agregado so' por GESTAO+SUPERVISOR).
   const mvpTxt = (indent === 1 && ativos > 0) ? (total / ativos).toFixed(1) : '—';
+  const ativosTxt = (indent === 1 && ativos > 0) ? fmt(ativos) : '—';
   const varSup = (indent === 1 && vendasAnt > 0) ? ((total / vendasAnt - 1) * 100) : null;
   const varTxt = varSup === null ? '—' : `${varSup >= 0 ? '+' : ''}${varSup.toFixed(1)}%`;
   const varStyle = varSup === null ? '' : ` style="color:${varSup >= 0 ? '#1D9E75' : '#D85A30'}"`;
@@ -2218,6 +2221,7 @@ function rankingRowHtml(cls, label, pf, pme, adesao, meta, indent, chevronId, at
     <td class="td-right">${pctProjTxt}</td>
     <td class="td-right num">${mediaTxt}</td>
     <td class="td-right num">${mvpTxt}</td>
+    <td class="td-right num">${ativosTxt}</td>
     <td class="td-right"${varStyle}>${varTxt}</td>
     <td class="td-right num">${fmt(pf)}</td>
     <td class="td-right num">${fmt(pme)}</td>
