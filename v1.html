@@ -307,6 +307,12 @@
         <div class="chart-title">📅 Vendas por Mês — Abril / Maio / Junho</div>
         <canvas id="chartTriMes"></canvas>
       </div>
+      <!-- PPO do trimestre: as secoes .normal-view (onde vive o card mensal) sao ESCONDIDAS na visao
+           trimestre/comparativo, por isso o grafico precisa de um card proprio aqui dentro. -->
+      <div class="chart-card" id="secPpoPlanoTri">
+        <div class="chart-title">🩺 Vidas PPO por Plano — 2º Trimestre</div>
+        <canvas id="chartPpoPlanoTri"></canvas>
+      </div>
     </div>
     <div class="table-card" style="margin-top:16px">
       <div class="chart-title">📋 Consolidado do Trimestre — Meta vs Realizado</div>
@@ -2064,11 +2070,14 @@ function renderProduto() {
 
 // ── CHART: PPO POR PLANO (base digital, DIRETORIA='PPO' -- o manual RESUMO nao tem PPO) ──
 // Agrupamento de NM_PLANO pela regra oficial grupo_plano() (utils.py) -- ex.: ADVANCE/PREMIUM/INFINITY.
-function renderPpoPlano() {
-  destroyChart("ppoPlano");
+// sufixo "" = card mensal (linha .normal-view); "Tri" = card dentro do #triPanel (as .normal-view
+// ficam escondidas na visao trimestre, entao lá o grafico tem canvas/secao proprios).
+function renderPpoPlano(sufixo) {
+  const sfx = sufixo || "";
+  destroyChart("ppoPlano" + sfx);
   const g = CONFIG.gestores[gestorAtivo];
   const dados = Array.isArray(g.ppoPlanos) ? g.ppoPlanos : [];
-  const sec = document.getElementById("secPpoPlano");
+  const sec = document.getElementById("secPpoPlano" + sfx);
   sec.style.display = dados.length ? "" : "none";
   if (!dados.length) return;
 
@@ -2078,7 +2087,7 @@ function renderPpoPlano() {
   const total = valores.reduce((a,b) => a+b, 0);
   const cores = ["#6c4ed8","#185FA5","#1D9E75","#D85A30","#E67E22","#5499C7","#48C9B0","#A569BD"];
 
-  charts["ppoPlano"] = new Chart(document.getElementById("chartPpoPlano"), {
+  charts["ppoPlano" + sfx] = new Chart(document.getElementById("chartPpoPlano" + sfx), {
     type: "bar",
     data: {
       labels,
@@ -2673,6 +2682,7 @@ function renderAll() {
   renderKPIs();
   if (isTri) {
     renderTrimestre();
+    renderPpoPlano("Tri");   // card proprio do #triPanel (as .normal-view estao escondidas aqui)
   } else {
     renderAcumulado();
     renderVolume();
