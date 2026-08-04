@@ -2423,11 +2423,12 @@ function renderLeadsDia() {
   if (!exibir) return;
 
   const nDias = dados.dias;
-  // Cabeçalho: Origem | Dia 1..N | Total
+  // Cabeçalho: Origem | Dia 1..N | Total | % do Total
   const head = document.getElementById("leadsDiaHead");
   let th = '<tr><th style="position:sticky;left:0;background:#185FA5;color:#fff;z-index:2">Origem</th>';
   for (let d = 1; d <= nDias; d++) th += `<th class="td-right">${d}</th>`;
-  th += '<th class="td-right" style="background:#0d4a85;color:#fff">Total</th></tr>';
+  th += '<th class="td-right" style="background:#0d4a85;color:#fff">Total</th>';
+  th += '<th class="td-right" style="background:#0d4a85;color:#fff">% do Total</th></tr>';
   head.innerHTML = th;
 
   // Linhas: ordenadas por total (maior primeiro)
@@ -2440,7 +2441,9 @@ function renderLeadsDia() {
   const body = document.getElementById("leadsDiaBody");
   body.innerHTML = "";
   const totalPorDia = new Array(nDias).fill(0);
-  let totalGeral = 0;
+  // total geral calculado ANTES do loop: a coluna "% do Total" de cada linha precisa do denominador
+  // ja fechado (a soma de todas as origens do mes), nao do acumulado parcial da iteracao.
+  const totalGeral = comTotal.reduce((a,o) => a + o.total, 0);
 
   for (const o of comTotal) {
     let tr = `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600">${o.origem}</td>`;
@@ -2451,15 +2454,18 @@ function renderLeadsDia() {
       const tr_op = v === 0 ? "" : ' style="background:rgba(24,95,165,'+Math.min(0.18, v/6000).toFixed(3)+')"';
       tr += `<td class="td-right"${tr_op}>${v === 0 ? "–" : fmt(v)}</td>`;
     }
-    totalGeral += o.total;
-    tr += `<td class="td-right num" style="font-weight:700;background:#eef4fb">${fmt(o.total)}</td></tr>`;
+    tr += `<td class="td-right num" style="font-weight:700;background:#eef4fb">${fmt(o.total)}</td>`;
+    // participacao da origem no total de leads do mes (mesmo denominador da linha Total Geral)
+    const pct = totalGeral ? (o.total / totalGeral * 100) : 0;
+    tr += `<td class="td-right" style="font-weight:700;background:#eef4fb">${fmtDec(pct)}%</td></tr>`;
     body.innerHTML += tr;
   }
 
   // Linha total geral
   let trT = '<tr style="font-weight:700;border-top:2px solid #185FA5"><td style="position:sticky;left:0;background:#eef4fb">Total Geral</td>';
   for (let d = 0; d < nDias; d++) trT += `<td class="td-right" style="background:#eef4fb">${fmt(totalPorDia[d])}</td>`;
-  trT += `<td class="td-right" style="background:#185FA5;color:#fff">${fmt(totalGeral)}</td></tr>`;
+  trT += `<td class="td-right" style="background:#185FA5;color:#fff">${fmt(totalGeral)}</td>`;
+  trT += `<td class="td-right" style="background:#185FA5;color:#fff">${totalGeral ? "100,0" : "0,0"}%</td></tr>`;
   body.innerHTML += trT;
 }
 
