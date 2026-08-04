@@ -244,6 +244,7 @@
     <button class="btn-mes active" onclick="setMes('AGOSTO')">Agosto</button>
     <button class="btn-mes" onclick="setMes('TRIMESTRE')" style="background:#6c4ed8;color:#fff;border-color:#6c4ed8">2º Trimestre</button>
     <button class="btn-mes" onclick="setMes('COMPARATIVO')" style="background:#0d6e4a;color:#fff;border-color:#0d6e4a">Comparar meses</button>
+    <button class="btn-mes" id="btnPpo" onclick="togglePpo()" style="background:#6c4ed8;color:#fff;border-color:#6c4ed8" title="Aba dedicada de vidas PPO (datalake). Use os botões de mês como período; a evolução anual mostra o ano todo.">🩺 PPO</button>
     <div class="filter-sep"></div>
     <span class="filter-label">Gestor:</span>
     <button class="btn-gestor active" onclick="setGestor('TOTAL')">Total</button>
@@ -397,6 +398,93 @@
           <tbody id="compCVBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- PAINEL PPO (visível só na aba 🩺 PPO). Espelho do consolidado, 100% vidas PPO (datalake).
+       Fonte = const PPO_DATA (gerado pelo vendas_diaria.py). Mês vem dos botões de mês; a evolução
+       anual ignora o mês (mostra jan..mês corrente). Respeita o filtro de gestor. -->
+  <div id="ppoPanel" style="display:none;">
+    <div style="background:#f1edfb;border-left:4px solid #6c4ed8;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#3d2e73;">
+      🩺 <b>Vidas PPO</b> — dado 100% digital do datalake (<code>DIRETORIA='PPO'</code>), fora do levantamento manual. Use os botões de <b>mês</b> como período e o filtro de <b>gestor</b>. A <b>evolução anual</b> mostra o ano todo. <span id="ppoAteLabel" style="opacity:.75"></span>
+    </div>
+    <!-- KPIs próprios -->
+    <div class="kpi-row" id="ppoKpis">
+      <div class="kpi-card" style="border-left-color:#6c4ed8">
+        <div class="kpi-label">Vidas PPO (mês)</div>
+        <div class="kpi-value" id="ppoKVidas">—</div>
+        <div class="kpi-sub" id="ppoKVidasSub"></div>
+      </div>
+      <div class="kpi-card laranja">
+        <div class="kpi-label">Projeção mensal</div>
+        <div class="kpi-value" id="ppoKProj">—</div>
+        <div class="kpi-sub" id="ppoKProjSub"></div>
+      </div>
+      <div class="kpi-card cinza">
+        <div class="kpi-label">Média / dia</div>
+        <div class="kpi-value" id="ppoKMedia">—</div>
+        <div class="kpi-sub" id="ppoKMediaSub"></div>
+      </div>
+      <div class="kpi-card" style="border-left-color:#9b59b6">
+        <div class="kpi-label" id="ppoKVarLabel">Var. vs mês anterior</div>
+        <div class="kpi-value" id="ppoKVar">—</div>
+        <div class="kpi-sub" id="ppoKVarSub"></div>
+      </div>
+    </div>
+    <!-- Row: Acumulado diário + PPO por Plano -->
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">📈 PPO Acumulado por Dia</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoAcum"></canvas></div>
+      </div>
+      <div class="chart-card" id="ppoSecPlano">
+        <div class="chart-title">🩺 PPO por Plano</div>
+        <canvas id="chartPpoTabPlano"></canvas>
+      </div>
+    </div>
+    <!-- Row: PPO por Gestor + Evolução anual -->
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">👥 PPO por Gestor</div>
+        <canvas id="chartPpoGestor"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" id="ppoAnualTitle">📅 Evolução Anual de Vidas PPO</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoAnual"></canvas></div>
+      </div>
+    </div>
+    <!-- Row: por UF + por Canal -->
+    <div class="chart-grid-2">
+      <div class="chart-card" id="ppoSecUF">
+        <div class="chart-title">🗺️ PPO por UF</div>
+        <canvas id="chartPpoUF"></canvas>
+      </div>
+      <div class="chart-card" id="ppoSecCanal">
+        <div class="chart-title">🔀 PPO por Canal</div>
+        <canvas id="chartPpoCanal"></canvas>
+      </div>
+    </div>
+    <!-- Ranking Gestor → Vendedor -->
+    <div class="table-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px">
+        <div class="chart-title" style="margin-bottom:0">📋 Ranking PPO por Vendedor <span style="color:#888;font-weight:400;font-size:12px">· clique no gestor para ver os vendedores</span></div>
+        <div style="display:flex;gap:8px">
+          <button onclick="ppoExpandAll(true)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▼ Expandir Todos</button>
+          <button onclick="ppoExpandAll(false)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▶ Colapsar Todos</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Gestor / Vendedor</th>
+            <th class="td-right">Vidas PPO</th>
+            <th class="td-right">ADVANCE</th>
+            <th class="td-right">PREMIUM</th>
+            <th class="td-right">INFINITY</th>
+          </tr>
+        </thead>
+        <tbody id="ppoTabela"></tbody>
+      </table>
     </div>
   </div>
 
@@ -1625,6 +1713,10 @@ const DADOS_MESES = {
 // 2º TRIMESTRE — gerado automaticamente a partir de ABRIL+MAIO+JUNHO
 // Soma de vendas realizadas (acumulado final) e soma das metas.
 // ============================================================
+// === PPO_DATA (gerado por vendas_diaria.py -- NAO editar a mao) ===
+const PPO_DATA = {"meses": {"JANEIRO": {"porGestor": {"TOTAL": 61, "FABIO": 61, "JOSY": 0, "ADMINISTRATIVO": 0, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 54}, {"label": "PREMIUM", "valor": 7}], "FABIO": [{"label": "ADVANCE", "valor": 54}, {"label": "PREMIUM", "valor": 7}], "JOSY": [], "ADMINISTRATIVO": [], "ACTIONLINE": []}, "porDia": {"TOTAL": [3, 0, 2, 0, 0, 0, 0, 2, 1, 4, 1, 3, 3, 4, 2, 0, 2, 2, 2, 0, 7, 0, 4, 3, 0, 2, 7, 2, 5, 0, 0], "FABIO": [3, 0, 2, 0, 0, 0, 0, 2, 1, 4, 1, 3, 3, 4, 2, 0, 2, 2, 2, 0, 7, 0, 4, 3, 0, 2, 7, 2, 5, 0, 0], "JOSY": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ADMINISTRATIVO": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 7, "planos": {"ADVANCE": 7, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETILYS TAINAH SCHROEDER", "valor": 7, "planos": {"ADVANCE": 5, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "EDILZA JACIRA DA SILVA BRAGA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 3, "planos": {"ADVANCE": 0, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "MARCIA REGINA DE SOUZA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WARLEY DE SOUZA MACEDO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DANIELE ROSAS", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAROL PONTES BUENO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 7, "planos": {"ADVANCE": 7, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETILYS TAINAH SCHROEDER", "valor": 7, "planos": {"ADVANCE": 5, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "EDILZA JACIRA DA SILVA BRAGA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 3, "planos": {"ADVANCE": 0, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "MARCIA REGINA DE SOUZA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WARLEY DE SOUZA MACEDO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DANIELE ROSAS", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAROL PONTES BUENO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [], "ADMINISTRATIVO": [], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 58}, {"label": "RJ", "valor": 3}], "FABIO": [{"label": "SP", "valor": 58}, {"label": "RJ", "valor": 3}], "JOSY": [], "ADMINISTRATIVO": [], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 61}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 61}], "JOSY": [], "ADMINISTRATIVO": [], "ACTIONLINE": []}, "diaLim": 31}, "FEVEREIRO": {"porGestor": {"TOTAL": 69, "FABIO": 64, "JOSY": 0, "ADMINISTRATIVO": 5, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 54}, {"label": "PREMIUM", "valor": 8}, {"label": "INFINITY", "valor": 6}, {"label": "LIBERTÉ", "valor": 1}], "FABIO": [{"label": "ADVANCE", "valor": 52}, {"label": "PREMIUM", "valor": 7}, {"label": "INFINITY", "valor": 5}], "JOSY": [], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 2}, {"label": "INFINITY", "valor": 1}, {"label": "PREMIUM", "valor": 1}, {"label": "LIBERTÉ", "valor": 1}], "ACTIONLINE": []}, "porDia": {"TOTAL": [4, 1, 2, 1, 3, 4, 2, 0, 6, 1, 0, 4, 0, 9, 7, 0, 0, 1, 0, 5, 4, 0, 3, 4, 1, 3, 4, 0], "FABIO": [0, 1, 2, 1, 3, 4, 2, 0, 6, 1, 0, 3, 0, 9, 7, 0, 0, 1, 0, 5, 4, 0, 3, 4, 1, 3, 4, 0], "JOSY": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ADMINISTRATIVO": [4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "DANIELA RIBEIRO DOS SANTOS", "valor": 7, "planos": {"ADVANCE": 7, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 6, "planos": {"ADVANCE": 4, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 5, "planos": {"ADVANCE": 2, "PREMIUM": 1, "INFINITY": 1}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "NATALIA TRONI LEITE", "valor": 5, "planos": {"ADVANCE": 0, "PREMIUM": 0, "INFINITY": 5}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 4, "planos": {"ADVANCE": 1, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIA REGINA ROMBACH", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DANIELE ROSAS", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "HERIKA GASPAR ZACARQUIM", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "DANIELA RIBEIRO DOS SANTOS", "valor": 7, "planos": {"ADVANCE": 7, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 6, "planos": {"ADVANCE": 4, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "NATALIA TRONI LEITE", "valor": 5, "planos": {"ADVANCE": 0, "PREMIUM": 0, "INFINITY": 5}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 4, "planos": {"ADVANCE": 1, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIA REGINA ROMBACH", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DANIELE ROSAS", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "HERIKA GASPAR ZACARQUIM", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [], "ADMINISTRATIVO": [{"nome": "ADMINISTR / HAPVIDA", "valor": 5, "planos": {"ADVANCE": 2, "PREMIUM": 1, "INFINITY": 1}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 67}, {"label": "MG", "valor": 2}], "FABIO": [{"label": "SP", "valor": 62}, {"label": "MG", "valor": 2}], "JOSY": [], "ADMINISTRATIVO": [{"label": "SP", "valor": 5}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 69}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 64}], "JOSY": [], "ADMINISTRATIVO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 5}], "ACTIONLINE": []}, "diaLim": 28}, "MARCO": {"porGestor": {"TOTAL": 87, "FABIO": 84, "JOSY": 1, "ADMINISTRATIVO": 2, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 77}, {"label": "PREMIUM", "valor": 10}], "FABIO": [{"label": "ADVANCE", "valor": 74}, {"label": "PREMIUM", "valor": 10}], "JOSY": [{"label": "ADVANCE", "valor": 1}], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 2}], "ACTIONLINE": []}, "porDia": {"TOTAL": [5, 3, 0, 0, 3, 0, 5, 0, 3, 3, 5, 0, 2, 6, 0, 7, 6, 6, 8, 0, 7, 2, 2, 0, 2, 3, 3, 0, 1, 3, 2], "FABIO": [3, 3, 0, 0, 3, 0, 5, 0, 3, 3, 5, 0, 2, 6, 0, 7, 6, 5, 8, 0, 7, 2, 2, 0, 2, 3, 3, 0, 1, 3, 2], "JOSY": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ADMINISTRATIVO": [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 13, "planos": {"ADVANCE": 12, "PREMIUM": 1, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 13, "planos": {"ADVANCE": 6, "PREMIUM": 7, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 9, "planos": {"ADVANCE": 9, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 5, "planos": {"ADVANCE": 3, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARCIA REGINA DE SOUZA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "NATHALY CAUANE VIEIRA BATISTA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ISABELLA CARDOSO DE MATTOS", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 13, "planos": {"ADVANCE": 12, "PREMIUM": 1, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 13, "planos": {"ADVANCE": 6, "PREMIUM": 7, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 9, "planos": {"ADVANCE": 9, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 5, "planos": {"ADVANCE": 3, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARCIA REGINA DE SOUZA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "NATHALY CAUANE VIEIRA BATISTA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [{"nome": "ISABELLA CARDOSO DE MATTOS", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ADMINISTRATIVO": [{"nome": "ADMINISTR / HAPVIDA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 78}, {"label": "RJ", "valor": 9}], "FABIO": [{"label": "SP", "valor": 75}, {"label": "RJ", "valor": 9}], "JOSY": [{"label": "SP", "valor": 1}], "ADMINISTRATIVO": [{"label": "SP", "valor": 2}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 85}, {"label": "07-ADMINISTRADORA", "valor": 2}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 84}], "JOSY": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 1}], "ADMINISTRATIVO": [{"label": "07-ADMINISTRADORA", "valor": 2}], "ACTIONLINE": []}, "diaLim": 31}, "ABRIL": {"porGestor": {"TOTAL": 111, "FABIO": 110, "JOSY": 0, "ADMINISTRATIVO": 1, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 84}, {"label": "PREMIUM", "valor": 25}, {"label": "INFINITY", "valor": 2}], "FABIO": [{"label": "ADVANCE", "valor": 83}, {"label": "PREMIUM", "valor": 25}, {"label": "INFINITY", "valor": 2}], "JOSY": [], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 1}], "ACTIONLINE": []}, "porDia": {"TOTAL": [6, 3, 0, 5, 2, 3, 1, 4, 3, 5, 6, 1, 1, 3, 4, 12, 0, 2, 1, 2, 6, 1, 6, 5, 6, 4, 2, 9, 3, 5], "FABIO": [6, 3, 0, 5, 2, 3, 1, 4, 3, 4, 6, 1, 1, 3, 4, 12, 0, 2, 1, 2, 6, 1, 6, 5, 6, 4, 2, 9, 3, 5], "JOSY": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ADMINISTRATIVO": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "CAMILA DE SOUSA GOMES", "valor": 16, "planos": {"ADVANCE": 11, "PREMIUM": 5, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 13, "planos": {"ADVANCE": 10, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 11, "planos": {"ADVANCE": 9, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "MARCIA REGINA DE SOUZA", "valor": 9, "planos": {"ADVANCE": 7, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "HERIKA GASPAR ZACARQUIM", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 7, "planos": {"ADVANCE": 2, "PREMIUM": 5, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 7, "planos": {"ADVANCE": 0, "PREMIUM": 7, "INFINITY": 0}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 6, "planos": {"ADVANCE": 3, "PREMIUM": 1, "INFINITY": 2}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "EDILZA JACIRA DA SILVA BRAGA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIA REGINA ROMBACH", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAROL PONTES BUENO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ANDRE BRITO FREITAS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "NATALIA TRONI LEITE", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LARISSA SILVA MACHADO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETILYS TAINAH SCHROEDER", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "CAMILA DE SOUSA GOMES", "valor": 16, "planos": {"ADVANCE": 11, "PREMIUM": 5, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 13, "planos": {"ADVANCE": 10, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 11, "planos": {"ADVANCE": 9, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "MARCIA REGINA DE SOUZA", "valor": 9, "planos": {"ADVANCE": 7, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "HERIKA GASPAR ZACARQUIM", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 7, "planos": {"ADVANCE": 2, "PREMIUM": 5, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 7, "planos": {"ADVANCE": 0, "PREMIUM": 7, "INFINITY": 0}}, {"nome": "DIOGO MENDES DE OLIVEIRA", "valor": 6, "planos": {"ADVANCE": 3, "PREMIUM": 1, "INFINITY": 2}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "EDILZA JACIRA DA SILVA BRAGA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIA REGINA ROMBACH", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAROL PONTES BUENO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ANDRE BRITO FREITAS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "NATALIA TRONI LEITE", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LARISSA SILVA MACHADO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETILYS TAINAH SCHROEDER", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [], "ADMINISTRATIVO": [{"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 105}, {"label": "RJ", "valor": 3}, {"label": "CE", "valor": 3}], "FABIO": [{"label": "SP", "valor": 104}, {"label": "RJ", "valor": 3}, {"label": "CE", "valor": 3}], "JOSY": [], "ADMINISTRATIVO": [{"label": "SP", "valor": 1}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 110}, {"label": "07-ADMINISTRADORA", "valor": 1}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 110}], "JOSY": [], "ADMINISTRATIVO": [{"label": "07-ADMINISTRADORA", "valor": 1}], "ACTIONLINE": []}, "diaLim": 30}, "MAIO": {"porGestor": {"TOTAL": 114, "FABIO": 76, "JOSY": 11, "ADMINISTRATIVO": 27, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 92}, {"label": "PREMIUM", "valor": 17}, {"label": "INFINITY", "valor": 5}], "FABIO": [{"label": "ADVANCE", "valor": 69}, {"label": "PREMIUM", "valor": 4}, {"label": "INFINITY", "valor": 3}], "JOSY": [{"label": "PREMIUM", "valor": 5}, {"label": "ADVANCE", "valor": 4}, {"label": "INFINITY", "valor": 2}], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 19}, {"label": "PREMIUM", "valor": 8}], "ACTIONLINE": []}, "porDia": {"TOTAL": [26, 2, 1, 4, 3, 3, 10, 5, 5, 3, 6, 6, 5, 4, 0, 0, 1, 1, 2, 3, 3, 3, 0, 2, 3, 4, 3, 0, 0, 3, 3], "FABIO": [0, 2, 1, 3, 3, 3, 4, 5, 3, 3, 6, 6, 5, 4, 0, 0, 1, 1, 2, 2, 3, 3, 0, 2, 1, 4, 3, 0, 0, 3, 3], "JOSY": [0, 0, 0, 1, 0, 0, 6, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0], "ADMINISTRATIVO": [26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "MAYARA JADE BANDEIRA BATISTA LIMA", "valor": 26, "planos": {"ADVANCE": 18, "PREMIUM": 8, "INFINITY": 0}}, {"nome": "ATILEY ARAUJO CAMPOS", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LUCIANA TRIPICCHIO LIMA", "valor": 7, "planos": {"ADVANCE": 0, "PREMIUM": 5, "INFINITY": 2}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 7, "planos": {"ADVANCE": 7, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LARISSA SANTOS BIZELI BANHOS", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JENNIFER DE LOURDES FERREIRA FARIAS", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "GIOVANNA FERREIRA DE FARIAS", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 3, "planos": {"ADVANCE": 0, "PREMIUM": 0, "INFINITY": 3}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RENAN DOS SANTOS OLIVEIRA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MATEUS GARCIA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ANA PAULA APARECIDA CAMPANA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "CAROLINE AGAR EGIDIO FRAGA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ALINE CRISTINA GRUNELLO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 1, "planos": {"ADVANCE": 0, "PREMIUM": 1, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ALINE PEREIRA RIBEIRO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 1, "planos": {"ADVANCE": 0, "PREMIUM": 1, "INFINITY": 0}}, {"nome": "FLAVIA REGINA ROMBACH", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "ATILEY ARAUJO CAMPOS", "valor": 8, "planos": {"ADVANCE": 8, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 7, "planos": {"ADVANCE": 7, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LARISSA SANTOS BIZELI BANHOS", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "WENDEL PEREIRA DE ANDRADE", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JENNIFER DE LOURDES FERREIRA FARIAS", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "GIOVANNA FERREIRA DE FARIAS", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 3, "planos": {"ADVANCE": 0, "PREMIUM": 0, "INFINITY": 3}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RENAN DOS SANTOS OLIVEIRA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MATEUS GARCIA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "CAROLINE AGAR EGIDIO FRAGA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 1, "planos": {"ADVANCE": 0, "PREMIUM": 1, "INFINITY": 0}}, {"nome": "ELLEN KIARA TEIXEIRA BELEM", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 1, "planos": {"ADVANCE": 0, "PREMIUM": 1, "INFINITY": 0}}, {"nome": "FLAVIA REGINA ROMBACH", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [{"nome": "LUCIANA TRIPICCHIO LIMA", "valor": 7, "planos": {"ADVANCE": 0, "PREMIUM": 5, "INFINITY": 2}}, {"nome": "ANA PAULA APARECIDA CAMPANA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ALINE CRISTINA GRUNELLO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ALINE PEREIRA RIBEIRO", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ADMINISTRATIVO": [{"nome": "MAYARA JADE BANDEIRA BATISTA LIMA", "valor": 26, "planos": {"ADVANCE": 18, "PREMIUM": 8, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 105}, {"label": "PE", "valor": 4}, {"label": "RJ", "valor": 4}, {"label": "MG", "valor": 1}], "FABIO": [{"label": "SP", "valor": 73}, {"label": "RJ", "valor": 2}, {"label": "MG", "valor": 1}], "JOSY": [{"label": "SP", "valor": 9}, {"label": "RJ", "valor": 2}], "ADMINISTRATIVO": [{"label": "SP", "valor": 23}, {"label": "PE", "valor": 4}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 80}, {"label": "07-ADMINISTRADORA", "valor": 27}, {"label": "03-MIDDLE I(30-99 VIDAS)", "valor": 7}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 76}], "JOSY": [{"label": "03-MIDDLE I(30-99 VIDAS)", "valor": 7}, {"label": "02-PIM (IND/3-29 VIDAS)", "valor": 4}], "ADMINISTRATIVO": [{"label": "07-ADMINISTRADORA", "valor": 27}], "ACTIONLINE": []}, "diaLim": 31}, "JUNHO": {"porGestor": {"TOTAL": 116, "FABIO": 87, "JOSY": 17, "ADMINISTRATIVO": 12, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 90}, {"label": "PREMIUM", "valor": 23}, {"label": "INFINITY", "valor": 3}], "FABIO": [{"label": "ADVANCE", "valor": 68}, {"label": "PREMIUM", "valor": 18}, {"label": "INFINITY", "valor": 1}], "JOSY": [{"label": "ADVANCE", "valor": 13}, {"label": "PREMIUM", "valor": 2}, {"label": "INFINITY", "valor": 2}], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 9}, {"label": "PREMIUM", "valor": 3}], "ACTIONLINE": []}, "porDia": {"TOTAL": [13, 10, 4, 2, 7, 1, 0, 0, 1, 2, 4, 7, 3, 6, 5, 6, 5, 3, 0, 1, 2, 0, 2, 0, 3, 5, 9, 5, 0, 10], "FABIO": [1, 7, 3, 0, 7, 1, 0, 0, 0, 2, 4, 7, 3, 6, 5, 6, 5, 3, 0, 1, 0, 0, 2, 0, 3, 3, 7, 5, 0, 6], "JOSY": [0, 3, 1, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 2, 0, 0, 4], "ADMINISTRATIVO": [12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "CAMILA DE SOUSA GOMES", "valor": 21, "planos": {"ADVANCE": 14, "PREMIUM": 7, "INFINITY": 0}}, {"nome": "MAYARA JADE BANDEIRA BATISTA LIMA", "valor": 12, "planos": {"ADVANCE": 9, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 10, "planos": {"ADVANCE": 5, "PREMIUM": 5, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 9, "planos": {"ADVANCE": 6, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA ARAUJO FRANCA DE SOUZA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 5, "planos": {"ADVANCE": 2, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 4, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 1}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ALINE PEREIRA RIBEIRO", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ROGÉRIO STIVANELLO MARTINS", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ANDRE BRITO FREITAS", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNO GARCIA FERREIRA", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "LARISSA SILVA MACHADO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RENAN DOS SANTOS OLIVEIRA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LIVIA GABRIELA REIS ROCHA DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE ALVES DE SOUZA", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 0, "INFINITY": 2}}, {"nome": "LARISSA FERNANDA PAES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ROBSON FERRARI DE SOUZA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ISAQUE VICTOR ALVES FERREIRA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MATEUS GARCIA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA DA SILVA CAMPASSI", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "CAMILA DE SOUSA GOMES", "valor": 21, "planos": {"ADVANCE": 14, "PREMIUM": 7, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 10, "planos": {"ADVANCE": 5, "PREMIUM": 5, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 9, "planos": {"ADVANCE": 6, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAFAELA CRISTINA DOS SANTOS", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MARIA EDUARDA ARAUJO FRANCA DE SOUZA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 5, "planos": {"ADVANCE": 2, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "MARIA EDUARDA MAGALHAES SEIXEIRO DOS SANTOS", "valor": 4, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 1}}, {"nome": "KAUAN REGIS SOUZA SAMPAIO", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ANDRE BRITO FREITAS", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LARISSA SILVA MACHADO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RENAN DOS SANTOS OLIVEIRA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LIVIA GABRIELA REIS ROCHA DOS SANTOS", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MATEUS GARCIA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [{"nome": "ALINE PEREIRA RIBEIRO", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ROGÉRIO STIVANELLO MARTINS", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNO GARCIA FERREIRA", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "FELIPE ALVES DE SOUZA", "valor": 2, "planos": {"ADVANCE": 0, "PREMIUM": 0, "INFINITY": 2}}, {"nome": "LARISSA FERNANDA PAES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ROBSON FERRARI DE SOUZA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ISAQUE VICTOR ALVES FERREIRA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA DA SILVA CAMPASSI", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ADMINISTRATIVO": [{"nome": "MAYARA JADE BANDEIRA BATISTA LIMA", "valor": 12, "planos": {"ADVANCE": 9, "PREMIUM": 3, "INFINITY": 0}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 98}, {"label": "RJ", "valor": 11}, {"label": "PR", "valor": 3}, {"label": "DF", "valor": 2}, {"label": "PE", "valor": 1}, {"label": "RS", "valor": 1}], "FABIO": [{"label": "SP", "valor": 73}, {"label": "RJ", "valor": 10}, {"label": "PR", "valor": 3}, {"label": "RS", "valor": 1}], "JOSY": [{"label": "SP", "valor": 14}, {"label": "DF", "valor": 2}, {"label": "RJ", "valor": 1}], "ADMINISTRATIVO": [{"label": "SP", "valor": 11}, {"label": "PE", "valor": 1}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 104}, {"label": "07-ADMINISTRADORA", "valor": 12}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 87}], "JOSY": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 17}], "ADMINISTRATIVO": [{"label": "07-ADMINISTRADORA", "valor": 12}], "ACTIONLINE": []}, "diaLim": 30}, "JULHO": {"porGestor": {"TOTAL": 96, "FABIO": 57, "JOSY": 21, "ADMINISTRATIVO": 18, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 82}, {"label": "INFINITY", "valor": 9}, {"label": "PREMIUM", "valor": 5}], "FABIO": [{"label": "ADVANCE", "valor": 46}, {"label": "INFINITY", "valor": 9}, {"label": "PREMIUM", "valor": 2}], "JOSY": [{"label": "ADVANCE", "valor": 21}], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 15}, {"label": "PREMIUM", "valor": 3}], "ACTIONLINE": []}, "porDia": {"TOTAL": [17, 0, 4, 0, 1, 0, 0, 0, 6, 3, 5, 0, 2, 2, 9, 1, 0, 1, 2, 1, 6, 6, 0, 0, 4, 2, 3, 7, 0, 14, 0], "FABIO": [0, 0, 0, 0, 1, 0, 0, 0, 2, 3, 4, 0, 2, 2, 8, 0, 0, 1, 2, 0, 3, 6, 0, 0, 4, 2, 3, 2, 0, 12, 0], "JOSY": [0, 0, 4, 0, 0, 0, 0, 0, 4, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 5, 0, 2, 0], "ADMINISTRATIVO": [17, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "MAYARA JADE BANDEIRA BATISTA LIMA", "valor": 17, "planos": {"ADVANCE": 14, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 13, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 9}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 10, "planos": {"ADVANCE": 8, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "ANDRE BRITO FREITAS", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ALINE CRISTINA GRUNELLO", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAIANE DA SILVA LIMA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FRANCISCO THIAGO FURTADO DA SILVA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MIRELLA PEREIRA DA SILVA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE ROBERTO PERES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA DA SILVA CAMPASSI", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JAQUELINE APARECIDA CORREIA SILVA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "GABRIELA BEATRIZ DOS REIS SILVA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BEATRIZ BRAIDO SEVERINO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JULIA ALVES DA SILVA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "JOAO VICTOR DE FREITAS NUNES DA SILVA", "valor": 13, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 9}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 10, "planos": {"ADVANCE": 8, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "ANDRE BRITO FREITAS", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ELISA PEREIRA DO NASCIMENTO", "valor": 6, "planos": {"ADVANCE": 6, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FRANCISCO THIAGO FURTADO DA SILVA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE ROBERTO PERES", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "LORENA LEVY ORTEGA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "TAISSE MACARIO FERNANDES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [{"nome": "ALINE CRISTINA GRUNELLO", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "RAIANE DA SILVA LIMA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "MIRELLA PEREIRA DA SILVA", "valor": 3, "planos": {"ADVANCE": 3, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA DA SILVA CAMPASSI", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JAQUELINE APARECIDA CORREIA SILVA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "GABRIELA BEATRIZ DOS REIS SILVA", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BEATRIZ BRAIDO SEVERINO", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JULIA ALVES DA SILVA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ADMINISTRATIVO": [{"nome": "MAYARA JADE BANDEIRA BATISTA LIMA", "valor": 17, "planos": {"ADVANCE": 14, "PREMIUM": 3, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 82}, {"label": "RJ", "valor": 12}, {"label": "PE", "valor": 2}], "FABIO": [{"label": "SP", "valor": 47}, {"label": "RJ", "valor": 8}, {"label": "PE", "valor": 2}], "JOSY": [{"label": "SP", "valor": 18}, {"label": "RJ", "valor": 3}], "ADMINISTRATIVO": [{"label": "SP", "valor": 17}, {"label": "RJ", "valor": 1}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 78}, {"label": "07-ADMINISTRADORA", "valor": 18}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 57}], "JOSY": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 21}], "ADMINISTRATIVO": [{"label": "07-ADMINISTRADORA", "valor": 18}], "ACTIONLINE": []}, "diaLim": 31}, "AGOSTO": {"porGestor": {"TOTAL": 22, "FABIO": 15, "JOSY": 6, "ADMINISTRATIVO": 1, "ACTIONLINE": 0}, "porPlano": {"TOTAL": [{"label": "ADVANCE", "valor": 20}, {"label": "PREMIUM", "valor": 2}], "FABIO": [{"label": "ADVANCE", "valor": 13}, {"label": "PREMIUM", "valor": 2}], "JOSY": [{"label": "ADVANCE", "valor": 6}], "ADMINISTRATIVO": [{"label": "ADVANCE", "valor": 1}], "ACTIONLINE": []}, "porDia": {"TOTAL": [8, 9, 5], "FABIO": [7, 3, 5], "JOSY": [0, 6, 0], "ADMINISTRATIVO": [1, 0, 0], "ACTIONLINE": [0, 0, 0]}, "vendedores": {"TOTAL": [{"nome": "THAISA DOMINGOS DE ALMEIDA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 4, "planos": {"ADVANCE": 2, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JAQUELINE APARECIDA CORREIA SILVA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "FABIO": [{"nome": "ADRIANI CRISTINI DZIERVA DEVOLATKA", "valor": 4, "planos": {"ADVANCE": 4, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "KETHELYN VITORIA APARECIDA GUIDO", "valor": 4, "planos": {"ADVANCE": 2, "PREMIUM": 2, "INFINITY": 0}}, {"nome": "FELIPE AUGUSTO DA SILVA SOARES", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "VANESSA CAROLINE ANDRIOTI", "valor": 2, "planos": {"ADVANCE": 2, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "CAMILA DE SOUSA GOMES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "BRUNA RODRIGUES DE SOUZA SOARES", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "FLAVIANGELO RIBEIRO BATISTA DE SOUSA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "JOSY": [{"nome": "THAISA DOMINGOS DE ALMEIDA", "valor": 5, "planos": {"ADVANCE": 5, "PREMIUM": 0, "INFINITY": 0}}, {"nome": "JAQUELINE APARECIDA CORREIA SILVA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ADMINISTRATIVO": [{"nome": "ADMINISTR / HAPVIDA", "valor": 1, "planos": {"ADVANCE": 1, "PREMIUM": 0, "INFINITY": 0}}], "ACTIONLINE": []}, "porUF": {"TOTAL": [{"label": "SP", "valor": 19}, {"label": "RJ", "valor": 3}], "FABIO": [{"label": "SP", "valor": 12}, {"label": "RJ", "valor": 3}], "JOSY": [{"label": "SP", "valor": 6}], "ADMINISTRATIVO": [{"label": "SP", "valor": 1}], "ACTIONLINE": []}, "porCanal": {"TOTAL": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 21}, {"label": "07-ADMINISTRADORA", "valor": 1}], "FABIO": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 15}], "JOSY": [{"label": "02-PIM (IND/3-29 VIDAS)", "valor": 6}], "ADMINISTRATIVO": [{"label": "07-ADMINISTRADORA", "valor": 1}], "ACTIONLINE": []}, "diaLim": 3}}, "anual": {"labels": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago"], "porGestor": {"TOTAL": [61, 69, 87, 111, 114, 116, 96, 22], "FABIO": [61, 64, 84, 110, 76, 87, 57, 15], "JOSY": [0, 0, 1, 0, 11, 17, 21, 6], "ADMINISTRATIVO": [0, 5, 2, 1, 27, 12, 18, 1], "ACTIONLINE": [0, 0, 0, 0, 0, 0, 0, 0]}}};
+// === FIM PPO_DATA ===
+
 (function montaTrimestre(){
   const meses = ["ABRIL","MAIO","JUNHO"];
   const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
@@ -1681,6 +1773,8 @@ const DADOS_MESES = {
 
 // Mês exibido por padrão ao abrir o dashboard:
 let mesAtivo = "AGOSTO";
+// Aba 🩺 PPO (lente sobre o mês/gestor selecionados; toggle liga/desliga). Ver renderPpoTab().
+let ppoView = false;
 
 // CONFIG = espelho do mês ativo (não editar manualmente — use DADOS_MESES)
 let CONFIG = DADOS_MESES[mesAtivo];
@@ -1717,11 +1811,14 @@ function setMes(m) {
   mesAtivo = m;
   document.querySelectorAll(".btn-mes").forEach(b => b.classList.remove("active"));
   if (typeof event !== "undefined" && event && event.target) event.target.classList.add("active");
+  // Trimestre/Comparativo NÃO têm mês real -> saem da lente PPO. Mês real mantém a lente ligada.
+  if (m === "TRIMESTRE" || m === "COMPARATIVO") ppoView = false;
 
   // Modo comparativo: não troca o CONFIG (usa os meses escolhidos nos seletores)
   if (m === "COMPARATIVO") {
     buildCompSelects();
     document.getElementById("mesLabel").textContent = "Comparativo entre meses";
+    syncPpoBtn();
     renderAll();
     return;
   }
@@ -1733,6 +1830,33 @@ function setMes(m) {
   document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
   document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
   buildSelects();
+  syncPpoBtn();
+  renderAll();
+}
+
+// ── ABA PPO (lente) ──
+function ppoMesesReais() {
+  return ["ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"]
+    .filter(m => DADOS_MESES[m]);
+}
+function syncPpoBtn() {
+  const b = document.getElementById("btnPpo");
+  if (b) b.classList.toggle("active", ppoView);
+}
+function togglePpo() {
+  ppoView = !ppoView;
+  // Se ligou estando em Trimestre/Comparativo (sem mês real), cai pro último mês real disponível.
+  if (ppoView && (mesAtivo === "TRIMESTRE" || mesAtivo === "COMPARATIVO")) {
+    const reais = ppoMesesReais();
+    mesAtivo = reais[reais.length - 1];
+    CONFIG = DADOS_MESES[mesAtivo];
+    diaIni = 1; diaFim = CONFIG.diaAtual;
+    document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+    document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+    buildSelects();
+    document.querySelectorAll(".btn-mes").forEach(b => b.classList.remove("active"));
+  }
+  syncPpoBtn();
   renderAll();
 }
 
@@ -2661,6 +2785,223 @@ function rtExpandAll(open) {
   document.querySelectorAll('[id^="rti_"]').forEach(ic => ic.innerHTML = open ? "&#9660;" : "&#9654;");
 }
 
+// ============================================================================================
+// ── ABA 🩺 PPO ── espelho do consolidado, 100% vidas PPO (datalake). Fonte = const PPO_DATA.
+// mesAtivo = mês real (período); gestorAtivo = filtro de gestor. A evolução anual ignora o mês.
+// ============================================================================================
+const PPO_MES_CURTO = {JANEIRO:"Jan",FEVEREIRO:"Fev",MARCO:"Mar",ABRIL:"Abr",MAIO:"Mai",JUNHO:"Jun",
+  JULHO:"Jul",AGOSTO:"Ago",SETEMBRO:"Set",OUTUBRO:"Out",NOVEMBRO:"Nov",DEZEMBRO:"Dez"};
+const PPO_CORES = ["#6c4ed8","#185FA5","#1D9E75","#D85A30","#E67E22","#5499C7","#48C9B0","#A569BD"];
+
+function ppoMd() {
+  return (typeof PPO_DATA !== "undefined" && PPO_DATA.meses) ? (PPO_DATA.meses[mesAtivo] || null) : null;
+}
+function ppoDiasComVenda(serie) { return (serie || []).filter(v => v > 0).length; }
+
+function renderPpoTab() {
+  const md = ppoMd();
+  renderPpoKpis(md);
+  renderPpoAcum(md);
+  ppoBarChart("chartPpoTabPlano", "ppoTabPlano", "ppoSecPlano", md ? md.porPlano[gestorAtivo] : []);
+  renderPpoGestor(md);
+  renderPpoAnual();
+  ppoBarChart("chartPpoUF", "ppoUF", "ppoSecUF", md ? md.porUF[gestorAtivo] : []);
+  ppoBarChart("chartPpoCanal", "ppoCanal", "ppoSecCanal", md ? md.porCanal[gestorAtivo] : []);
+  renderPpoTabela(md);
+  const ate = document.getElementById("ppoAteLabel");
+  if (ate) ate.textContent = md ? `· ${CONFIG.mesLabel} até dia ${md.diaLim}` : "· sem dados de PPO neste mês";
+}
+
+function renderPpoKpis(md) {
+  const g = gestorAtivo;
+  const total = md ? (md.porGestor[g] || 0) : 0;
+  const serie = md ? (md.porDia[g] || []) : [];
+  const dcv = ppoDiasComVenda(serie);
+  const media = dcv > 0 ? total / dcv : 0;
+  const diasNoMes = CONFIG.diasNoMes || serie.length || 30;
+  const proj = dcv > 0 ? Math.round(media * diasNoMes) : total;
+
+  document.getElementById("ppoKVidas").textContent = fmt(total);
+  document.getElementById("ppoKVidasSub").textContent =
+    `${CONFIG.mesLabel}${g!=="TOTAL" && CONFIG.gestores[g] ? " · "+CONFIG.gestores[g].label : ""}`;
+  document.getElementById("ppoKProj").textContent = fmt(proj);
+  document.getElementById("ppoKProjSub").textContent = `${dcv} dia(s) com venda no mês`;
+  document.getElementById("ppoKMedia").textContent = fmtDec(media, 1);
+  document.getElementById("ppoKMediaSub").textContent = "vidas/dia (dias com venda)";
+
+  // Var vs mês anterior — mesmo período (até o dia de corte do mês atual), como o resto do dashboard.
+  const ordem = (typeof PPO_DATA !== "undefined" && PPO_DATA.meses) ? Object.keys(PPO_DATA.meses) : [];
+  const idx = ordem.indexOf(mesAtivo);
+  const prevKey = idx > 0 ? ordem[idx - 1] : null;
+  const varEl = document.getElementById("ppoKVar"), subEl = document.getElementById("ppoKVarSub"),
+        labEl = document.getElementById("ppoKVarLabel");
+  if (prevKey && md) {
+    const prevSerie = PPO_DATA.meses[prevKey].porDia[g] || [];
+    const prevSame = prevSerie.slice(0, md.diaLim).reduce((a,b) => a+b, 0);
+    labEl.textContent = "Var. vs " + (PPO_MES_CURTO[prevKey] || prevKey);
+    if (prevSame > 0) {
+      const v = ((total / prevSame) - 1) * 100;
+      varEl.textContent = (v>=0?"+":"") + fmtDec(v, 1) + "%";
+      varEl.style.color = v>=0 ? "#1D9E75" : "#D85A30";
+      subEl.textContent = `${fmt(prevSame)} no mesmo período de ${PPO_MES_CURTO[prevKey]||prevKey}`;
+    } else {
+      varEl.textContent = "—"; varEl.style.color = ""; subEl.textContent = "sem base no mês anterior";
+    }
+  } else {
+    labEl.textContent = "Var. vs mês anterior";
+    varEl.textContent = "—"; varEl.style.color = ""; subEl.textContent = "sem mês anterior";
+  }
+}
+
+function renderPpoAcum(md) {
+  destroyChart("ppoAcum");
+  const g = gestorAtivo;
+  const serie = md ? (md.porDia[g] || []) : [];
+  const diasNoMes = CONFIG.diasNoMes || serie.length || 30;
+  let ac = 0; const acReal = [];
+  for (let i = 0; i < serie.length; i++) { ac += serie[i]; acReal.push(ac); }
+  const total = ac;
+  const dcv = ppoDiasComVenda(serie);
+  const projMes = dcv > 0 ? Math.round((total/dcv) * diasNoMes) : total;
+  const projDia = projMes / diasNoMes;
+  const fullLabels = [], acumData = [], projLine = [];
+  for (let d = 1; d <= diasNoMes; d++) {
+    fullLabels.push("Dia " + d);
+    acumData.push(d <= serie.length ? acReal[d-1] : null);
+    projLine.push(Math.round(projDia * d));
+  }
+  const showAll = serie.length <= 15;
+  charts["ppoAcum"] = new Chart(document.getElementById("chartPpoAcum"), {
+    type: "line",
+    data: { labels: fullLabels, datasets: [
+      { label: "PPO acumulado", data: acumData, borderColor:"#6c4ed8", backgroundColor:"rgba(108,78,216,.10)",
+        borderWidth:2.5, fill:true, tension:.35, pointRadius:3, pointHoverRadius:5, spanGaps:false,
+        datalabels: { display: ctx => showAll || ctx.dataIndex === serie.length - 1,
+          align:"top", anchor:"top", font:{size:9,weight:"600"}, color:"#6c4ed8", formatter: v => v } },
+      { label: "Projeção", data: projLine, borderColor:"#E8623A", borderDash:[4,3], borderWidth:1.5, pointRadius:0, fill:false,
+        datalabels: { display: ctx => ctx.dataIndex === projLine.length - 1, align:"right", anchor:"end",
+          font:{size:9,weight:"600"}, color:"#E8623A", formatter: v => "Proj: " + v } }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, layout:{padding:{right:55}},
+      plugins:{ legend:{labels:{font:{size:11}}}, datalabels:{} },
+      scales:{ y:{beginAtZero:true, ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}, maxTicksLimit:31}} } }
+  });
+}
+
+// Barra horizontal genérica (plano / UF / canal). Esconde o card se não houver dado.
+function ppoBarChart(canvasId, chartKey, secId, pares) {
+  destroyChart(chartKey);
+  const dados = Array.isArray(pares) ? pares.filter(p => p.valor > 0) : [];
+  const sec = document.getElementById(secId);
+  if (sec) sec.style.display = dados.length ? "" : "none";
+  if (!dados.length) return;
+  const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
+  const labels = ordenado.map(d => d.label);
+  const valores = ordenado.map(d => d.valor);
+  const total = valores.reduce((a,b)=>a+b,0);
+  charts[chartKey] = new Chart(document.getElementById(canvasId), {
+    type: "bar",
+    data: { labels, datasets: [{ label:"Vidas PPO", data: valores,
+      backgroundColor: labels.map((_,i)=>PPO_CORES[i%PPO_CORES.length]), borderRadius:5,
+      datalabels:{ anchor:"end", align:"right", font:{size:11,weight:"700"}, color:"#333", formatter: v => v>0?v:"" } }] },
+    options: { indexAxis:"y", responsive:true, maintainAspectRatio:true, layout:{padding:{right:30}},
+      plugins:{ legend:{display:false}, datalabels:{},
+        tooltip:{ callbacks:{ label: ctx => { const pct = total>0?((ctx.raw/total)*100).toFixed(1):0; return ` ${ctx.raw} vidas (${pct}%)`; } } } },
+      scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:11}}} } }
+  });
+}
+
+function renderPpoGestor(md) {
+  destroyChart("ppoGestor");
+  const keys = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
+  const labels = keys.map(k => CONFIG.gestores[k] ? CONFIG.gestores[k].label : k);
+  const valores = keys.map(k => md ? (md.porGestor[k] || 0) : 0);
+  charts["ppoGestor"] = new Chart(document.getElementById("chartPpoGestor"), {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"Vidas PPO", data: valores,
+      backgroundColor:["#185FA5","#6c4ed8","#1D9E75","#D85A30"], borderRadius:5,
+      datalabels:{ anchor:"end", align:"right", font:{size:11,weight:"700"}, color:"#333", formatter: v => v>0?v:"" } }] },
+    options:{ indexAxis:"y", responsive:true, maintainAspectRatio:true, layout:{padding:{right:30}},
+      plugins:{ legend:{display:false}, datalabels:{} },
+      scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{font:{size:11}}} } }
+  });
+}
+
+function renderPpoAnual() {
+  destroyChart("ppoAnual");
+  const g = gestorAtivo;
+  const an = (typeof PPO_DATA !== "undefined" && PPO_DATA.anual) ? PPO_DATA.anual : {labels:[], porGestor:{}};
+  const labels = an.labels || [];
+  const valores = (an.porGestor && an.porGestor[g]) ? an.porGestor[g] : [];
+  const curto = PPO_MES_CURTO[mesAtivo];
+  const bg = labels.map(l => l === curto ? "#6c4ed8" : "rgba(108,78,216,.45)");
+  const ttl = document.getElementById("ppoAnualTitle");
+  if (ttl) ttl.textContent = `📅 Evolução Anual de Vidas PPO${g!=="TOTAL" && CONFIG.gestores[g] ? " — "+CONFIG.gestores[g].label : ""}`;
+  charts["ppoAnual"] = new Chart(document.getElementById("chartPpoAnual"), {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"Vidas PPO", data: valores, backgroundColor: bg, borderRadius:5,
+      datalabels:{ anchor:"end", align:"top", font:{size:10,weight:"700"}, color:"#4d3aa8", formatter: v => v>0?v:"" } }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{},
+        tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw} vidas` } } },
+      scales:{ y:{beginAtZero:true, ticks:{font:{size:10}}}, x:{ticks:{font:{size:11}}} } }
+  });
+}
+
+function renderPpoTabela(md) {
+  const tbody = document.getElementById("ppoTabela");
+  tbody.innerHTML = "";
+  if (!md) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888;padding:16px">Sem dados de PPO para este mês.</td></tr>`;
+    return;
+  }
+  const keys = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+  const planoDe = (pares, nome) => { const p = (pares||[]).find(x => x.label === nome); return p ? p.valor : 0; };
+  for (const k of keys) {
+    const total = md.porGestor[k] || 0;
+    const pl = md.porPlano[k] || [];
+    const adv = planoDe(pl,"ADVANCE"), pre = planoDe(pl,"PREMIUM"), inf = planoDe(pl,"INFINITY");
+    const vends = md.vendedores[k] || [];
+    const gid = "ppo_" + k;
+    const temDet = (k !== "TOTAL" && vends.length);
+    const chevron = temDet
+      ? `<span id="ppi_${gid}" style="display:inline-block;width:14px;font-size:10px;color:#6c4ed8">&#9654;</span> ` : "";
+    const tr = document.createElement("tr");
+    if (k === "TOTAL") tr.style.fontWeight = "700";
+    if (temDet) { tr.style.cursor = "pointer"; tr.onclick = () => ppoToggle(gid); }
+    const label = CONFIG.gestores[k] ? CONFIG.gestores[k].label : k;
+    tr.innerHTML = `<td>${chevron}${label}</td>
+      <td class="td-right num">${fmt(total)}</td>
+      <td class="td-right num">${fmt(adv)}</td>
+      <td class="td-right num">${fmt(pre)}</td>
+      <td class="td-right num">${fmt(inf)}</td>`;
+    tbody.appendChild(tr);
+    if (temDet) vends.forEach(v => {
+      const r = document.createElement("tr");
+      r.className = "ppo_det " + gid;
+      r.style.display = "none"; r.style.fontSize = "12px"; r.style.background = "#f5f2fc";
+      r.innerHTML = `<td style="padding-left:30px;color:#555">&#8627; ${v.nome}</td>
+        <td class="td-right num">${fmt(v.valor)}</td>
+        <td class="td-right num">${fmt(v.planos.ADVANCE||0)}</td>
+        <td class="td-right num">${fmt(v.planos.PREMIUM||0)}</td>
+        <td class="td-right num">${fmt(v.planos.INFINITY||0)}</td>`;
+      tbody.appendChild(r);
+    });
+  }
+}
+function ppoToggle(id) {
+  const det = Array.from(document.querySelectorAll("tr.ppo_det." + id));
+  if (!det.length) return;
+  const ic = document.getElementById("ppi_" + id);
+  const opening = det[0].style.display === "none";
+  det.forEach(r => r.style.display = opening ? "" : "none");
+  if (ic) ic.innerHTML = opening ? "&#9660;" : "&#9654;";
+}
+function ppoExpandAll(open) {
+  document.querySelectorAll("tr.ppo_det").forEach(r => r.style.display = open ? "" : "none");
+  document.querySelectorAll('[id^="ppi_"]').forEach(ic => ic.innerHTML = open ? "&#9660;" : "&#9654;");
+}
+
 // Registra plugin globalmente
 Chart.register(ChartDataLabels);
 
@@ -2668,15 +3009,18 @@ Chart.register(ChartDataLabels);
 function renderAll() {
   const isTri = !!CONFIG.isTrimestre;
   const isComp = mesAtivo === "COMPARATIVO";
+  const isPpo = ppoView && !isTri && !isComp;   // lente PPO só sobre mês real
   // alterna blocos
-  document.querySelectorAll(".normal-view").forEach(el => el.style.display = (isTri || isComp) ? "none" : "");
-  document.getElementById("triPanel").style.display = isTri ? "" : "none";
-  document.getElementById("compPanel").style.display = isComp ? "" : "none";
-  document.getElementById("mainKpis").style.display = isComp ? "none" : "";
-  // desabilita seletor de período no trimestre/comparativo
-  document.getElementById("diaIni").disabled = isTri || isComp;
-  document.getElementById("diaFim").disabled = isTri || isComp;
+  document.querySelectorAll(".normal-view").forEach(el => el.style.display = (isTri || isComp || isPpo) ? "none" : "");
+  document.getElementById("triPanel").style.display = (isTri && !isPpo) ? "" : "none";
+  document.getElementById("compPanel").style.display = (isComp && !isPpo) ? "" : "none";
+  document.getElementById("ppoPanel").style.display = isPpo ? "" : "none";
+  document.getElementById("mainKpis").style.display = (isComp || isPpo) ? "none" : "";
+  // desabilita seletor de período no trimestre/comparativo/PPO (o PPO tem período = mês inteiro)
+  document.getElementById("diaIni").disabled = isTri || isComp || isPpo;
+  document.getElementById("diaFim").disabled = isTri || isComp || isPpo;
 
+  if (isPpo) { renderPpoTab(); return; }
   if (isComp) { renderComparativo(); return; }
 
   renderKPIs();
