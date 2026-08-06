@@ -203,6 +203,12 @@
     .chart-card.full { grid-column: 1 / -1; }
     .chart-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
     .chart-card canvas { max-height: 420px; }
+    /* Cabeçalho de card PPO com toggle Anual/Mensal */
+    .ppo-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+    .ppo-toggle { display:inline-flex; border:1px solid #d7cdf2; border-radius:7px; overflow:hidden; flex:none; }
+    .ppo-tg-btn { padding:4px 12px; font-size:11px; font-weight:600; background:#f6f3fd; color:#6a5aa8; border:none; cursor:pointer; transition:background .15s; }
+    .ppo-tg-btn:hover { background:#ece6fb; }
+    .ppo-tg-btn.active { background:#6c4ed8; color:#fff; }
 
     /* Gráficos principais em largura total (um por linha) para melhor leitura */
     .chart-grid-1 {
@@ -480,56 +486,80 @@
     <!-- KPIs próprios -->
     <div class="kpi-row" id="ppoKpis">
       <div class="kpi-card" style="border-left-color:#6c4ed8">
-        <div class="kpi-label">Vidas PPO (mês)</div>
-        <div class="kpi-value" id="ppoKVidas">—</div>
-        <div class="kpi-sub" id="ppoKVidasSub"></div>
+        <div class="kpi-label">Total PPO no ano</div>
+        <div class="kpi-value" id="ppoKAno">—</div>
+        <div class="kpi-sub" id="ppoKAnoSub"></div>
       </div>
-      <div class="kpi-card laranja">
-        <div class="kpi-label">Projeção mensal</div>
-        <div class="kpi-value" id="ppoKProj">—</div>
-        <div class="kpi-sub" id="ppoKProjSub"></div>
+      <div class="kpi-card" style="border-left-color:#9b59b6">
+        <div class="kpi-label">Mensal PPO</div>
+        <div class="kpi-value" id="ppoKMes">—</div>
+        <div class="kpi-sub" id="ppoKMesSub"></div>
       </div>
       <div class="kpi-card cinza">
         <div class="kpi-label">Média / dia</div>
         <div class="kpi-value" id="ppoKMedia">—</div>
         <div class="kpi-sub" id="ppoKMediaSub"></div>
       </div>
-      <div class="kpi-card" style="border-left-color:#9b59b6">
-        <div class="kpi-label" id="ppoKVarLabel">Var. vs mês anterior</div>
+      <div class="kpi-card laranja">
+        <div class="kpi-label" id="ppoKVarLabel">Var. vs mês anterior (total)</div>
         <div class="kpi-value" id="ppoKVar">—</div>
         <div class="kpi-sub" id="ppoKVarSub"></div>
       </div>
     </div>
-    <!-- Row: Acumulado diário + PPO por Plano -->
+    <!-- Row 1: Evolução Anual + PPO Acumulado por Dia (ambos sem toggle) -->
     <div class="chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title">📈 PPO Acumulado por Dia</div>
-        <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoAcum"></canvas></div>
-      </div>
-      <div class="chart-card" id="ppoSecPlano">
-        <div class="chart-title">🩺 PPO por Plano</div>
-        <canvas id="chartPpoTabPlano"></canvas>
-      </div>
-    </div>
-    <!-- Row: PPO por Gestor + Evolução anual -->
-    <div class="chart-grid-2">
-      <div class="chart-card">
-        <div class="chart-title">👥 PPO por Gestor</div>
-        <canvas id="chartPpoGestor"></canvas>
-      </div>
       <div class="chart-card">
         <div class="chart-title" id="ppoAnualTitle">📅 Evolução Anual de Vidas PPO</div>
         <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoAnual"></canvas></div>
       </div>
+      <div class="chart-card">
+        <div class="chart-title">📈 PPO Acumulado por Dia</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoAcum"></canvas></div>
+      </div>
     </div>
-    <!-- Row: por UF + por Canal -->
+    <!-- Row 2: PPO por Plano + PPO por Gestor (toggle Anual/Mensal) -->
+    <div class="chart-grid-2">
+      <div class="chart-card" id="ppoSecPlano">
+        <div class="ppo-card-head">
+          <div class="chart-title" id="ppoPlanoTitle" style="margin-bottom:0">🩺 PPO por Plano</div>
+          <div class="ppo-toggle" data-dim="plano">
+            <button class="ppo-tg-btn" onclick="ppoSetDim('plano','anual')">Anual</button>
+            <button class="ppo-tg-btn" onclick="ppoSetDim('plano','mensal')">Mensal</button>
+          </div>
+        </div>
+        <canvas id="chartPpoTabPlano"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="ppo-card-head">
+          <div class="chart-title" id="ppoGestorTitle" style="margin-bottom:0">👥 PPO por Gestor</div>
+          <div class="ppo-toggle" data-dim="gestor">
+            <button class="ppo-tg-btn" onclick="ppoSetDim('gestor','anual')">Anual</button>
+            <button class="ppo-tg-btn" onclick="ppoSetDim('gestor','mensal')">Mensal</button>
+          </div>
+        </div>
+        <canvas id="chartPpoGestor"></canvas>
+      </div>
+    </div>
+    <!-- Row 3: PPO por UF + PPO por Canal (toggle Anual/Mensal) -->
     <div class="chart-grid-2">
       <div class="chart-card" id="ppoSecUF">
-        <div class="chart-title">🗺️ PPO por UF</div>
+        <div class="ppo-card-head">
+          <div class="chart-title" id="ppoUFTitle" style="margin-bottom:0">🗺️ PPO por UF</div>
+          <div class="ppo-toggle" data-dim="uf">
+            <button class="ppo-tg-btn" onclick="ppoSetDim('uf','anual')">Anual</button>
+            <button class="ppo-tg-btn" onclick="ppoSetDim('uf','mensal')">Mensal</button>
+          </div>
+        </div>
         <canvas id="chartPpoUF"></canvas>
       </div>
       <div class="chart-card" id="ppoSecCanal">
-        <div class="chart-title">🔀 PPO por Canal</div>
+        <div class="ppo-card-head">
+          <div class="chart-title" id="ppoCanalTitle" style="margin-bottom:0">🔀 PPO por Canal</div>
+          <div class="ppo-toggle" data-dim="canal">
+            <button class="ppo-tg-btn" onclick="ppoSetDim('canal','anual')">Anual</button>
+            <button class="ppo-tg-btn" onclick="ppoSetDim('canal','mensal')">Mensal</button>
+          </div>
+        </div>
         <canvas id="chartPpoCanal"></canvas>
       </div>
     </div>
@@ -2946,19 +2976,67 @@ function ppoMd() {
 }
 function ppoDiasComVenda(serie) { return (serie || []).filter(v => v > 0).length; }
 
+// Estado do toggle Anual/Mensal de cada dimensão do PPO (default = Anual, como pedido).
+const ppoDimMode = { plano:"anual", gestor:"anual", uf:"anual", canal:"anual" };
+function ppoSetDim(dim, mode){ if (ppoDimMode[dim] === mode) return; ppoDimMode[dim] = mode; renderPpoTab(); }
+function syncPpoDimBtns(){
+  document.querySelectorAll(".ppo-toggle").forEach(tg => {
+    const mode = ppoDimMode[tg.dataset.dim];
+    tg.querySelectorAll(".ppo-tg-btn").forEach(b => {
+      const isAnual = /anual/i.test(b.textContent);
+      b.classList.toggle("active", isAnual ? mode === "anual" : mode === "mensal");
+    });
+  });
+}
+// Soma uma dimensão (porPlano/porUF/porCanal) do gestor g em TODOS os meses do ano (year-to-date).
+function ppoAnualDim(dim, g){
+  const acc = {};
+  const meses = (typeof PPO_DATA !== "undefined" && PPO_DATA.meses) ? PPO_DATA.meses : {};
+  for (const mk in meses){
+    const arr = (meses[mk][dim] && meses[mk][dim][g]) ? meses[mk][dim][g] : [];
+    arr.forEach(p => { acc[p.label] = (acc[p.label] || 0) + (p.valor || 0); });
+  }
+  return Object.keys(acc).map(label => ({ label, valor: acc[label] }));
+}
+// Sufixo do título conforme o modo (· Jan–Ago  ou  · <mês>).
+function ppoModeSuf(dim){
+  if (ppoDimMode[dim] === "anual"){
+    const labs = (typeof PPO_DATA !== "undefined" && PPO_DATA.anual && PPO_DATA.anual.labels) || [];
+    return labs.length ? ` · ${labs[0]}–${labs[labs.length-1]}` : " · Ano";
+  }
+  return ` · ${CONFIG.mesLabel}`;
+}
+
 function renderPpoTab() {
   const md = ppoMd();
   renderPpoKpis(md);
-  renderPpoAcum(md);
-  ppoBarChart("chartPpoTabPlano", "ppoTabPlano", "ppoSecPlano", md ? md.porPlano[gestorAtivo] : []);
-  renderPpoGestor(md);
-  renderPpoAnual();
-  ppoBarChart("chartPpoUF", "ppoUF", "ppoSecUF", md ? md.porUF[gestorAtivo] : []);
-  ppoBarChart("chartPpoCanal", "ppoCanal", "ppoSecCanal", md ? md.porCanal[gestorAtivo] : []);
+  renderPpoAnual();            // 1 — Evolução anual (sempre ano cheio, sem toggle)
+  renderPpoAcum(md);           // 2 — Acumulado por dia (mês, sem toggle)
+  renderPpoDim("plano", md);   // 3 — PPO por Plano (toggle)
+  renderPpoGestor(md);         // 4 — PPO por Gestor (toggle)
+  renderPpoDim("uf", md);      // 5 — PPO por UF (toggle)
+  renderPpoDim("canal", md);   // 6 — PPO por Canal (toggle)
   renderPpoLeads(md);
   renderPpoTabela(md);
+  syncPpoDimBtns();
   const ate = document.getElementById("ppoAteLabel");
   if (ate) ate.textContent = md ? `· ${CONFIG.mesLabel} até dia ${md.diaLim}` : "· sem dados de PPO neste mês";
+}
+
+// Charts de dimensão (plano/UF/canal) com toggle Anual/Mensal. Anual = soma o ano todo (por gestor).
+const PPO_DIM_CFG = {
+  plano: { dim:"porPlano", canvas:"chartPpoTabPlano", key:"ppoTabPlano", sec:"ppoSecPlano", title:"ppoPlanoTitle", ico:"🩺 PPO por Plano" },
+  uf:    { dim:"porUF",    canvas:"chartPpoUF",       key:"ppoUF",       sec:"ppoSecUF",    title:"ppoUFTitle",    ico:"🗺️ PPO por UF" },
+  canal: { dim:"porCanal", canvas:"chartPpoCanal",    key:"ppoCanal",    sec:"ppoSecCanal", title:"ppoCanalTitle", ico:"🔀 PPO por Canal" },
+};
+function renderPpoDim(which, md){
+  const c = PPO_DIM_CFG[which], g = gestorAtivo;
+  const pares = ppoDimMode[which] === "anual"
+    ? ppoAnualDim(c.dim, g)
+    : (md ? (md[c.dim][g] || []) : []);
+  const t = document.getElementById(c.title);
+  if (t) t.textContent = c.ico + ppoModeSuf(which);
+  ppoBarChart(c.canvas, c.key, c.sec, pares);
 }
 
 function renderPpoKpis(md) {
@@ -2967,34 +3045,64 @@ function renderPpoKpis(md) {
   const serie = md ? (md.porDia[g] || []) : [];
   const dcv = ppoDiasComVenda(serie);
   const media = dcv > 0 ? total / dcv : 0;
-  const diasNoMes = CONFIG.diasNoMes || serie.length || 30;
-  const proj = dcv > 0 ? Math.round(media * diasNoMes) : total;
 
-  document.getElementById("ppoKVidas").textContent = fmt(total);
-  document.getElementById("ppoKVidasSub").textContent =
-    `${CONFIG.mesLabel}${g!=="TOTAL" && CONFIG.gestores[g] ? " · "+CONFIG.gestores[g].label : ""}`;
-  document.getElementById("ppoKProj").textContent = fmt(proj);
-  document.getElementById("ppoKProjSub").textContent = `${dcv} dia(s) com venda no mês`;
-  document.getElementById("ppoKMedia").textContent = fmtDec(media, 1);
-  document.getElementById("ppoKMediaSub").textContent = "vidas/dia (dias com venda)";
-
-  // Var vs mês anterior — mesmo período (até o dia de corte do mês atual), como o resto do dashboard.
+  // Mês anterior no PPO_DATA (para média/dia e variação de total).
   const ordem = (typeof PPO_DATA !== "undefined" && PPO_DATA.meses) ? Object.keys(PPO_DATA.meses) : [];
   const idx = ordem.indexOf(mesAtivo);
   const prevKey = idx > 0 ? ordem[idx - 1] : null;
+  const prevCurto = prevKey ? (PPO_MES_CURTO[prevKey] || prevKey) : "";
+
+  // 1) TOTAL PPO no ano — acumulado Jan→último mês com dado (anual ignora o mês selecionado).
+  const anualArr = (typeof PPO_DATA !== "undefined" && PPO_DATA.anual && PPO_DATA.anual.porGestor[g]) || [];
+  const totalAno = anualArr.reduce((a,b) => a + b, 0);
+  const labels = (PPO_DATA.anual && PPO_DATA.anual.labels) || [];
+  let ultLabel = "";
+  for (let i = anualArr.length - 1; i >= 0; i--) { if (anualArr[i] > 0) { ultLabel = labels[i] || ""; break; } }
+  document.getElementById("ppoKAno").textContent = fmt(totalAno);
+  document.getElementById("ppoKAnoSub").textContent =
+    (labels[0] ? `${labels[0]}–${ultLabel || labels[labels.length-1]} 2026` : "acumulado do ano")
+    + (g!=="TOTAL" && CONFIG.gestores[g] ? " · "+CONFIG.gestores[g].label : "");
+
+  // 2) MENSAL PPO — total do mês selecionado (mês corrente é parcial, até o dia de corte).
+  document.getElementById("ppoKMes").textContent = fmt(total);
+  document.getElementById("ppoKMesSub").textContent =
+    `${CONFIG.mesLabel}${g!=="TOTAL" && CONFIG.gestores[g] ? " · "+CONFIG.gestores[g].label : ""}`;
+
+  // 3) MÉDIA / DIA — com comparação à média/dia do mês anterior (mês inteiro).
+  document.getElementById("ppoKMedia").textContent = fmtDec(media, 1);
+  let mediaSub = "vidas/dia (dias com venda)";
+  if (prevKey) {
+    const prevSerie = PPO_DATA.meses[prevKey].porDia[g] || [];
+    const prevDcv = ppoDiasComVenda(prevSerie);
+    const prevTot = prevSerie.reduce((a,b) => a+b, 0);
+    const prevMedia = prevDcv > 0 ? prevTot / prevDcv : 0;
+    mediaSub = prevMedia > 0
+      ? `${prevCurto}: ${fmtDec(prevMedia, 1)}/dia`
+      : `sem média em ${prevCurto}`;
+  }
+  document.getElementById("ppoKMediaSub").textContent = mediaSub;
+
+  // 4) VARIAÇÃO vs mês anterior — MESMO PERÍODO: mês atual até o dia de corte (diaLim)
+  //    × mês anterior acumulado ATÉ O MESMO DIA (não o mês inteiro), via série diária.
+  //    Assim Ago parcial (4 dias) compara com Jul dias 1–4, não com Jul inteiro.
   const varEl = document.getElementById("ppoKVar"), subEl = document.getElementById("ppoKVarSub"),
         labEl = document.getElementById("ppoKVarLabel");
-  if (prevKey && md) {
+  const corte = md ? (md.diaLim || (serie.length)) : 0;
+  if (prevKey && md && corte > 0) {
     const prevSerie = PPO_DATA.meses[prevKey].porDia[g] || [];
-    const prevSame = prevSerie.slice(0, md.diaLim).reduce((a,b) => a+b, 0);
-    labEl.textContent = "Var. vs " + (PPO_MES_CURTO[prevKey] || prevKey);
+    const prevMesInteiro = prevSerie.length <= corte;   // corte cobre o mês anterior todo?
+    const prevSame = prevSerie.slice(0, corte).reduce((a,b) => a+b, 0);
+    const mCurto = PPO_MES_CURTO[mesAtivo] || CONFIG.mesLabel;
+    labEl.textContent = prevMesInteiro
+      ? `Var. vs ${prevCurto} (total)`
+      : `Var. vs ${prevCurto} (até dia ${corte})`;
     if (prevSame > 0) {
       const v = ((total / prevSame) - 1) * 100;
       varEl.textContent = (v>=0?"+":"") + fmtDec(v, 1) + "%";
       varEl.style.color = v>=0 ? "#1D9E75" : "#D85A30";
-      subEl.textContent = `${fmt(prevSame)} no mesmo período de ${PPO_MES_CURTO[prevKey]||prevKey}`;
+      subEl.textContent = `${prevCurto} ${fmt(prevSame)} → ${mCurto} ${fmt(total)} (mesmo período)`;
     } else {
-      varEl.textContent = "—"; varEl.style.color = ""; subEl.textContent = "sem base no mês anterior";
+      varEl.textContent = "—"; varEl.style.color = ""; subEl.textContent = `sem base em ${prevCurto} até dia ${corte}`;
     }
   } else {
     labEl.textContent = "Var. vs mês anterior";
@@ -3037,13 +3145,26 @@ function renderPpoAcum(md) {
   });
 }
 
-// Barra horizontal genérica (plano / UF / canal). Esconde o card se não houver dado.
+// Barra horizontal genérica (plano / UF / canal). Sem dado: esconde só o canvas e mostra uma nota,
+// mantendo o header e o toggle Anual/Mensal sempre acessíveis (não some o card inteiro).
 function ppoBarChart(canvasId, chartKey, secId, pares) {
   destroyChart(chartKey);
   const dados = Array.isArray(pares) ? pares.filter(p => p.valor > 0) : [];
-  const sec = document.getElementById(secId);
-  if (sec) sec.style.display = dados.length ? "" : "none";
-  if (!dados.length) return;
+  const canvas = document.getElementById(canvasId);
+  let note = document.getElementById(canvasId + "_empty");
+  if (!dados.length) {
+    if (canvas) canvas.style.display = "none";
+    if (!note && canvas && canvas.parentNode) {
+      note = document.createElement("div");
+      note.id = canvasId + "_empty";
+      note.style.cssText = "padding:28px 4px;text-align:center;color:#999;font-size:12.5px";
+      canvas.parentNode.insertBefore(note, canvas.nextSibling);
+    }
+    if (note) { note.textContent = "sem dados neste período"; note.style.display = ""; }
+    return;
+  }
+  if (canvas) canvas.style.display = "";
+  if (note) note.style.display = "none";
   const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
   const labels = ordenado.map(d => d.label);
   const valores = ordenado.map(d => d.valor);
@@ -3064,7 +3185,12 @@ function renderPpoGestor(md) {
   destroyChart("ppoGestor");
   const keys = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
   const labels = keys.map(k => CONFIG.gestores[k] ? CONFIG.gestores[k].label : k);
-  const valores = keys.map(k => md ? (md.porGestor[k] || 0) : 0);
+  const anual = ppoDimMode.gestor === "anual";
+  const valores = keys.map(k => anual
+    ? ((PPO_DATA.anual.porGestor[k] || []).reduce((a,b) => a + b, 0))
+    : (md ? (md.porGestor[k] || 0) : 0));
+  const t = document.getElementById("ppoGestorTitle");
+  if (t) t.textContent = "👥 PPO por Gestor" + ppoModeSuf("gestor");
   charts["ppoGestor"] = new Chart(document.getElementById("chartPpoGestor"), {
     type:"bar",
     data:{ labels, datasets:[{ label:"Vidas PPO", data: valores,
