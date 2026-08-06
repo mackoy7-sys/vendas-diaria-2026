@@ -3266,8 +3266,11 @@ Chart.register(ChartDataLabels);
 
 // ── RENDER ALL ──
 function renderAll() {
-  const isTri = !!CONFIG.isTrimestre;
   const isComp = mesAtivo === "COMPARATIVO";
+  // isTri cede ao comparativo: ao trocar p/ "Comparar meses" o CONFIG segue apontando
+  // p/ o trimestre (setView('COMP') não o reatribui), então sem o !isComp o #triPanel
+  // vazava por cima do #compPanel.
+  const isTri = !isComp && !!CONFIG.isTrimestre;
   const isPpo = ppoView && !isTri && !isComp;   // lente PPO só sobre mês real
   // alterna blocos
   document.querySelectorAll(".normal-view").forEach(el => el.style.display = (isTri || isComp || isPpo) ? "none" : "");
