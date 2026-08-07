@@ -3626,7 +3626,15 @@ function renderComparativo() {
   const prod = ms.map(m => prodPer(m, g));
   const vTot = ms.map(m => acumM(m, "TOTAL", N));
   const leadsArr = ms.map(leadsSum);
-  const conv = ms.map((m, i) => leadsArr[i] > 0 ? vTot[i] / leadsArr[i] * 100 : 0);
+  const vpcLeadsN = mes => {
+    const lod = DADOS_MESES[mes].leadsOrigemDia;
+    if (!lod || !Array.isArray(lod.origens)) return 0;
+    const v = lod.origens.find(o => o.origem === "VPC");
+    if (!v || !Array.isArray(v.dias)) return 0;
+    let s = 0; for (let i = 0; i < N && i < v.dias.length; i++) s += (v.dias[i] || 0);
+    return s;
+  };
+  const conv = ms.map((m, i) => { const l = leadsArr[i] - vpcLeadsN(m); return l > 0 ? vTot[i] / l * 100 : 0; });  // conversão exclui leads da VPC
   const lpv = ms.map((m, i) => vTot[i] > 0 ? leadsArr[i] / vTot[i] : 0);
 
   const delta = (a, b) => a !== 0 ? ((b - a) / a * 100) : 0;
@@ -3646,13 +3654,13 @@ function renderComparativo() {
   setTxt("ctCompLeads", `📥 Volume de Leads Diário — ${titulo} (Total)`);
   setTxt("ctCompOrigem", `🎯 Leads/dia por Origem — ${titulo}`);
   setTxt("ctCompCanal", `🏷️ Leads/dia por Canal — ${titulo}`);
-  setTxt("ctCompTable", `📋 Resumo Comparativo — ${titulo} (dias comparáveis)`);
+  setTxt("ctCompTable", `📋 Resumo Comparativo — ${titulo} (dias comparáveis · conversão s/ VPC)`);
 
   const subOutros = (vals, fmtFn) => ms.slice(0, P).map((m, i) => `${curto(m)}: ${fmtFn(vals[i])}`).join(" · ");
   const kpis = [
     { lab: `Realizado (${labelG})`, val: fmt(real[P]), sub: subOutros(real, fmt), badge: badgeHTML(real[0], real[P], false), cor: cores[P] },
     { lab: "Média / dia", val: fmtDec(med[P], 0), sub: subOutros(med, v => fmtDec(v, 0)), badge: badgeHTML(med[0], med[P], false), cor: cores[P] },
-    { lab: "Conversão (Total)", val: fmtDec(conv[P]) + "%", sub: subOutros(conv, v => fmtDec(v) + "%"), badge: badgeHTML(conv[0], conv[P], false), cor: "#e67e22" },
+    { lab: "Conversão (s/ VPC)", val: fmtDec(conv[P]) + "%", sub: subOutros(conv, v => fmtDec(v) + "%"), badge: badgeHTML(conv[0], conv[P], false), cor: "#e67e22" },
     { lab: "Volume Leads (Total)", val: fmt(leadsArr[P]), sub: subOutros(leadsArr, fmt), badge: badgeHTML(leadsArr[0], leadsArr[P], false), cor: "#9b59b6" },
     { lab: "Leads / Venda (Total)", val: fmtDec(lpv[P]), sub: subOutros(lpv, v => fmtDec(v)), badge: badgeHTML(lpv[0], lpv[P], true), cor: "#6c757d" }
   ];
@@ -3762,7 +3770,7 @@ function renderComparativo() {
     { lab: "PF", vals: prod.map(p => p.pf), f: fmt, inv: false },
     { lab: "PME", vals: prod.map(p => p.pme), f: fmt, inv: false },
     { lab: "Adesão", vals: prod.map(p => p.adesao), f: fmt, inv: false },
-    { lab: "Conversão % (Total)", vals: conv, f: v => fmtDec(v) + "%", inv: false },
+    { lab: "Conversão % (Total, s/ VPC)", vals: conv, f: v => fmtDec(v) + "%", inv: false },
     { lab: "Volume Leads (Total)", vals: leadsArr, f: fmt, inv: false },
     { lab: "Leads / Venda (Total)", vals: lpv, f: v => fmtDec(v), inv: true }
   ];
