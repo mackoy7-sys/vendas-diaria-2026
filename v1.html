@@ -379,7 +379,7 @@
   <div class="ext-modal" role="dialog" aria-modal="true" aria-labelledby="extHead">
     <div class="ext-modal-head" id="extHead">⬇ Extrair base de vendas</div>
     <div class="ext-modal-body">
-      <p>Escolha o(s) mês(es) para baixar em CSV — vendas por promotor (PF/PME/Adesão + SINTRO):</p>
+      <p>Escolha a(s) base(s) crua(s) para baixar (XLSX, linha a linha). Dados pessoais (CPF, nome, nascimento, telefone) são mascarados:</p>
       <div id="extOpts"></div>
     </div>
     <div class="ext-modal-foot">
@@ -3273,54 +3273,24 @@ function projExpandAll(open) {
 }
 
 // ============================================================================================
-// ── EXTRAIR BASE ── baixa um CSV das vendas por promotor (ranking DIGITAL + SINTRO) dos dois
-// meses mais recentes que têm detalhe por promotor (hoje: Julho + Agosto). Zero dependência:
-// monta o CSV no próprio navegador a partir de DADOS_MESES. Separador ';' + BOM p/ abrir no Excel.
+// ── EXTRAIR BASE ── baixa a BASE CRUA (linha a linha) de cada mês, hospedada em bases/*.xlsx.
+// Julho = base digital da Oracle; mês atual = consolidado da manual (PF+PME+Adesão, 3 abas).
+// PII (CPF/nome do cliente/nascimento/telefones) é mascarada na geração dos arquivos (Python).
+// Para trocar o mês/arquivo na virada, edite BASES_CRUAS e regere os xlsx (ver skill /vendas-diaria).
 // ============================================================================================
-function _baseDoMes(cfg) {
-  const map = new Map();
-  const k = (g, s, p) => g + "||" + s + "||" + p;
-  (cfg.ranking || []).forEach(r => {
-    map.set(k(r.gestao, r.supervisor, r.promotor), {
-      gestao: r.gestao, supervisor: r.supervisor, promotor: r.promotor,
-      pf: r.pf || 0, pme: r.pme || 0, adesao: r.adesao || 0, meta: r.meta || 0, sintro: 0
-    });
-  });
-  // SINTRO não traz supervisor: casa por (gestão, promotor) numa linha do ranking; senão vira linha própria.
-  (cfg.sintroRanking || []).forEach(s => {
-    let alvo = null;
-    for (const v of map.values()) { if (v.gestao === s.gestao && v.promotor === s.promotor) { alvo = v; break; } }
-    if (alvo) alvo.sintro += s.vidas || 0;
-    else map.set(k(s.gestao, "", s.promotor), {
-      gestao: s.gestao, supervisor: "", promotor: s.promotor,
-      pf: 0, pme: 0, adesao: 0, meta: 0, sintro: s.vidas || 0
-    });
-  });
-  return [...map.values()];
-}
+const BASES_CRUAS = [
+  { rotulo: "Julho",  arquivo: "bases/base_julho_oracle.xlsx",  desc: "base digital Oracle · 11.873 linhas" },
+  { rotulo: "Agosto", arquivo: "bases/base_agosto_manual.xlsx", desc: "consolidado manual · abas PF/PME/Adesão" },
+];
 
-// Meses com detalhe por promotor (ranking), os 2 mais recentes = alvo da extração (hoje Jul + Ago).
-function _mesesExtraiveis() {
-  const ORDEM = ["ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
-  return ORDEM.filter(m => DADOS_MESES[m] && Array.isArray(DADOS_MESES[m].ranking) && DADOS_MESES[m].ranking.length).slice(-2);
-}
-const _mesCurto = m => (DADOS_MESES[m].mesLabel || m).split(" ")[0];
-
-// Clique no botão: abre o pop-up para o usuário escolher o(s) mês(es) antes de baixar.
+// Clique no botão: abre o pop-up para o usuário escolher a(s) base(s) antes de baixar.
 function exportarBase() { abrirModalExtrair(); }
 
 function abrirModalExtrair() {
-  const alvo = _mesesExtraiveis();
-  if (!alvo.length) { alert("Sem base por promotor para extrair."); return; }
   const box = document.getElementById("extOpts");
-  box.innerHTML = alvo.map(m => {
-    const b = _baseDoMes(DADOS_MESES[m]);
-    const dig = b.reduce((a, r) => a + r.pf + r.pme + r.adesao, 0);
-    const sin = b.reduce((a, r) => a + r.sintro, 0);
-    const sub = "digital " + dig.toLocaleString("pt-BR") + (sin ? " · SINTRO " + sin.toLocaleString("pt-BR") : "");
-    return `<label class="ext-opt"><input type="checkbox" value="${m}" checked onchange="_extSync()">`
-      + `<span>${_mesCurto(m)}</span><span class="ext-sub">${sub}</span></label>`;
-  }).join("");
+  box.innerHTML = BASES_CRUAS.map((b, i) =>
+    `<label class="ext-opt"><input type="checkbox" value="${i}" checked onchange="_extSync()">`
+    + `<span>${b.rotulo}</span><span class="ext-sub">${b.desc}</span></label>`).join("");
   document.getElementById("extOverlay").classList.add("show");
   _extSync();
 }
@@ -3330,36 +3300,19 @@ function _extSync() {
   document.getElementById("extConfirm").disabled = n === 0;
 }
 function confirmarExtrair() {
-  const meses = [...document.querySelectorAll("#extOpts input:checked")].map(i => i.value);
-  if (!meses.length) return;
-  _baixarCsvMeses(meses);
+  const idx = [...document.querySelectorAll("#extOpts input:checked")].map(i => +i.value);
+  if (!idx.length) return;
+  // Baixa cada arquivo hospedado (escalonado, para o navegador não bloquear downloads múltiplos).
+  idx.forEach((i, k) => setTimeout(() => _baixarArquivo(BASES_CRUAS[i].arquivo), k * 400));
   fecharModalExtrair();
 }
-
-function _baixarCsvMeses(meses) {
-  const cell = v => {
-    const s = String(v == null ? "" : v);
-    return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  const head = ["Mês","Gestão","Supervisor","Promotor","PF","PME","Adesão","Digital","SINTRO","Total","Meta"];
-  const linhas = [head.join(";")];
-  meses.forEach(m => {
-    _baseDoMes(DADOS_MESES[m]).forEach(r => {
-      const digital = r.pf + r.pme + r.adesao;
-      linhas.push([_mesCurto(m), r.gestao, r.supervisor, r.promotor, r.pf, r.pme, r.adesao,
-        digital, r.sintro, digital + r.sintro, r.meta].map(cell).join(";"));
-    });
-  });
-  const csv = "﻿" + linhas.join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+function _baixarArquivo(url) {
   const a = document.createElement("a");
   a.href = url;
-  a.download = "base_vendas_" + meses.map(_mesCurto).join("_") + ".csv";
+  a.download = url.split("/").pop();
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ============================================================================================
