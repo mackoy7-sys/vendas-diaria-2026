@@ -754,6 +754,29 @@
       <tbody id="tabela"></tbody>
     </table>
   </div>
+
+  <!-- Seção Projetos (SINTRO etc.) — separada do Ranking Consolidado. David 11/08/2026 -->
+  <div class="table-card normal-view" id="projetosCard" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px">
+      <div class="chart-title" style="margin-bottom:0">📁 Projetos <span style="color:#888;font-weight:400;font-size:12px">· campanhas à parte (fora das métricas digitais) — clique no projeto para ver Gestão/Promotor</span></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="projExpandAll(true)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▼ Expandir Todos</button>
+        <button onclick="projExpandAll(false)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▶ Colapsar Todos</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Projeto / Gestão / Promotor</th>
+          <th class="td-right">Vidas</th>
+          <th class="td-right" title="Média de Venda por Promotor no projeto (vidas ÷ promotores COM venda no projeto)">MVP</th>
+          <th class="td-right" title="Promotores COM venda no projeto (vidas &gt; 0)">Vendedores</th>
+          <th class="td-right" title="Participação dos promotores do projeto sobre os vendedores ATIVOS do cadastro (gestaopromotores). Pode passar de 100% quando o time do projeto não é o mesmo do cadastro digital.">% que vendeu</th>
+        </tr>
+      </thead>
+      <tbody id="projetos"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
@@ -1365,16 +1388,7 @@ const DADOS_MESES = {
       }
     },
     ranking: [
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"ELAINE MELO",pf:0,pme:0,adesao:91,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"FELIPE HABERSTOCK GOMES",pf:0,pme:0,adesao:652,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"KAUAN PEREIRA",pf:0,pme:0,adesao:409,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"MICHELE JESUS",pf:0,pme:0,adesao:27,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"MONALISA CREVISAN",pf:0,pme:0,adesao:454,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"SHEILA PINTO",pf:0,pme:0,adesao:429,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"TALITA NASCIMENTO",pf:0,pme:0,adesao:253,meta:0},
-      {gestao:"ACTIONLINE",supervisor:"ACTIONLINE",promotor:"THAIS FARIAS",pf:0,pme:0,adesao:27,meta:0},
-      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:304,pme:27,adesao:212,meta:0},
-      {gestao:"ADMINISTRATIVO",supervisor:"SEM SUPERVISOR",promotor:"ADM / HAPVIDA (BUCKET)",pf:0,pme:0,adesao:20,meta:0},
+      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:304,pme:27,adesao:2,meta:0},
       {gestao:"ADMINISTRATIVO",supervisor:"SEM SUPERVISOR",promotor:"ADM FILIAL BELEM",pf:6,pme:0,adesao:0,meta:0},
       {gestao:"ADMINISTRATIVO",supervisor:"SEM SUPERVISOR",promotor:"ADM HAPVIDA MACEIO",pf:3,pme:0,adesao:0,meta:0},
       {gestao:"ADMINISTRATIVO",supervisor:"SEM SUPERVISOR",promotor:"ADM HAPVIDA NATAL",pf:3,pme:0,adesao:0,meta:0},
@@ -1392,16 +1406,14 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"ANTONIO NOBRE",pf:8,pme:0,adesao:2,meta:60},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"BRENA PAIVA",pf:24,pme:2,adesao:0,meta:67},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"CLEBSON ALVES",pf:35,pme:9,adesao:0,meta:58},
-      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"ISABELLE RIBEIRO",pf:27,pme:0,adesao:1,meta:60},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"ISABELLE RIBEIRO",pf:27,pme:0,adesao:0,meta:60},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"JOCILANE BATISTA",pf:2,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"JONATHAS REIS",pf:31,pme:0,adesao:0,meta:62},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"JULIANA NUNES",pf:111,pme:0,adesao:1,meta:95},
-      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"LARYSSA BRITO",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"LEIA FERREIRA",pf:56,pme:0,adesao:0,meta:62},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"LEIDIANE PAULINO",pf:19,pme:0,adesao:0,meta:50},
-      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"RITA DE CASSIA SAMPAIO",pf:2,pme:0,adesao:31,meta:0},
-      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"SAMILA FERREIRA",pf:4,pme:0,adesao:28,meta:0},
-      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"THIAGO MIRANDA",pf:0,pme:0,adesao:0,meta:0},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"RITA DE CASSIA SAMPAIO",pf:2,pme:0,adesao:11,meta:0},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"SAMILA FERREIRA",pf:4,pme:0,adesao:14,meta:0},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"VANIA SILVA",pf:52,pme:13,adesao:0,meta:67},
       {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"VLADIA SOARES",pf:49,pme:0,adesao:0,meta:67},
       {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"BRUNA SOARES",pf:33,pme:58,adesao:0,meta:90},
@@ -1419,9 +1431,8 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"TAISSE MACARIO",pf:13,pme:40,adesao:0,meta:90},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"ALAN KELBER LEAL",pf:23,pme:5,adesao:0,meta:70},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"DAVI ASSUNCAO",pf:30,pme:2,adesao:0,meta:70},
-      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"DAYARA CRISPIM",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"EBOLY NEVES",pf:1,pme:0,adesao:9,meta:60},
-      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"GESSICA NOGUEIRA",pf:1,pme:0,adesao:7,meta:0},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"GESSICA NOGUEIRA",pf:1,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"JONATAS QUARESMA",pf:23,pme:6,adesao:0,meta:70},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"JOYCE VASCONCELOS",pf:8,pme:0,adesao:0,meta:55},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"JULIO CESAR ARARIPE",pf:7,pme:0,adesao:0,meta:55},
@@ -1431,7 +1442,7 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"LUANA ARAUJO",pf:31,pme:7,adesao:0,meta:70},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"LUCIANE LIMA",pf:18,pme:13,adesao:0,meta:70},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"PAULO LEVI",pf:22,pme:0,adesao:0,meta:60},
-      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"RAFAELA BRUNA SOUSA",pf:5,pme:0,adesao:3,meta:0},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"RAFAELA BRUNA SOUSA",pf:5,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"ROMARIO SOUZA",pf:34,pme:8,adesao:0,meta:70},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"SARA NASCIMENTO",pf:24,pme:0,adesao:0,meta:55},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"TAIS AMANDA CARDOSO",pf:36,pme:0,adesao:0,meta:70},
@@ -1452,7 +1463,7 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LARISSY RAMOS",pf:28,pme:45,adesao:0,meta:75},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LILIANE RIBEIRO",pf:14,pme:87,adesao:0,meta:85},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LUANA LIMA",pf:1,pme:12,adesao:0,meta:75},
-      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LUIZ FELIPE NASCIMENTO",pf:1,pme:4,adesao:12,meta:0},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LUIZ FELIPE NASCIMENTO",pf:1,pme:4,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"MARIA INGRID MARREIRA",pf:0,pme:7,adesao:0,meta:75},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"RIQUELMY SANTOS",pf:19,pme:71,adesao:0,meta:85},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"VICTOR FREITAS",pf:13,pme:20,adesao:0,meta:85},
@@ -1470,7 +1481,6 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"CINTIA FERREIRA",pf:8,pme:10,adesao:0,meta:80},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"CYNTIA MODENA",pf:13,pme:85,adesao:0,meta:80},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"ELISA NASCIMENTO",pf:10,pme:39,adesao:0,meta:80},
-      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"ESTELA OLIVEIRA",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"FELIPE PERES",pf:13,pme:18,adesao:0,meta:40},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"GABRIELA MORAES",pf:13,pme:10,adesao:51,meta:80},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"GISELE OLIVEIRA",pf:20,pme:22,adesao:0,meta:80},
@@ -1480,7 +1490,6 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LIDIANE MALTA",pf:10,pme:26,adesao:0,meta:80},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LORENA ORTEGA",pf:9,pme:11,adesao:0,meta:80},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LUIZ ROBERTO AUGUSTO",pf:7,pme:6,adesao:40,meta:75},
-      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"RAIANE CARDOSO",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"VANESSA ANDRIOTI",pf:0,pme:54,adesao:0,meta:80},
       {gestao:"JOSY",supervisor:"BENVE",promotor:"ANA BEATRIZ MACHUCA",pf:27,pme:3,adesao:0,meta:77},
       {gestao:"JOSY",supervisor:"BENVE",promotor:"CAMILA MOREIRA",pf:21,pme:5,adesao:0,meta:77},
@@ -1496,7 +1505,7 @@ const DADOS_MESES = {
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"DELIANE GOMES",pf:68,pme:39,adesao:0,meta:80},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ELISAMA GIZZI",pf:18,pme:0,adesao:1,meta:80},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GILSON SILVEIRA",pf:2,pme:1,adesao:0,meta:30},
-      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA BARBIERI",pf:18,pme:13,adesao:1,meta:60},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA BARBIERI",pf:18,pme:13,adesao:0,meta:60},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA SANTANA - VENDEDOR ADM",pf:75,pme:0,adesao:0,meta:80},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GLEIRE VALERIO",pf:17,pme:3,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"HELENA RIBEIRO",pf:34,pme:34,adesao:0,meta:60},
@@ -1514,7 +1523,6 @@ const DADOS_MESES = {
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"PATRICIA LIMA - VENDEDOR ADM",pf:0,pme:0,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"PAULA JESUS",pf:10,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ROBSON SOUZA",pf:42,pme:52,adesao:0,meta:90},
-      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"SUELLEN GUIMARAES",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"THAINA BERCHELI",pf:63,pme:20,adesao:18,meta:78},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"ANDERSON NASCIMENTO",pf:21,pme:0,adesao:0,meta:65},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"BEATRIZ BRAIDO",pf:29,pme:25,adesao:0,meta:64},
@@ -1539,51 +1547,72 @@ const DADOS_MESES = {
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"CARINA CORTEZ",pf:42,pme:17,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"JADY QUEIROZ",pf:71,pme:11,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"KAMILA GLAYR",pf:87,pme:6,adesao:0,meta:70},
-      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"LIGIVANIA SILVA",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"MARCELA MONTANARI",pf:48,pme:3,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"MARIA EDUARDA",pf:17,pme:19,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"MIRELLA PEREIRA",pf:29,pme:16,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"MIRIAM FERREIRA",pf:28,pme:5,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"RAIANE LIMA",pf:22,pme:56,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"ROGERIO STIVANELLO",pf:37,pme:39,adesao:0,meta:70},
-      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"SABRINA GIOLO",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"SOFIA LUNGA",pf:51,pme:51,adesao:4,meta:70},
-      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"SONIA LINO",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"TATI SILVA - VENDEDOR ADM",pf:88,pme:0,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"THAIS SANTOS",pf:6,pme:3,adesao:0,meta:36},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"THAISA ALMEIDA",pf:57,pme:17,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"UNILDO FERREIRA",pf:31,pme:8,adesao:0,meta:70},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ADMINISTRATIVO",pf:0,pme:0,adesao:0,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ALINE RIBEIRO",pf:2,pme:2,adesao:206,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ANA JULIA BRITO",pf:0,pme:0,adesao:125,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"BEATRIZ SILVESTRE",pf:0,pme:0,adesao:18,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"BRUNO FERREIRA",pf:1,pme:0,adesao:89,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"DANIELLE DE JESUS",pf:1,pme:2,adesao:88,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"DANILO FOGACA",pf:0,pme:0,adesao:4,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"GESSICA NOGUEIRA",pf:0,pme:0,adesao:14,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"GIOVANNA BARBIERI",pf:0,pme:0,adesao:2,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ALINE RIBEIRO",pf:2,pme:2,adesao:0,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"BRUNO FERREIRA",pf:1,pme:0,adesao:1,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"DANIELLE DE JESUS",pf:1,pme:2,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"GIOVANNA RAGONEZI",pf:6,pme:3,adesao:0,meta:5},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ISAQUE FERREIRA",pf:0,pme:5,adesao:234,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ISAQUE ROCHA",pf:0,pme:0,adesao:1,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"LUIZ FELIPE NASCIMENTO",pf:0,pme:0,adesao:48,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"MIKAELLY CAMILY",pf:5,pme:0,adesao:1,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"MURILLO RODRIGUEZ",pf:0,pme:0,adesao:26,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"NATALIA LOURENCO",pf:1,pme:0,adesao:4,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"PAULO ALEXANDRE",pf:0,pme:0,adesao:144,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"RAFAELA BRUNA SOUSA",pf:0,pme:0,adesao:10,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ISAQUE FERREIRA",pf:0,pme:5,adesao:0,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"MIKAELLY CAMILY",pf:5,pme:0,adesao:0,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"NATALIA LOURENCO",pf:1,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"RAISSA BURIN",pf:21,pme:0,adesao:0,meta:70},
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"RAYANE LOPES",pf:18,pme:0,adesao:0,meta:70},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"RITA DE CASSIA SAMPAIO",pf:0,pme:0,adesao:20,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"SAMILA FERREIRA",pf:0,pme:0,adesao:35,meta:0},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"THAMIRIS FRANCISQUELLI",pf:14,pme:4,adesao:1,meta:70},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"THIAGO VALLADA",pf:1,pme:0,adesao:224,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"THAMIRIS FRANCISQUELLI",pf:14,pme:4,adesao:0,meta:70},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"THIAGO VALLADA",pf:1,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"VICTOR MARTINS",pf:0,pme:0,adesao:0,meta:5},
-      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"YGOR OLIVEIRA",pf:2,pme:0,adesao:105,meta:0},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"YGOR OLIVEIRA",pf:2,pme:0,adesao:0,meta:0},
       {gestao:"NAN",supervisor:"nan",promotor:"Em contratação",pf:0,pme:0,adesao:0,meta:20},
       {gestao:"NAN",supervisor:"nan",promotor:"GILSON - NOVATO",pf:0,pme:0,adesao:0,meta:30},
-      {gestao:"NAN",supervisor:"nan",promotor:"JENNIFER GRACIANO",pf:0,pme:0,adesao:0,meta:0},
-      {gestao:"NAN",supervisor:"nan",promotor:"SIMONE BRITO",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"NAN",supervisor:"nan",promotor:"VICTOR - NOVATO",pf:0,pme:0,adesao:0,meta:30}
+    ],
+    sintroRanking: [
+      {gestao:"FABIO",promotor:"RITA DE CASSIA SAMPAIO",vidas:20},
+      {gestao:"FABIO",promotor:"SAMILA FERREIRA",vidas:14},
+      {gestao:"FABIO",promotor:"LUIZ FELIPE NASCIMENTO",vidas:12},
+      {gestao:"FABIO",promotor:"GESSICA NOGUEIRA",vidas:7},
+      {gestao:"FABIO",promotor:"RAFAELA BRUNA SOUSA",vidas:3},
+      {gestao:"FABIO",promotor:"ISABELLE RIBEIRO",vidas:1},
+      {gestao:"JOSY",promotor:"ISAQUE FERREIRA",vidas:234},
+      {gestao:"JOSY",promotor:"THIAGO VALLADA",vidas:224},
+      {gestao:"JOSY",promotor:"ALINE RIBEIRO",vidas:206},
+      {gestao:"JOSY",promotor:"PAULO ALEXANDRE",vidas:144},
+      {gestao:"JOSY",promotor:"ANA JULIA BRITO",vidas:125},
+      {gestao:"JOSY",promotor:"YGOR OLIVEIRA",vidas:105},
+      {gestao:"JOSY",promotor:"BRUNO FERREIRA",vidas:88},
+      {gestao:"JOSY",promotor:"DANIELLE DE JESUS",vidas:88},
+      {gestao:"JOSY",promotor:"LUIZ FELIPE NASCIMENTO",vidas:48},
+      {gestao:"JOSY",promotor:"SAMILA FERREIRA",vidas:35},
+      {gestao:"JOSY",promotor:"MURILLO RODRIGUEZ",vidas:26},
+      {gestao:"JOSY",promotor:"RITA DE CASSIA SAMPAIO",vidas:20},
+      {gestao:"JOSY",promotor:"BEATRIZ SILVESTRE",vidas:18},
+      {gestao:"JOSY",promotor:"GESSICA NOGUEIRA",vidas:14},
+      {gestao:"JOSY",promotor:"RAFAELA BRUNA SOUSA",vidas:10},
+      {gestao:"JOSY",promotor:"DANILO FOGACA",vidas:4},
+      {gestao:"JOSY",promotor:"NATALIA LOURENCO",vidas:4},
+      {gestao:"JOSY",promotor:"GIOVANNA BARBIERI",vidas:3},
+      {gestao:"JOSY",promotor:"THAMIRIS FRANCISQUELLI",vidas:1},
+      {gestao:"JOSY",promotor:"MIKAELLY CAMILY",vidas:1},
+      {gestao:"JOSY",promotor:"ISAQUE ROCHA",vidas:1},
+      {gestao:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",vidas:210},
+      {gestao:"ADMINISTRATIVO",promotor:"ADM / HAPVIDA (BUCKET)",vidas:20},
+      {gestao:"ACTIONLINE",promotor:"FELIPE HABERSTOCK GOMES",vidas:652},
+      {gestao:"ACTIONLINE",promotor:"MONALISA CREVISAN",vidas:454},
+      {gestao:"ACTIONLINE",promotor:"SHEILA PINTO",vidas:429},
+      {gestao:"ACTIONLINE",promotor:"KAUAN PEREIRA",vidas:409},
+      {gestao:"ACTIONLINE",promotor:"TALITA NASCIMENTO",vidas:253},
+      {gestao:"ACTIONLINE",promotor:"ELAINE MELO",vidas:91},
+      {gestao:"ACTIONLINE",promotor:"THAIS FARIAS",vidas:27},
+      {gestao:"ACTIONLINE",promotor:"MICHELE JESUS",vidas:27}
     ],
     ativosSupervisor: {
       "ACTIONLINE": {"ACTIONLINE":7},
@@ -1903,6 +1932,8 @@ const DADOS_MESES = {
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"VAGA MURILLO RODRIGUEZ",pf:0,pme:0,adesao:0,meta:0},
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"VICTOR MARTINS",pf:5,pme:3,adesao:0,meta:40},
       {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"YGOR OLIVEIRA",pf:1,pme:0,adesao:0,meta:60}
+    ],
+    sintroRanking: [
     ],
     ativosSupervisor: {
       "ADMINISTRATIVO": {"ADMINISTRATIVO":0},
@@ -2861,6 +2892,9 @@ function renderTabela() {
   const ranking = CONFIG.ranking || [];
   for (const k of keys) {
     const g = CONFIG.gestores[k];
+    // Gestão sem venda DIGITAL no mês sai do ranking (ex.: Actionline em jul/ago é 100% SINTRO).
+    // Dinâmico: junho, onde Actionline teve 103 PF digitais, continua aparecendo. — David 11/08/2026
+    if (k !== "TOTAL" && (g.pf + g.pme + g.adesao) === 0) continue;
     const real = vendas(k, diaIni, diaFim);
     const media = mediaDiaMes(k);
     const temMeta = g.meta != null;              // meta do gestor pode ainda nao estar decidida no mes
@@ -3095,6 +3129,93 @@ function rtToggle(id) {
 function rtExpandAll(open) {
   document.querySelectorAll("tr.rt_det").forEach(r => r.style.display = open ? "" : "none");
   document.querySelectorAll('[id^="rti_"]').forEach(ic => ic.innerHTML = open ? "&#9660;" : "&#9654;");
+}
+
+// ── Seção "Projetos" (campanhas à parte — hoje só SINTRO) — David 11/08/2026 ──
+// Fonte = CONFIG.sintroRanking [{gestao, promotor, vidas}] (SINTRO por gestão→promotor, do
+// RANKING TIPO='SINTRO'). Drill-down no mesmo esquema do Ranking Consolidado: Projeto → Gestão →
+// Promotor. Some quando o mês não tem SINTRO (ex.: agosto). Colunas = Nome | Vidas (SINTRO só tem
+// vidas, todas contabilizadas como Adesão fora do digital).
+function projRowHtml(cls, label, vidas, mvp, vend, pctVend, indent, chevronId) {
+  const pad = 6 + indent * 20;
+  const chev = chevronId
+    ? `<span id="${chevronId}" style="display:inline-block;width:14px;font-size:10px;color:#185FA5">&#9654;</span> `
+    : (indent === 2 ? "&#8627; " : "");
+  const bold = indent === 0 ? "font-weight:700;" : "";
+  const dash = '<td class="td-right">—</td>';
+  const cMvp = mvp === null ? dash : `<td class="td-right num" style="${bold}">${fmtDec(mvp, 1)}</td>`;
+  const cVend = vend === null ? dash : `<td class="td-right num" style="${bold}">${fmt(vend)}</td>`;
+  const cPct = pctVend === null ? dash : `<td class="td-right num" style="${bold}">${fmtDec(pctVend, 1)}%</td>`;
+  return `<tr class="${cls}"><td style="padding-left:${pad}px;${bold}">${chev}${label}</td><td class="td-right num" style="${bold}">${fmt(vidas)}</td>${cMvp}${cVend}${cPct}</tr>`;
+}
+// vendedores = promotores distintos com vidas>0 (mesma ideia do contaVendedores do Ranking)
+function projVendedores(rows) {
+  const s = new Set();
+  rows.forEach(r => { if (r.vidas > 0) s.add(r.promotor); });
+  return s.size;
+}
+function renderProjetos() {
+  const card = document.getElementById("projetosCard");
+  const tbody = document.getElementById("projetos");
+  tbody.innerHTML = "";
+  const sr = (CONFIG.sintroRanking || []).filter(r => r.vidas > 0);
+  if (!sr.length) { card.style.display = "none"; return; }
+  card.style.display = "";
+  const ORDER = { FABIO: 0, JOSY: 1, ADMINISTRATIVO: 2, ACTIONLINE: 3 };
+  const LBL = { FABIO: "Fabio", JOSY: "Josy", ADMINISTRATIVO: "Administrativo", ACTIONLINE: "Actionline" };
+  const byG = {};
+  sr.forEach(r => { const G = (r.gestao || "").toUpperCase(); (byG[G] = byG[G] || []).push(r); });
+  const gs = Object.keys(byG).sort((a, b) => (ORDER[a] ?? 9) - (ORDER[b] ?? 9));
+  const total = sr.reduce((a, r) => a + r.vidas, 0);
+  // MVP/Vendedores/%vendeu: mesma convenção do Ranking -- ADMINISTRATIVO é linha sintética (MVP_SEM_POP)
+  // e fica "—"; % que vendeu = vendedores ÷ ativos do cadastro (g.ativos). Nível PROJETO usa os
+  // vendedores distintos das gestões reais (fora ADMINISTRATIVO) e o TOTAL de ativos.
+  const gT = CONFIG.gestores.TOTAL || {};
+  const projRowsPop = sr.filter(r => !MVP_SEM_POP.includes((r.gestao || "").toUpperCase()));
+  const vendTot = projVendedores(projRowsPop);
+  const ativTot = gT.ativos;
+  const mvpTot = vendTot > 0 ? total / vendTot : null;
+  const pctTot = (ativTot != null && ativTot > 0 && vendTot > 0) ? vendTot / ativTot * 100 : null;
+  tbody.insertAdjacentHTML("beforeend",
+    projRowHtml("", "SINTRO", total, mvpTot, vendTot, pctTot, 0, "prji_sintro")
+      .replace("<tr class=", `<tr style="cursor:pointer" onclick="projToggle('sintro')" class=`));
+  gs.forEach((G, gi) => {
+    const gid = "sintro_g" + gi;
+    const rows = byG[G].slice().sort((a, b) => b.vidas - a.vidas);
+    const gtot = rows.reduce((a, r) => a + r.vidas, 0);
+    const semPop = MVP_SEM_POP.includes(G);
+    const vend = semPop ? null : projVendedores(rows);
+    const mvp = (vend && vend > 0) ? gtot / vend : null;
+    const ativ = (CONFIG.gestores[G] || {}).ativos;
+    const pct = (!semPop && ativ != null && ativ > 0 && vend > 0) ? vend / ativ * 100 : null;
+    tbody.insertAdjacentHTML("beforeend",
+      projRowHtml("prj_det prj_sintro", LBL[G] || G, gtot, mvp, vend, pct, 1, "prji_" + gid)
+        .replace("<tr class=", `<tr data-g="${gid}" style="cursor:pointer;display:none" onclick="event.stopPropagation();projToggle(this.dataset.g)" class=`));
+    rows.forEach(r => {
+      tbody.insertAdjacentHTML("beforeend",
+        projRowHtml("prj_det " + gid, r.promotor, r.vidas, null, null, null, 2, "")
+          .replace("<tr class=", `<tr style="display:none" class=`));
+    });
+  });
+}
+function projToggle(id) {
+  const det = Array.from(document.querySelectorAll("tr.prj_det." + (id === "sintro" ? "prj_sintro" : id)));
+  if (!det.length) return;
+  const ic = document.getElementById("prji_" + id);
+  const opening = det[0].style.display === "none";
+  det.forEach(r => r.style.display = opening ? "" : "none");
+  if (ic) ic.innerHTML = opening ? "&#9660;" : "&#9654;";
+  if (!opening) {
+    // fechando: colapsa os netos (promotores de cada gestão deste projeto)
+    document.querySelectorAll("tr.prj_det").forEach(r => {
+      r.classList.forEach(c => { if (c.startsWith(id + "_") || (id === "sintro" && c.startsWith("sintro_"))) r.style.display = "none"; });
+    });
+    document.querySelectorAll('[id^="prji_sintro_"]').forEach(ic2 => ic2.innerHTML = "&#9654;");
+  }
+}
+function projExpandAll(open) {
+  document.querySelectorAll("tr.prj_det").forEach(r => r.style.display = open ? "" : "none");
+  document.querySelectorAll('[id^="prji_"]').forEach(ic => ic.innerHTML = open ? "&#9660;" : "&#9654;");
 }
 
 // ============================================================================================
@@ -3562,6 +3683,7 @@ function renderAll() {
     renderConversao();
     renderLeadsDia();
     renderTabela();
+    renderProjetos();
   }
 }
 
