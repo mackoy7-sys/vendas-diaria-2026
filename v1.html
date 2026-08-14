@@ -2386,11 +2386,11 @@ function renderAcumulado() {
   const _mAno = parseInt(_mParts[1]) || (new Date()).getFullYear();
   const _hoje = new Date();
   const _isCorrente = (_mIdx !== undefined && _mIdx === _hoje.getMonth() && _mAno === _hoje.getFullYear());
-  const _anchor = Math.max(2, Math.min(diaFim, _isCorrente ? _hoje.getDate() : (CONFIG.diaAtual || diaFim)));
+  const _anchor = Math.max(2, Math.min(diaFim, _isCorrente ? (_hoje.getDate() - 2) : (CONFIG.diaAtual || diaFim))); // janela de consolidação D-2: os 2 últimos dias têm registro incompleto
   const _wd = d => (new Date(_mAno, (_mIdx===undefined? _hoje.getMonth() : _mIdx), d)).getDay(); // 0=dom,6=sáb
   const _inc = d => acum(gestorAtivo, d) - acum(gestorAtivo, d-1);
   // coleta: últimos 3 dias ÚTEIS completos (exclui o dia de hoje, parcial) + últimos 2 dias de fds
-  const _start = _isCorrente ? _anchor - 1 : _anchor;
+  const _start = _anchor; // com D-2 a âncora já é um dia consolidado
   const _uteis = [], _fds = [];
   for (let d = _start; d >= 2 && d >= _start - 9 && (_uteis.length < 3 || _fds.length < 2); d--) {
     const w = _wd(d);
