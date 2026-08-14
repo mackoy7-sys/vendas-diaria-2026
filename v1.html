@@ -2378,13 +2378,32 @@ function renderAcumulado() {
   const metaLine = labels.map(() => meta);
   // Projeção: usa projecao_fixa se houver, senão estima por média/dia × dias do mês.
   // A linha tracejada cresce linearmente do dia 1 até atingir a projeção no fim do mês.
-  // Projeção pela tendência dos ÚLTIMOS 3 DIAS (até o dia atual), extrapolada até o fim do mês
-  const _anchor = Math.min(diaFim, CONFIG.diaAtual || diaFim);
-  const _base = Math.max(1, _anchor - 3);
+  // Projeção pela tendência dos ÚLTIMOS 3 DIAS ÚTEIS completos, extrapolada até o fim do mês
+  // (fins de semana projetados com taxa própria; se o mês exibido é o mês corrente, a âncora é HOJE)
+  const _MESNUM = {janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  const _mParts = (CONFIG.mesLabel||"").toLowerCase().split(" ");
+  const _mIdx = _MESNUM[_mParts[0]];
+  const _mAno = parseInt(_mParts[1]) || (new Date()).getFullYear();
+  const _hoje = new Date();
+  const _isCorrente = (_mIdx !== undefined && _mIdx === _hoje.getMonth() && _mAno === _hoje.getFullYear());
+  const _anchor = Math.max(2, Math.min(diaFim, _isCorrente ? _hoje.getDate() : (CONFIG.diaAtual || diaFim)));
+  const _wd = d => (new Date(_mAno, (_mIdx===undefined? _hoje.getMonth() : _mIdx), d)).getDay(); // 0=dom,6=sáb
+  const _inc = d => acum(gestorAtivo, d) - acum(gestorAtivo, d-1);
+  // coleta: últimos 3 dias ÚTEIS completos (exclui o dia de hoje, parcial) + últimos 2 dias de fds
+  const _start = _isCorrente ? _anchor - 1 : _anchor;
+  const _uteis = [], _fds = [];
+  for (let d = _start; d >= 2 && d >= _start - 9 && (_uteis.length < 3 || _fds.length < 2); d--) {
+    const w = _wd(d);
+    if (w >= 1 && w <= 5) { if (_uteis.length < 3) _uteis.push(_inc(d)); }
+    else { if (_fds.length < 2) _fds.push(_inc(d)); }
+  }
+  const _taxaU = _uteis.length ? _uteis.reduce((a,b)=>a+b,0) / _uteis.length : 0;
+  const _taxaF = _fds.length ? _fds.reduce((a,b)=>a+b,0) / _fds.length : _taxaU * 0.35;
   const _aAnchor = acum(gestorAtivo, _anchor);
-  const _taxa3 = (_anchor - _base) > 0 ? (_aAnchor - acum(gestorAtivo, _base)) / (_anchor - _base) : 0;
-  const projMes = Math.round(_aAnchor + _taxa3 * (CONFIG.diasNoMes - _anchor));
-  const projecaoLine = labels.map((_,i) => { const _d = diaIni + i; return _d <= _anchor ? acum(gestorAtivo, _d) : Math.round(_aAnchor + _taxa3 * (_d - _anchor)); });
+  const _projArr = {}; let _run = _aAnchor;
+  for (let d = _anchor + 1; d <= CONFIG.diasNoMes; d++) { const w = _wd(d); _run += (w === 0 || w === 6) ? _taxaF : _taxaU; _projArr[d] = Math.round(_run); }
+  const projMes = _anchor >= CONFIG.diasNoMes ? Math.round(_aAnchor) : _projArr[CONFIG.diasNoMes];
+  const projecaoLine = labels.map((_,i) => { const _d = diaIni + i; return _d <= _anchor ? acum(gestorAtivo, _d) : _projArr[_d]; });
 
   const showAllLabels = (diaFim - diaIni + 1) <= 15;
   charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
