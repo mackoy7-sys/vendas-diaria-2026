@@ -2378,12 +2378,13 @@ function renderAcumulado() {
   const metaLine = labels.map(() => meta);
   // Projeção: usa projecao_fixa se houver, senão estima por média/dia × dias do mês.
   // A linha tracejada cresce linearmente do dia 1 até atingir a projeção no fim do mês.
-  const real = data[data.length-1] - (acum(gestorAtivo, diaIni-1) || 0);
-  const diasDecorridos = diaFim - diaIni + 1;
-  const mediaDia = diasDecorridos > 0 ? real / diasDecorridos : 0;
-  const projMes = g.projecao_fixa || Math.round(mediaDia * CONFIG.diasNoMes);
-  const projDia = projMes / CONFIG.diasNoMes;
-  const projecaoLine = labels.map((_,i) => Math.round(projDia * (diaIni + i)));
+  // Projeção pela tendência dos ÚLTIMOS 3 DIAS (até o dia atual), extrapolada até o fim do mês
+  const _anchor = Math.min(diaFim, CONFIG.diaAtual || diaFim);
+  const _base = Math.max(1, _anchor - 3);
+  const _aAnchor = acum(gestorAtivo, _anchor);
+  const _taxa3 = (_anchor - _base) > 0 ? (_aAnchor - acum(gestorAtivo, _base)) / (_anchor - _base) : 0;
+  const projMes = Math.round(_aAnchor + _taxa3 * (CONFIG.diasNoMes - _anchor));
+  const projecaoLine = labels.map((_,i) => { const _d = diaIni + i; return _d <= _anchor ? acum(gestorAtivo, _d) : Math.round(_aAnchor + _taxa3 * (_d - _anchor)); });
 
   const showAllLabels = (diaFim - diaIni + 1) <= 15;
   charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
