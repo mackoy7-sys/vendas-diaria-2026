@@ -4085,7 +4085,13 @@ function renderComparativo() {
 
   // TABELA (cabeçalho + linhas dinâmicos)
   const headRow = document.getElementById("compHeadRow");
-  if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + `<th class="td-right">Var. ${curto(ms[P])} vs ${curto(ms[0])}</th>`;
+  // Com 3 meses, exibe tanto a variação do mês destacado contra o primeiro
+  // quanto contra o mês imediatamente anterior (ex.: AGO vs JUN e AGO vs JUL).
+  const comparativos = [
+    { base: 0, label: `Var. ${curto(ms[P])} vs ${curto(ms[0])}` },
+    ...(K >= 3 ? [{ base: P - 1, label: `Var. ${curto(ms[P])} vs ${curto(ms[P - 1])}` }] : [])
+  ];
+  if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + comparativos.map(c => `<th class="td-right">${c.label}</th>`).join("");
   const linhas = [
     { lab: "Realizado (" + labelG + ")", vals: real, f: fmt, inv: false },
     { lab: "Média / dia", vals: med, f: v => fmtDec(v, 0), inv: false },
@@ -4098,8 +4104,11 @@ function renderComparativo() {
   ];
   document.getElementById("tabelaComp").innerHTML = linhas.map(r => {
     const cels = r.vals.map(v => `<td class="td-right num">${r.f(v)}</td>`).join("");
-    const d = delta(r.vals[0], r.vals[P]), good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
-    return `<tr><td>${r.lab}</td>${cels}<td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td></tr>`;
+    const vars = comparativos.map(c => {
+      const d = delta(r.vals[c.base], r.vals[P]), good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
+      return `<td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td>`;
+    }).join("");
+    return `<tr><td>${r.lab}</td>${cels}${vars}</tr>`;
   }).join("");
 
   // ── CONVERSÃO DE VIDAS POR ORIGEM × MÊS ──
