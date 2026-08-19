@@ -2236,6 +2236,28 @@ function badgeClass(pct, ref) {
 }
 
 // ── KPIs ──
+// ── PROJEÇÃO POR TENDÊNCIA (mesma regra do gráfico: últimos 3 dias úteis consolidados, D-2, fds próprio) ──
+function projTendencia(gKey){
+  const _MN = {janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  const _p=(CONFIG.mesLabel||"").toLowerCase().split(" ");
+  const _mi=_MN[_p[0]], _ano=parseInt(_p[1])||(new Date()).getFullYear();
+  const _hj=new Date();
+  const _cor=(_mi!==undefined && _mi===_hj.getMonth() && _ano===_hj.getFullYear());
+  const _anc=Math.max(2, Math.min(CONFIG.diasNoMes, _cor ? (_hj.getDate()-2) : (CONFIG.diaAtual||CONFIG.diasNoMes)));
+  const _wd=d=>(new Date(_ano,(_mi===undefined?_hj.getMonth():_mi),d)).getDay();
+  const _ic=d=>acum(gKey,d)-acum(gKey,d-1);
+  const _ut=[],_fd=[];
+  for(let d=_anc; d>=2 && d>=_anc-9 && (_ut.length<3||_fd.length<2); d--){
+    const w=_wd(d);
+    if(w>=1&&w<=5){ if(_ut.length<3)_ut.push(_ic(d)); } else { if(_fd.length<2)_fd.push(_ic(d)); }
+  }
+  const _tU=_ut.length?_ut.reduce((a,b)=>a+b,0)/_ut.length:0;
+  const _tF=_fd.length?_fd.reduce((a,b)=>a+b,0)/_fd.length:_tU*0.35;
+  let _r=acum(gKey,_anc);
+  for(let d=_anc+1; d<=CONFIG.diasNoMes; d++){ const w=_wd(d); _r+=(w===0||w===6)?_tF:_tU; }
+  return Math.round(_r);
+}
+
 function renderKPIs() {
   const g = CONFIG.gestores[gestorAtivo];
 
@@ -2280,7 +2302,7 @@ function renderKPIs() {
   const meta = g.meta;                    // pode ser null (meta do gestor ainda nao decidida no mes)
   const pctMeta = meta ? (real / meta) * 100 : null;
   const media = mediaDiaMes(gestorAtivo);
-  const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
+  const proj = projTendencia(gestorAtivo);   // mesma regra do gráfico (tendência 3 dias úteis, D-2)
   const pctProj = meta ? (proj / meta) * 100 : null;
   const varAbr = ((proj / g.vendas_ant) - 1) * 100;
   const ref = (diaFim / CONFIG.diasNoMes) * 100;
@@ -2988,7 +3010,7 @@ function renderTabela() {
     const media = mediaDiaMes(k);
     const temMeta = g.meta != null;              // meta do gestor pode ainda nao estar decidida no mes
     const pctMeta = temMeta ? ((real / g.meta) * 100).toFixed(1) : null;
-    const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
+    const proj = projTendencia(k);   // mesma regra do gráfico (tendência 3 dias úteis, D-2)
     const pctProj = temMeta ? ((proj / g.meta) * 100).toFixed(1) : null;
     const varAbr = (((proj / g.vendas_ant) - 1) * 100).toFixed(1);
     const ref = (diaFim / CONFIG.diasNoMes) * 100;
