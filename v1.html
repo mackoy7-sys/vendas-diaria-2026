@@ -347,6 +347,7 @@
       <button class="view-tab" data-view="TRI" onclick="setView('TRI')">2º Trimestre</button>
       <button class="view-tab" data-view="COMP" onclick="setView('COMP')">Comparar meses</button>
       <button class="view-tab" data-view="PROD" onclick="setView('PROD')">📆 Produtividade</button>
+      <button class="view-tab" data-view="LEADS" onclick="setView('LEADS')">📈 Leads</button>
     </div>
 
     <div class="filters">
@@ -4222,6 +4223,35 @@ function checkLogin(){
       if(!f.src)f.src='https://produtividade-vendas.vercel.app/';
       painel.style.display='block';pos();
       document.querySelectorAll('.view-tab').forEach(function(b){b.classList.toggle('active',b.dataset.view==='PROD');});
+      var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      return;
+    }
+    painel.style.display='none';
+    _sv(v);
+  };
+})();
+</script>
+
+<!-- ABA LEADS — painel iframe (produtividade-vendas.vercel.app/leads.html), patch 21/08/2026.
+     Auto-contido: se a regeneração automática do dashboard remover este bloco, reaplicar. -->
+<script>
+(function(){
+  var painel=document.createElement('div');
+  painel.id='leadsPanel';
+  painel.style.cssText='display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#eef1f5';
+  painel.innerHTML='<iframe id="leadsFrame" style="width:100%;height:100%;border:0" title="Leads — Volumetria e Conversão"></iframe>';
+  document.body.appendChild(painel);
+  function pos(){var nb=document.getElementById('navBar');if(!nb)return;var r=nb.getBoundingClientRect();painel.style.top=Math.max(0,r.bottom)+'px';}
+  window.addEventListener('resize',pos);
+  window.addEventListener('scroll',function(){if(painel.style.display==='block')pos();});
+  var _sv=window.setView;
+  window.setView=function(v){
+    if(v==='LEADS'){
+      var f=document.getElementById('leadsFrame');
+      if(!f.src)f.src='https://produtividade-vendas.vercel.app/leads.html';
+      var pp=document.getElementById('prodPanel'); if(pp)pp.style.display='none';
+      painel.style.display='block';pos();
+      document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='LEADS');});
       var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
       return;
     }
