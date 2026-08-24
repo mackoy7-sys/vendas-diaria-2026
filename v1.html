@@ -3138,20 +3138,42 @@ function tempoCasaTxt(admissao) {
   const t = (a ? a + (a > 1 ? " anos" : " ano") : "") + (a && r ? " e " : "") + (r ? r + (r > 1 ? " meses" : " mês") : "");
   return t || "menos de 1 mês";
 }
-// Badge só no nível Promotor (indent 2): status do cadastro (quando ≠ ATIVO) + tempo de casa. Quando
-// o status é ATIVO mas o promotor está excluído do MVP (admissão < 60 dias, ver build), mostra
-// "ADMISSÃO RECENTE" -- a mesma razão que tira essa pessoa do denominador/numerador do MVP.
+// Badge só no nível Promotor (indent 2): status do cadastro + tempo de casa. Desde 24/08/2026
+// (tarde), quando o build acha um evento DATADO em promotores_afastamentos (motivoExclMvp), o
+// badge usa esse motivo em vez do rótulo cru do status -- porque agora o status pode ficar
+// "preso" em FÉRIAS depois que a pessoa já voltou (a data manda na exclusão do MVP, não o
+// rótulo) e um DESLIGADO ainda conta no MVP no mês da própria saída (só exclui a partir do mês
+// seguinte) -- ver PARTE 1c-bis do build. Sem data gravada, motivoExclMvp vem igual ao status
+// cru ("FERIAS"/"DESLIGADO"/"ADMISSAO DD/MM/AAAA"), reproduzindo o comportamento antigo.
+// Rotulos pros 4 tipos que passaram a excluir do MVP (24/08/2026, redesenho "Afastar" do
+// gestaopromotores) -- AFASTADO/LICENCA seguem a MESMA janela de FERIAS (inicio-fim, com o motivo
+// entre parenteses quando existe, ex.: "AFASTADO 20/08-28/08 (Atestado médico)"); so' DESLIGADO e
+// ADMISSAO continuam sendo data unica.
+var _PREFIXOS_EXCL_MVP = { FERIAS: "Férias ", AFASTADO: "Afastado ", LICENCA: "Licença " };
+function motivoExclLabel(m) {
+  if (!m) return "";
+  if (m.indexOf("ADMISSAO ") === 0) return "Admissão recente (" + m.slice(9) + ")";
+  if (m.indexOf("DESLIGADO ") === 0) return "Desligado em " + m.slice(10);
+  for (const p in _PREFIXOS_EXCL_MVP) {
+    if (m.indexOf(p + " ") === 0) return _PREFIXOS_EXCL_MVP[p] + m.slice(p.length + 1);
+  }
+  return m;
+}
 function badgePromotor(r) {
   if (!r || (!r.status && !r.admissao)) return "";
   const partes = [];
   const st = (r.status || "").toUpperCase();
-  if (st && st !== "ATIVO") partes.push(st);
-  else if (r.exclMvp) partes.push("ADMISSÃO RECENTE");
+  if (r.exclMvp) {
+    partes.push(motivoExclLabel(r.motivoExclMvp) || st || "fora do MVP");
+  } else if (st && st !== "ATIVO") {
+    // status ≠ ATIVO mas a DATA gravada (quando existe) diz que a pessoa conta no MVP -- ex.:
+    // férias já terminou e ninguém voltou o status pra ATIVO ainda.
+    partes.push(st + " · conta no MVP");
+  }
   const tc = tempoCasaTxt(r.admissao);
   if (tc) partes.push(tc);
   if (!partes.length) return "";
-  const cor = (st === "DESLIGADO" || st === "DESATIVADO") ? "#D85A30"
-    : (st === "FÉRIAS" || st === "LICENÇA" || st === "AFASTADO" || r.exclMvp) ? "#B8860B" : "#8a94a3";
+  const cor = r.exclMvp ? "#B8860B" : (st === "DESLIGADO" || st === "DESATIVADO") ? "#D85A30" : "#8a94a3";
   return ` <span style="font-size:10px;font-weight:600;color:${cor};background:#f1f3f6;border-radius:8px;padding:1px 7px;margin-left:6px;white-space:nowrap">${partes.join(" · ")}</span>`;
 }
 // ── População do MVP = QUEM VENDEU no mês, excluindo férias/desligado/admissão recente ──
