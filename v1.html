@@ -160,28 +160,6 @@
     .btn-extrair:hover { background: rgba(255,255,255,.25); }
     .btn-extrair:active { transform: translateY(1px); }
 
-    /* MODAL EXTRAIR BASE */
-    .ext-overlay { position: fixed; inset: 0; background: rgba(15,45,82,.55); display: none;
-      align-items: center; justify-content: center; z-index: 9999; }
-    .ext-overlay.show { display: flex; }
-    .ext-modal { background: #fff; border-radius: 14px; width: min(92vw, 390px);
-      box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: hidden; }
-    .ext-modal-head { background: var(--header); color: #fff; padding: 14px 20px; font-size: 15px; font-weight: 700; }
-    .ext-modal-body { padding: 18px 20px; color: #1a1a2e; }
-    .ext-modal-body p { margin: 0 0 12px; font-size: 13px; color: #555; }
-    .ext-opt { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1.5px solid #dde3ea;
-      border-radius: 8px; margin-bottom: 8px; cursor: pointer; font-size: 14px; color: #1a1a2e; transition: all .15s; }
-    .ext-opt:hover { border-color: var(--azul); background: #f4f8ff; }
-    .ext-opt input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--azul); }
-    .ext-opt .ext-sub { margin-left: auto; font-size: 12px; color: #888; }
-    .ext-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #eee; }
-    .ext-btn { padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; }
-    .ext-btn.cancel { background: #fff; border-color: #cfd6de; color: #555; }
-    .ext-btn.cancel:hover { background: #f2f4f7; }
-    .ext-btn.ok { background: var(--azul); color: #fff; }
-    .ext-btn.ok:hover { filter: brightness(1.08); }
-    .ext-btn.ok:disabled { opacity: .45; cursor: not-allowed; }
-
     /* CONTAINER */
     .container { padding: var(--gap); max-width: 1500px; margin: 0 auto; }
 
@@ -371,25 +349,10 @@
       </select>
       <span class="filter-sep"></span>
       <button class="btn-extrair" id="btnExtrair" onclick="exportarBase()"
-              title="Baixar CSV das vendas por promotor (PF/PME/Adesão + SINTRO) — mês atual e julho">⬇ Extrair base</button>
+              title="Baixa a base de vendas do mês corrente (1 linha por vida, sem telefone/CPF) com o Session ID do lead quando a vida está vinculada a uma conversa do GUP">⬇ Base de vendas.csv</button>
     </div>
   </div>
 <!-- /BARRA DE NAVEGAÇÃO -->
-
-<!-- MODAL: escolher mês(es) da extração -->
-<div class="ext-overlay" id="extOverlay" onclick="if(event.target===this)fecharModalExtrair()">
-  <div class="ext-modal" role="dialog" aria-modal="true" aria-labelledby="extHead">
-    <div class="ext-modal-head" id="extHead">⬇ Extrair base de vendas</div>
-    <div class="ext-modal-body">
-      <p>Escolha a(s) base(s) crua(s) para baixar (XLSX, linha a linha). Dados pessoais (CPF, nome, nascimento, telefone) são mascarados:</p>
-      <div id="extOpts"></div>
-    </div>
-    <div class="ext-modal-foot">
-      <button class="ext-btn cancel" onclick="fecharModalExtrair()">Cancelar</button>
-      <button class="ext-btn ok" id="extConfirm" onclick="confirmarExtrair()">Baixar CSV</button>
-    </div>
-  </div>
-</div>
 
 <!-- CONTEÚDO -->
 <div class="container">
@@ -3376,39 +3339,14 @@ function projExpandAll(open) {
 }
 
 // ============================================================================================
-// ── EXTRAIR BASE ── baixa a BASE CRUA (linha a linha) de cada mês, hospedada em bases/*.xlsx.
-// Julho = base digital da Oracle; mês atual = consolidado da manual (PF+PME+Adesão, 3 abas).
-// PII (CPF/nome do cliente/nascimento/telefones) é mascarada na geração dos arquivos (Python).
-// Para trocar o mês/arquivo na virada, edite BASES_CRUAS e regere os xlsx (ver skill /vendas-diaria).
+// ── EXTRAIR BASE ── baixa a base de vendas do MÊS CORRENTE (1 linha por vida, 1 aba só),
+// hospedada em bases/base_vendas_mes.csv. Mesma fonte/grão do botão da Conversão (vendas_efetiva):
+// sem telefone/CPF/nome do cliente, com o Session ID do lead do GUP quando a vida está vinculada.
+// Regerado TODO DIA pelo build_conversao_vendedor.py (dentro do /atualizar-conversao) — não é mais
+// um arquivo estático regerado à mão na virada de mês. Ver skill /vendas-diaria.
 // ============================================================================================
-const BASES_CRUAS = [
-  { rotulo: "Julho",  arquivo: "bases/base_julho_oracle.xlsx",  desc: "base digital Oracle · 11.873 linhas" },
-  { rotulo: "Agosto", arquivo: "bases/base_agosto_manual.xlsx", desc: "consolidado manual · abas PF/PME/Adesão" },
-];
+function exportarBase() { _baixarArquivo("bases/base_vendas_mes.csv"); }
 
-// Clique no botão: abre o pop-up para o usuário escolher a(s) base(s) antes de baixar.
-function exportarBase() { abrirModalExtrair(); }
-
-function abrirModalExtrair() {
-  const box = document.getElementById("extOpts");
-  box.innerHTML = BASES_CRUAS.map((b, i) =>
-    `<label class="ext-opt"><input type="checkbox" value="${i}" checked onchange="_extSync()">`
-    + `<span>${b.rotulo}</span><span class="ext-sub">${b.desc}</span></label>`).join("");
-  document.getElementById("extOverlay").classList.add("show");
-  _extSync();
-}
-function fecharModalExtrair() { document.getElementById("extOverlay").classList.remove("show"); }
-function _extSync() {
-  const n = document.querySelectorAll("#extOpts input:checked").length;
-  document.getElementById("extConfirm").disabled = n === 0;
-}
-function confirmarExtrair() {
-  const idx = [...document.querySelectorAll("#extOpts input:checked")].map(i => +i.value);
-  if (!idx.length) return;
-  // Baixa cada arquivo hospedado (escalonado, para o navegador não bloquear downloads múltiplos).
-  idx.forEach((i, k) => setTimeout(() => _baixarArquivo(BASES_CRUAS[i].arquivo), k * 400));
-  fecharModalExtrair();
-}
 function _baixarArquivo(url) {
   const a = document.createElement("a");
   a.href = url;
