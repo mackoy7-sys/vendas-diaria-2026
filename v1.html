@@ -586,7 +586,7 @@
     <div id="ppoSecLeads">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px 0 8px;">
         <div class="chart-title" style="margin-bottom:0">💬 Leads PPO &amp; Conversão</div>
-        <span style="color:#888;font-size:12px">· leads com Tipo <code>PPO</code> · conversão = vidas ÷ leads · total (não quebra por gestor)</span>
+        <span style="color:#888;font-size:12px">· leads com Tipo <code>PPO</code> · dia = atribuição ao atendente (não o início da conversa) · conversão = vidas ÷ leads · total (não quebra por gestor)</span>
       </div>
       <div id="ppoLeadsBody">
         <div class="kpi-row">
@@ -610,6 +610,18 @@
             <div class="chart-title">📅 Conversão Anual de PPO (vidas ÷ leads)</div>
             <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoConvAnual"></canvas></div>
           </div>
+        </div>
+        <div class="chart-card" style="margin-top:18px">
+          <div class="ppo-card-head">
+            <div class="chart-title" id="ppoLeadsFilaTitle" style="margin-bottom:0">📶 Leads PPO por Fila</div>
+            <div class="ppo-toggle" id="ppoFilaToggle">
+              <button class="ppo-tg-btn active" data-fila="total" onclick="ppoSetFila('total')">Total</button>
+              <button class="ppo-tg-btn" data-fila="excl" onclick="ppoSetFila('excl')">Exclusivo PPO</button>
+              <button class="ppo-tg-btn" data-fila="pme" onclick="ppoSetFila('pme')">PME PPO</button>
+            </div>
+          </div>
+          <div style="color:#888;font-size:12px;margin:-4px 0 8px">· fila exclusiva PPO = Session Team <code>PPO</code> · PME PPO = Session Team <code>PME | PPO</code></div>
+          <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoLeadsFila"></canvas></div>
         </div>
       </div>
       <div id="ppoLeadsNote" style="display:none;background:#fff8e6;border-left:4px solid #E8A93A;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#7a5c12;">
@@ -3377,12 +3389,22 @@ const ppoDimMode = { plano:"anual", gestor:"anual", uf:"anual", canal:"anual" };
 function ppoSetDim(dim, mode){ if (ppoDimMode[dim] === mode) return; ppoDimMode[dim] = mode; renderPpoTab(); }
 function syncPpoDimBtns(){
   document.querySelectorAll(".ppo-toggle").forEach(tg => {
+    if (tg.id === "ppoFilaToggle") return; // toggle de 3 estados, sincronizado à parte (syncPpoFilaBtns)
     const mode = ppoDimMode[tg.dataset.dim];
     tg.querySelectorAll(".ppo-tg-btn").forEach(b => {
       const isAnual = /anual/i.test(b.textContent);
       b.classList.toggle("active", isAnual ? mode === "anual" : mode === "mensal");
     });
   });
+}
+
+// Toggle Total/Exclusivo PPO/PME PPO do gráfico "Leads PPO por Fila" (default = Total).
+let ppoFilaMode = "total";
+function ppoSetFila(fila){ if (ppoFilaMode === fila) return; ppoFilaMode = fila; renderPpoLeadsFilaChart(ppoMd()); syncPpoFilaBtns(); }
+function syncPpoFilaBtns(){
+  const tg = document.getElementById("ppoFilaToggle");
+  if (!tg) return;
+  tg.querySelectorAll(".ppo-tg-btn").forEach(b => b.classList.toggle("active", b.dataset.fila === ppoFilaMode));
 }
 // Soma uma dimensão (porPlano/porUF/porCanal) do gestor g em TODOS os meses do ano (year-to-date).
 function ppoAnualDim(dim, g){
@@ -3627,7 +3649,7 @@ function renderPpoLeads(md) {
   const isTotal = gestorAtivo === "TOTAL";
   if (body) body.style.display = isTotal ? "" : "none";
   if (note) note.style.display = isTotal ? "none" : "";
-  if (!isTotal) { destroyChart("ppoLeads"); destroyChart("ppoConvAnual"); return; }
+  if (!isTotal) { destroyChart("ppoLeads"); destroyChart("ppoConvAnual"); destroyChart("ppoLeadsFila"); return; }
 
   const leadsSerie = md ? (md.leadsPorDia || []) : [];
   const vidasSerie = md ? (md.porDia.TOTAL || []) : [];
@@ -3644,6 +3666,8 @@ function renderPpoLeads(md) {
 
   renderPpoLeadsChart(md, leadsSerie, vidasSerie);
   renderPpoConvAnual();
+  renderPpoLeadsFilaChart(md);
+  syncPpoFilaBtns();
 }
 
 // Barras = leads PPO/dia; linha (eixo dir.) = conversão ACUMULADA % (vidas acum ÷ leads acum).
@@ -3679,6 +3703,43 @@ function renderPpoLeadsChart(md, leadsSerie, vidasSerie) {
       scales: {
         y: { beginAtZero: true, position: "left", title: { display: true, text: "leads/dia", font: { size: 10 } }, ticks: { font: { size: 10 } } },
         y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "conv. %", font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v + "%" } },
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } } }
+  });
+}
+
+// Leads PPO por Fila — barras simples (sem linha), com rótulo de dados, toggle Total/Exclusivo
+// PPO/PME PPO (ppoFilaMode). Total = todos os leads Tipo PPO (mesma série de renderPpoLeadsChart);
+// Exclusivo = Session Team == "PPO"; PME PPO = Session Team contém "PME" (ex.: "PME | PPO").
+const PPO_FILA_CFG = {
+  total: { campo: "leadsPorDia", label: "Leads PPO (Total)", cor: "rgba(24,95,165,.65)", corTxt: "#185FA5" },
+  excl:  { campo: "leadsPorDiaExclusivo", label: "Exclusivo PPO", cor: "rgba(108,78,216,.65)", corTxt: "#6c4ed8" },
+  pme:   { campo: "leadsPorDiaPmePpo", label: "PME PPO", cor: "rgba(230,126,34,.65)", corTxt: "#E67E22" },
+};
+function renderPpoLeadsFilaChart(md) {
+  destroyChart("ppoLeadsFila");
+  const cfg = PPO_FILA_CFG[ppoFilaMode] || PPO_FILA_CFG.total;
+  const serie = md ? (md[cfg.campo] || []) : [];
+  const diasNoMes = CONFIG.diasNoMes || serie.length || 30;
+  const labels = [], data = [];
+  for (let d = 1; d <= diasNoMes; d++) {
+    labels.push("Dia " + d);
+    data.push(d <= serie.length ? serie[d - 1] : null);
+  }
+  const total = serie.reduce((a, v) => a + (v || 0), 0);
+  const ttl = document.getElementById("ppoLeadsFilaTitle");
+  if (ttl) ttl.textContent = `📶 Leads PPO por Fila · ${cfg.label} = ${fmt(total)}`;
+  charts["ppoLeadsFila"] = new Chart(document.getElementById("chartPpoLeadsFila"), {
+    type: "bar",
+    data: { labels, datasets: [
+      { label: cfg.label, data, backgroundColor: cfg.cor, borderRadius: 4,
+        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "700" }, color: cfg.corTxt,
+          formatter: v => (v == null || v === 0) ? "" : v } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 16 } },
+      plugins: { legend: { display: false }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw == null ? 0 : ctx.raw} leads` } } },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: "leads/dia", font: { size: 10 } }, ticks: { font: { size: 10 } } },
         x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } } }
   });
 }
