@@ -527,7 +527,7 @@
         <div class="kpi-sub" id="ppoKVarSub"></div>
       </div>
     </div>
-    <!-- Row 1: Evolução Anual (toggle Total/PPO/PME|PPO/Outras filas, só p/ gestorAtivo=TOTAL) + PPO Acumulado por Dia (sem toggle) -->
+    <!-- Row 1: Evolução Anual (toggle Total/PPO/PME|PPO/Outras filas, só p/ gestorAtivo=TOTAL) + PPO por Dia (toggle Diário/Acumulado) -->
     <div class="chart-grid-2">
       <div class="chart-card">
         <div class="ppo-card-head">
@@ -543,8 +543,15 @@
         <div style="position:relative;height:320px;width:100%"><canvas id="chartPpoAnual"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">📈 PPO Acumulado por Dia</div>
-        <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoAcum"></canvas></div>
+        <div class="ppo-card-head">
+          <div class="chart-title" id="ppoDiaTitle" style="margin-bottom:0">📈 PPO por Dia</div>
+          <div class="ppo-toggle" id="ppoDiaToggle">
+            <button class="ppo-tg-btn active" data-modo="diario" onclick="ppoSetDiaModo('diario')">Diário</button>
+            <button class="ppo-tg-btn" data-modo="acum" onclick="ppoSetDiaModo('acum')">Acumulado</button>
+          </div>
+        </div>
+        <div style="color:#888;font-size:11px;margin:-4px 0 8px" id="ppoDiaNota"></div>
+        <div style="position:relative;height:320px;width:100%"><canvas id="chartPpoAcum"></canvas></div>
       </div>
     </div>
     <!-- Row 2: PPO por Plano + PPO por Gestor (toggle Anual/Mensal) -->
@@ -611,18 +618,18 @@
             <div class="kpi-value" id="ppoKConv">—</div>
             <div class="kpi-sub" id="ppoKConvSub"></div>
           </div>
-        </div>
-        <div class="chart-grid-2">
-          <div class="chart-card">
-            <div class="chart-title">📊 Leads PPO por Dia + Conversão acumulada</div>
-            <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoLeads"></canvas></div>
+          <div class="kpi-card" style="border-left-color:#6c4ed8">
+            <div class="kpi-label">Maior volume de leads</div>
+            <div class="kpi-value" id="ppoKMax">—</div>
+            <div class="kpi-sub" id="ppoKMaxSub"></div>
           </div>
-          <div class="chart-card">
-            <div class="chart-title">📅 Conversão Anual de PPO (vidas ÷ leads)</div>
-            <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoConvAnual"></canvas></div>
+          <div class="kpi-card" style="border-left-color:#D85A30">
+            <div class="kpi-label">Menor volume de leads</div>
+            <div class="kpi-value" id="ppoKMin">—</div>
+            <div class="kpi-sub" id="ppoKMinSub"></div>
           </div>
         </div>
-        <div class="chart-card" style="margin-top:18px">
+        <div class="chart-card">
           <div class="ppo-card-head">
             <div class="chart-title" id="ppoLeadsFilaTitle" style="margin-bottom:0">📶 Leads PPO por Fila</div>
             <div class="ppo-toggle" id="ppoFilaToggle">
@@ -634,7 +641,11 @@
           <div style="color:#888;font-size:12px;margin:-4px 0 8px">· fila exclusiva NotreDame Saúde = Session Team <code>PPO</code> · PME PPO = Session Team <code>PME | PPO</code></div>
           <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoLeadsFila"></canvas></div>
         </div>
-        <div class="chart-grid-2" style="margin-top:18px">
+        <div class="chart-grid-2" style="align-items:start;margin-top:18px">
+          <div class="chart-card">
+            <div class="chart-title">📅 Conversão Anual de PPO (vidas ÷ leads)</div>
+            <div style="position:relative;height:372px;width:100%"><canvas id="chartPpoConvAnual"></canvas></div>
+          </div>
           <div class="chart-card">
             <div class="ppo-card-head">
               <div class="chart-title" style="margin-bottom:0">🏷️ Tags de Encerramento</div>
@@ -644,40 +655,22 @@
                 <button class="ppo-tg-btn" data-tag="em_andamento" onclick="ppoSetTag('em_andamento')">Em andamento</button>
               </div>
             </div>
-            <div style="display:flex;gap:8px;margin:2px 0 8px">
-              <div class="ppo-tag-pill" data-tag="produtivo" onclick="ppoSetTag('produtivo')" style="flex:1;cursor:pointer;background:#eaf7f1;border-radius:8px;padding:6px 10px;transition:box-shadow .15s">
-                <div style="font-size:10px;color:#1a7a4a;font-weight:600">PRODUTIVO</div>
-                <div style="font-size:16px;font-weight:700;color:#1a7a4a" id="ppoTagPill_produtivo">—</div>
+            <div style="display:flex;gap:6px;margin:2px 0 8px">
+              <div class="ppo-tag-pill" data-tag="produtivo" onclick="ppoSetTag('produtivo')" style="flex:1;cursor:pointer;background:#eaf7f1;border-radius:8px;padding:6px 8px;transition:box-shadow .15s">
+                <div style="font-size:9px;color:#1a7a4a;font-weight:600">PRODUTIVO</div>
+                <div style="font-size:14px;font-weight:700;color:#1a7a4a" id="ppoTagPill_produtivo">—</div>
               </div>
-              <div class="ppo-tag-pill" data-tag="improdutivo" onclick="ppoSetTag('improdutivo')" style="flex:1;cursor:pointer;background:#fdeee6;border-radius:8px;padding:6px 10px;transition:box-shadow .15s">
-                <div style="font-size:10px;color:#c45000;font-weight:600">IMPRODUTIVO</div>
-                <div style="font-size:16px;font-weight:700;color:#c45000" id="ppoTagPill_improdutivo">—</div>
+              <div class="ppo-tag-pill" data-tag="improdutivo" onclick="ppoSetTag('improdutivo')" style="flex:1;cursor:pointer;background:#fdeee6;border-radius:8px;padding:6px 8px;transition:box-shadow .15s">
+                <div style="font-size:9px;color:#c45000;font-weight:600">IMPRODUTIVO</div>
+                <div style="font-size:14px;font-weight:700;color:#c45000" id="ppoTagPill_improdutivo">—</div>
               </div>
-              <div class="ppo-tag-pill" data-tag="em_andamento" onclick="ppoSetTag('em_andamento')" style="flex:1;cursor:pointer;background:#eee;border-radius:8px;padding:6px 10px;transition:box-shadow .15s">
-                <div style="font-size:10px;color:#5a5a5a;font-weight:600">EM ANDAMENTO</div>
-                <div style="font-size:16px;font-weight:700;color:#5a5a5a" id="ppoTagPill_em_andamento">—</div>
+              <div class="ppo-tag-pill" data-tag="em_andamento" onclick="ppoSetTag('em_andamento')" style="flex:1;cursor:pointer;background:#eee;border-radius:8px;padding:6px 8px;transition:box-shadow .15s">
+                <div style="font-size:9px;color:#5a5a5a;font-weight:600">ANDAMENTO</div>
+                <div style="font-size:14px;font-weight:700;color:#5a5a5a" id="ppoTagPill_em_andamento">—</div>
               </div>
             </div>
-            <div style="color:#888;font-size:11px;margin:-4px 0 8px">classificação pelo código da tag (whitelist Produtivo) · tag vazia = sessão ainda não encerrada · clique num grupo p/ ver as tags (top 5)</div>
+            <div style="color:#888;font-size:10.5px;margin:-4px 0 8px">tag vazia = sessão ainda não encerrada · clique num grupo p/ ver as tags (top 5)</div>
             <div style="position:relative;height:300px;width:100%"><canvas id="chartPpoTags"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">⏱️ SLA de Atendimento (PPO)</div>
-            <div style="color:#888;font-size:12px;margin:-4px 0 10px">· resposta do agente − atribuição · corte 2min (5min se transferência manual) · exclui BOT, sem resposta e fora do horário do agente</div>
-            <div style="display:flex;gap:10px;margin-bottom:12px">
-              <div style="flex:1;background:#eaf7f1;border-radius:8px;padding:8px 12px">
-                <div style="font-size:10.5px;color:#1a7a4a;font-weight:600">DENTRO DO SLA</div>
-                <div style="font-size:19px;font-weight:700;color:#1a7a4a" id="ppoSlaDentro">—</div>
-              </div>
-              <div style="flex:1;background:#fdeee6;border-radius:8px;padding:8px 12px">
-                <div style="font-size:10.5px;color:#c45000;font-weight:600">FORA DO SLA</div>
-                <div style="font-size:19px;font-weight:700;color:#c45000" id="ppoSlaFora">—</div>
-              </div>
-            </div>
-            <div id="ppoSlaCadastroAviso" style="display:none;background:#fff8e6;border-left:4px solid #E8A93A;border-radius:6px;padding:8px 10px;font-size:11.5px;color:#7a5c12;margin-bottom:10px">
-              ⚠️ Cadastro de horário dos agentes desatualizado (fallback) — DENTRO/FORA pode sair impreciso.
-            </div>
-            <div style="position:relative;height:220px;width:100%"><canvas id="chartPpoSla"></canvas></div>
           </div>
         </div>
       </div>
@@ -3441,12 +3434,12 @@ function ppoMd() {
 }
 function ppoDiasComVenda(serie) { return (serie || []).filter(v => v > 0).length; }
 
-// Estado do toggle Anual/Mensal de cada dimensão do PPO (default = Anual, como pedido).
-const ppoDimMode = { plano:"anual", gestor:"anual", uf:"anual", canal:"anual" };
+// Estado do toggle Anual/Mensal de cada dimensão do PPO (default = Mensal, como pedido).
+const ppoDimMode = { plano:"mensal", gestor:"mensal", uf:"mensal", canal:"mensal" };
 function ppoSetDim(dim, mode){ if (ppoDimMode[dim] === mode) return; ppoDimMode[dim] = mode; renderPpoTab(); }
 function syncPpoDimBtns(){
   document.querySelectorAll(".ppo-toggle").forEach(tg => {
-    if (tg.id === "ppoFilaToggle" || tg.id === "ppoTagToggle" || tg.id === "ppoAnualFilaToggle") return; // toggles de 3+ estados, sincronizados à parte
+    if (tg.id === "ppoFilaToggle" || tg.id === "ppoTagToggle" || tg.id === "ppoAnualFilaToggle" || tg.id === "ppoDiaToggle") return; // toggles de 3+ estados, sincronizados à parte
     const mode = ppoDimMode[tg.dataset.dim];
     tg.querySelectorAll(".ppo-tg-btn").forEach(b => {
       const isAnual = /anual/i.test(b.textContent);
@@ -3608,39 +3601,53 @@ function renderPpoKpis(md) {
   }
 }
 
+// PPO por Dia — toggle Diário/Acumulado (era só "Acumulado", pedido David 27/08/2026). Eixo X só até
+// o último dia com dado (sem os dias futuros em branco) — a projeção do mês, que antes era uma linha
+// tracejada esticando até o fim do mês por cima de dias vazios, virou texto abaixo do título.
+let ppoDiaModo = "diario";
+function ppoSetDiaModo(m){ if (ppoDiaModo === m) return; ppoDiaModo = m; renderPpoAcum(ppoMd()); }
+function syncPpoDiaModoBtns(){
+  const tg = document.getElementById("ppoDiaToggle");
+  if (!tg) return;
+  tg.querySelectorAll(".ppo-tg-btn").forEach(b => b.classList.toggle("active", b.dataset.modo === ppoDiaModo));
+}
 function renderPpoAcum(md) {
   destroyChart("ppoAcum");
   const g = gestorAtivo;
   const serie = md ? (md.porDia[g] || []) : [];
-  const diasNoMes = CONFIG.diasNoMes || serie.length || 30;
+  const diasComDado = serie.length;
+  const diasNoMes = CONFIG.diasNoMes || diasComDado || 30;
   let ac = 0; const acReal = [];
   for (let i = 0; i < serie.length; i++) { ac += serie[i]; acReal.push(ac); }
   const total = ac;
   const dcv = ppoDiasComVenda(serie);
   const projMes = dcv > 0 ? Math.round((total/dcv) * diasNoMes) : total;
-  const projDia = projMes / diasNoMes;
-  const fullLabels = [], acumData = [], projLine = [];
-  for (let d = 1; d <= diasNoMes; d++) {
-    fullLabels.push("Dia " + d);
-    acumData.push(d <= serie.length ? acReal[d-1] : null);
-    projLine.push(Math.round(projDia * d));
-  }
-  const showAll = serie.length <= 15;
+
+  const labels = []; for (let d = 1; d <= diasComDado; d++) labels.push("Dia " + d);
+  const showAll = diasComDado <= 15;
+
+  const ttl = document.getElementById("ppoDiaTitle");
+  if (ttl) ttl.textContent = ppoDiaModo === "diario" ? "📈 PPO por Dia — vidas/dia" : "📈 PPO por Dia — acumulado";
+  const nota = document.getElementById("ppoDiaNota");
+  if (nota) nota.textContent = diasComDado > 0 ? `projeção fim do mês (tendência dos dias com venda): ${fmt(projMes)} vidas` : "";
+
+  const datasets = ppoDiaModo === "diario"
+    ? [{ type:"bar", label:"Vidas PPO/dia", data: serie, backgroundColor:"rgba(108,78,216,.55)", borderRadius:4,
+        datalabels:{ anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#6c4ed8", clip:false, formatter: v => v>0?v:"" } }]
+    : [{ type:"line", label:"PPO acumulado", data: acReal, borderColor:"#6c4ed8", backgroundColor:"rgba(108,78,216,.10)",
+        borderWidth:2.5, fill:true, tension:.35, pointRadius:3, pointHoverRadius:5,
+        datalabels:{ display: ctx => showAll || ctx.dataIndex === acReal.length - 1,
+          align:"top", anchor:"top", font:{size:9,weight:"600"}, color:"#6c4ed8", clip:false, formatter: v => v } }];
+  const yMax = _ppoHeadroom(Math.max(0, ...(ppoDiaModo === "diario" ? serie : acReal)));
+
   charts["ppoAcum"] = new Chart(document.getElementById("chartPpoAcum"), {
-    type: "line",
-    data: { labels: fullLabels, datasets: [
-      { label: "PPO acumulado", data: acumData, borderColor:"#6c4ed8", backgroundColor:"rgba(108,78,216,.10)",
-        borderWidth:2.5, fill:true, tension:.35, pointRadius:3, pointHoverRadius:5, spanGaps:false,
-        datalabels: { display: ctx => showAll || ctx.dataIndex === serie.length - 1,
-          align:"top", anchor:"top", font:{size:9,weight:"600"}, color:"#6c4ed8", formatter: v => v } },
-      { label: "Projeção", data: projLine, borderColor:"#E8623A", borderDash:[4,3], borderWidth:1.5, pointRadius:0, fill:false,
-        datalabels: { display: ctx => ctx.dataIndex === projLine.length - 1, align:"right", anchor:"end",
-          font:{size:9,weight:"600"}, color:"#E8623A", formatter: v => "Proj: " + v } }
-    ]},
-    options: { responsive:true, maintainAspectRatio:false, layout:{padding:{right:55}},
-      plugins:{ legend:{labels:{font:{size:11}}}, datalabels:{} },
-      scales:{ y:{beginAtZero:true, ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}, maxTicksLimit:31}} } }
+    type: ppoDiaModo === "diario" ? "bar" : "line",
+    data: { labels, datasets },
+    options: { responsive:true, maintainAspectRatio:false, layout:{padding:{top:18}},
+      plugins:{ legend:{display:false}, datalabels:{} },
+      scales:{ y:{beginAtZero:true, suggestedMax:yMax, ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}, maxTicksLimit:31}} } }
   });
+  syncPpoDiaModoBtns();
 }
 
 // Barra horizontal genérica (plano / UF / canal). Sem dado: esconde só o canvas e mostra uma nota,
@@ -3707,6 +3714,12 @@ const PPO_ANUAL_FILA_CFG = {
   OUTRAS:  { label: "Outras filas / sem vínculo",     cor: "rgba(108,117,125,.65)", corTxt: "#6c757d" },
 };
 function _ppoCorAlpha(rgba, alpha) { return rgba.replace(/[\d.]+\)$/, alpha + ")"); }
+// Folga acima da maior barra p/ o rótulo de dados não ficar cortado pelo topo do canvas quando o
+// valor máximo é pequeno e coincide com o teto "arredondado" do eixo Y (achado David 27/08/2026).
+function _ppoHeadroom(max) {
+  if (!max || max <= 0) return undefined;
+  return max + Math.max(1, Math.ceil(max * 0.2));
+}
 function renderPpoAnual() {
   destroyChart("ppoAnual");
   const g = gestorAtivo;
@@ -3716,26 +3729,35 @@ function renderPpoAnual() {
   const labels = an.labels || [];
   const curto = PPO_MES_CURTO[mesAtivo];
   const empilhado = modo === "TOTAL" && g === "TOTAL" && an.porFila && an.porFila.PPO;
-  let suf = "", datasets;
+  let suf = "", datasets, yMax;
 
   if (empilhado) {
     // Total geral: barra empilhada por fila de origem, mesmas cores do toggle -- mostra de cara
     // quanto de cada mes veio da fila PPO/PME|PPO vs. outras filas, sem precisar clicar no toggle.
-    datasets = ["OUTRAS", "PME_PPO", "PPO"].map(k => {
+    // Só 1 rótulo por barra (o TOTAL, no topo da pilha) -- a cor de cada fatia já sinaliza a origem,
+    // número em cada fatia individual só poluía o gráfico (pedido David 27/08/2026).
+    const ordem = ["OUTRAS", "PME_PPO", "PPO"];
+    const totais = labels.map((_, i) => ordem.reduce((s, k) => s + (an.porFila[k]?.[i] || 0), 0));
+    yMax = _ppoHeadroom(Math.max(0, ...totais));
+    datasets = ordem.map((k, idx) => {
       const c = PPO_ANUAL_FILA_CFG[k];
       const bg = labels.map(l => l === curto ? _ppoCorAlpha(c.cor, .9) : c.cor);
+      const noTopo = idx === ordem.length - 1;
       return { label: c.label, data: an.porFila[k], backgroundColor: bg, stack: "total",
-        datalabels:{ anchor:"center", align:"center", font:{size:9,weight:"700"}, color:"#fff",
-          formatter: v => v>0?v:"" } };
+        datalabels: noTopo
+          ? { anchor:"end", align:"top", font:{size:10,weight:"700"}, color: PPO_ANUAL_FILA_CFG.TOTAL.corTxt,
+              clip:false, formatter: (v, ctx) => { const t = totais[ctx.dataIndex]; return t>0 ? t : ""; } }
+          : { display:false } };
     });
   } else {
     const cfg = modo === "TOTAL" ? PPO_ANUAL_FILA_CFG.TOTAL : PPO_ANUAL_FILA_CFG[modo];
     const valores = modo === "TOTAL"
       ? ((an.porGestor && an.porGestor[g]) ? an.porGestor[g] : [])
       : ((an.porFila && an.porFila[modo]) ? an.porFila[modo] : []);
+    yMax = _ppoHeadroom(Math.max(0, ...valores));
     const bg = labels.map(l => l === curto ? cfg.corTxt : cfg.cor);
     datasets = [{ label: cfg.label, data: valores, backgroundColor: bg, borderRadius:5,
-      datalabels:{ anchor:"end", align:"top", font:{size:10,weight:"700"}, color: cfg.corTxt, formatter: v => v>0?v:"" } }];
+      datalabels:{ anchor:"end", align:"top", font:{size:10,weight:"700"}, color: cfg.corTxt, clip:false, formatter: v => v>0?v:"" } }];
     if (g !== "TOTAL" && CONFIG.gestores[g]) suf = " — " + CONFIG.gestores[g].label;
     else if (modo !== "TOTAL") suf = modo === "PPO" ? " — fila NotreDame Saúde" : modo === "PME_PPO" ? " — fila PME | PPO" : " — outras filas";
   }
@@ -3746,9 +3768,11 @@ function renderPpoAnual() {
     type:"bar",
     data:{ labels, datasets },
     options:{ responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:20 } },
+      interaction:{ mode:"index", intersect:false },
       plugins:{ legend:{display: !!empilhado, position:"top", labels:{boxWidth:12, font:{size:10}}}, datalabels:{},
         tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.raw} vidas` } } },
-      scales:{ y:{beginAtZero:true, stacked: !!empilhado, ticks:{font:{size:10}}},
+      scales:{ y:{beginAtZero:true, stacked: !!empilhado, suggestedMax: yMax, ticks:{font:{size:10}}},
                x:{stacked: !!empilhado, ticks:{font:{size:11}}} } }
   });
   syncPpoAnualFilaBtns();
@@ -3762,11 +3786,10 @@ function renderPpoLeads(md) {
   const isTotal = gestorAtivo === "TOTAL";
   if (body) body.style.display = isTotal ? "" : "none";
   if (note) note.style.display = isTotal ? "none" : "";
-  if (!isTotal) { destroyChart("ppoLeads"); destroyChart("ppoConvAnual"); destroyChart("ppoLeadsFila");
-    destroyChart("ppoTags"); destroyChart("ppoSla"); return; }
+  if (!isTotal) { destroyChart("ppoConvAnual"); destroyChart("ppoLeadsFila");
+    destroyChart("ppoTags"); return; }
 
   const leadsSerie = md ? (md.leadsPorDia || []) : [];
-  const vidasSerie = md ? (md.porDia.TOTAL || []) : [];
   const leadsTot = md ? (md.leadsTotal || 0) : 0;
   const vidasTot = md ? (md.porGestor.TOTAL || 0) : 0;
   const conv = leadsTot >= PPO_CONV_MIN_LEADS ? (vidasTot / leadsTot) * 100 : null;
@@ -3778,54 +3801,25 @@ function renderPpoLeads(md) {
     ? `${fmt(vidasTot)} vidas ÷ ${fmt(leadsTot)} leads`
     : (leadsTot > 0 ? `poucos leads (n<${PPO_CONV_MIN_LEADS})` : "sem leads PPO no mês");
 
-  renderPpoLeadsChart(md, leadsSerie, vidasSerie);
+  let maxDia = null, maxVal = -1, minDia = null, minVal = Infinity;
+  leadsSerie.forEach((v, i) => {
+    if (v > maxVal) { maxVal = v; maxDia = i + 1; }
+    if (v < minVal) { minVal = v; minDia = i + 1; }
+  });
+  document.getElementById("ppoKMax").textContent = maxDia !== null ? fmt(maxVal) : "—";
+  document.getElementById("ppoKMaxSub").textContent = maxDia !== null ? `Dia ${maxDia} · ${CONFIG.mesLabel}` : "sem dados";
+  document.getElementById("ppoKMin").textContent = minDia !== null ? fmt(minVal) : "—";
+  document.getElementById("ppoKMinSub").textContent = minDia !== null ? `Dia ${minDia} · ${CONFIG.mesLabel}` : "sem dados";
+
   renderPpoConvAnual();
   renderPpoLeadsFilaChart(md);
   syncPpoFilaBtns();
   renderPpoTagsChart(md);
   syncPpoTagBtns();
-  renderPpoSlaChart(md);
-}
-
-// Barras = leads PPO/dia; linha (eixo dir.) = conversão ACUMULADA % (vidas acum ÷ leads acum).
-function renderPpoLeadsChart(md, leadsSerie, vidasSerie) {
-  destroyChart("ppoLeads");
-  const diasNoMes = leadsSerie.length || 30;
-  const labels = [], leadsData = [], convAcum = [];
-  let cvid = 0, clead = 0;
-  for (let d = 1; d <= diasNoMes; d++) {
-    labels.push("Dia " + d);
-    const dentro = d <= leadsSerie.length;
-    leadsData.push(dentro ? leadsSerie[d - 1] : null);
-    if (dentro) {
-      cvid += (vidasSerie[d - 1] || 0); clead += (leadsSerie[d - 1] || 0);
-      convAcum.push(clead >= PPO_CONV_MIN_LEADS ? +((cvid / clead) * 100).toFixed(1) : null);
-    } else convAcum.push(null);
-  }
-  charts["ppoLeads"] = new Chart(document.getElementById("chartPpoLeads"), {
-    type: "bar",
-    data: { labels, datasets: [
-      { type: "bar", label: "Leads PPO", data: leadsData, backgroundColor: "rgba(24,95,165,.55)",
-        borderRadius: 4, yAxisID: "y", datalabels: { display: false } },
-      { type: "line", label: "Conversão acum. (%)", data: convAcum, borderColor: "#1D9E75",
-        backgroundColor: "rgba(29,158,117,.10)", borderWidth: 2.5, tension: .35, pointRadius: 2,
-        pointHoverRadius: 4, yAxisID: "y1", spanGaps: true,
-        datalabels: { display: ctx => ctx.dataIndex === leadsSerie.length - 1, align: "top", anchor: "end",
-          font: { size: 9, weight: "700" }, color: "#1D9E75", formatter: v => v === null ? "" : v + "%" } }
-    ] },
-    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { right: 20 } },
-      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
-        tooltip: { callbacks: { label: ctx => ctx.dataset.type === "line"
-          ? ` Conversão acum.: ${ctx.raw === null ? "—" : ctx.raw + "%"}` : ` ${ctx.raw == null ? 0 : ctx.raw} leads` } } },
-      scales: {
-        y: { beginAtZero: true, position: "left", title: { display: true, text: "leads/dia", font: { size: 10 } }, ticks: { font: { size: 10 } } },
-        y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "conv. %", font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v + "%" } },
-        x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } } }
-  });
 }
 
 // Leads PPO por Fila — barras simples (sem linha), com rótulo de dados, toggle Total/Exclusivo
-// PPO/PME PPO (ppoFilaMode). Total = todos os leads Tipo PPO (mesma série de renderPpoLeadsChart);
+// PPO/PME PPO (ppoFilaMode). Total = todos os leads Tipo PPO (mesma série de leadsPorDia);
 // Exclusivo = Session Team == "PPO"; PME PPO = Session Team contém "PME" (ex.: "PME | PPO").
 const PPO_FILA_CFG = {
   total: { campo: "leadsPorDia", label: "Leads PPO (Total)", cor: "rgba(24,95,165,.65)", corTxt: "#185FA5" },
@@ -3907,44 +3901,10 @@ function renderPpoTagsChart(md) {
           label: ctx => ` ${ctx.raw == null ? 0 : ctx.raw} leads` } } },
       scales: {
         x: { beginAtZero: true, ticks: { font: { size: 10 } } },
-        // rotulo longo trunca com "…" no eixo (o card divide a largura com o SLA ao lado); o
-        // tooltip (title acima) sempre mostra a tag inteira.
+        // rotulo longo trunca com "…" no eixo; o tooltip (title acima) sempre mostra a tag inteira.
         y: { ticks: { font: { size: 10 }, callback: function(v, i) {
-          const l = labels[i] || ""; return l.length > 34 ? l.slice(0, 34) + "…" : l;
+          const l = labels[i] || ""; return l.length > 28 ? l.slice(0, 28) + "…" : l;
         } } } } }
-  });
-}
-
-// SLA de Atendimento (PPO) — cards Dentro/Fora do SLA (denominador = DENTRO, mesma regra HAPON
-// V006 do dashboard SLA/Atendimento) + barra por dia com o %SLA (série pronta do backend).
-function renderPpoSlaChart(md) {
-  destroyChart("ppoSla");
-  const sla = md && md.sla ? md.sla : { dentro: 0, ate2min: 0, pct: null, porDiaPct: [], cadastroFonte: "indisponivel" };
-  const fora = sla.dentro - sla.ate2min;
-  document.getElementById("ppoSlaDentro").textContent = sla.pct === null ? "—" : `${fmt(sla.ate2min)} (${sla.pct}%)`;
-  document.getElementById("ppoSlaFora").textContent = sla.pct === null ? "—" : `${fmt(fora)} (${(100 - sla.pct).toFixed(1)}%)`;
-  const aviso = document.getElementById("ppoSlaCadastroAviso");
-  if (aviso) aviso.style.display = (sla.cadastroFonte === "xlsx") ? "" : "none";
-  const serie = sla.porDiaPct || [];
-  const diasNoMes = serie.length || 30;
-  const labels = [], data = [];
-  for (let d = 1; d <= diasNoMes; d++) {
-    labels.push("Dia " + d);
-    data.push(d <= serie.length ? serie[d - 1] : null);
-  }
-  charts["ppoSla"] = new Chart(document.getElementById("chartPpoSla"), {
-    type: "bar",
-    data: { labels, datasets: [
-      { label: "% dentro do SLA", data, backgroundColor: "rgba(24,95,165,.65)", borderRadius: 4,
-        datalabels: { anchor: "end", align: "top", font: { size: 8, weight: "700" }, color: "#185FA5",
-          formatter: v => v == null ? "" : v + "%" } }
-    ] },
-    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 14 } },
-      plugins: { legend: { display: false }, datalabels: {},
-        tooltip: { callbacks: { label: ctx => ctx.raw == null ? " sem leads no SLA" : ` ${ctx.raw}% dentro do SLA` } } },
-      scales: {
-        y: { beginAtZero: true, max: 100, title: { display: true, text: "% dentro do SLA", font: { size: 10 } }, ticks: { font: { size: 10 } } },
-        x: { ticks: { font: { size: 9 }, maxTicksLimit: 31 } } } }
   });
 }
 
@@ -3952,28 +3912,39 @@ function renderPpoSlaChart(md) {
 function renderPpoConvAnual() {
   destroyChart("ppoConvAnual");
   const an = (typeof PPO_DATA !== "undefined" && PPO_DATA.anual) ? PPO_DATA.anual : { labels: [], porGestor: {}, leads: [] };
-  const labels = an.labels || [];
-  const leads = an.leads || [];
-  const vidas = (an.porGestor && an.porGestor.TOTAL) ? an.porGestor.TOTAL : [];
+  const labelsAll = an.labels || [];
+  const leadsAll = an.leads || [];
+  const vidasAll = (an.porGestor && an.porGestor.TOTAL) ? an.porGestor.TOTAL : [];
+  // corta os meses sem leads PPO no início da série (ex.: jan-mai, antes do tracking começar) — sem eles
+  // sobrando espaço em branco no gráfico.
+  let inicio = leadsAll.findIndex(v => v > 0);
+  if (inicio < 0) inicio = 0;
+  const labels = labelsAll.slice(inicio);
+  const leads = leadsAll.slice(inicio);
+  const vidas = vidasAll.slice(inicio);
   const conv = labels.map((_, i) => (leads[i] >= PPO_CONV_MIN_LEADS) ? +((vidas[i] / leads[i]) * 100).toFixed(1) : null);
   const curto = PPO_MES_CURTO[mesAtivo];
+  // headroom nos dois eixos p/ o rótulo do último ponto/barra não colidir com a legenda (mesmo bug do
+  // resto da aba PPO, mais visível aqui pq o card ficou mais baixo no grid de 3).
+  const yMax = _ppoHeadroom(Math.max(0, ...leads));
+  const y1Max = _ppoHeadroom(Math.max(0, ...conv.filter(v => v !== null)));
   charts["ppoConvAnual"] = new Chart(document.getElementById("chartPpoConvAnual"), {
     type: "bar",
     data: { labels, datasets: [
       { type: "bar", label: "Leads PPO", data: leads, yAxisID: "y", borderRadius: 5,
         backgroundColor: labels.map(l => l === curto ? "rgba(24,95,165,.85)" : "rgba(24,95,165,.40)"),
-        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "700" }, color: "#185FA5", formatter: v => v > 0 ? v : "" } },
+        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "700" }, color: "#185FA5", clip: false, formatter: v => v > 0 ? v : "" } },
       { type: "line", label: "Conversão (%)", data: conv, yAxisID: "y1", borderColor: "#1D9E75",
         borderWidth: 2.5, tension: .3, pointRadius: 3, pointHoverRadius: 5, spanGaps: true,
-        datalabels: { align: "bottom", anchor: "center", font: { size: 9, weight: "700" }, color: "#1D9E75", formatter: v => v === null ? "" : v + "%" } }
+        datalabels: { align: "top", anchor: "top", font: { size: 9, weight: "700" }, color: "#1D9E75", clip: false, formatter: v => v === null ? "" : v + "%" } }
     ] },
-    options: { responsive: true, maintainAspectRatio: false,
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
       plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
         tooltip: { callbacks: { label: ctx => ctx.dataset.type === "line"
           ? ` Conversão: ${ctx.raw === null ? "—" : ctx.raw + "%"}` : ` ${ctx.raw} leads` } } },
       scales: {
-        y: { beginAtZero: true, position: "left", title: { display: true, text: "leads", font: { size: 10 } }, ticks: { font: { size: 10 } } },
-        y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "conv. %", font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v + "%" } },
+        y: { beginAtZero: true, suggestedMax: yMax, position: "left", title: { display: true, text: "leads", font: { size: 10 } }, ticks: { font: { size: 10 } } },
+        y1: { beginAtZero: true, suggestedMax: y1Max, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "conv. %", font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v + "%" } },
         x: { ticks: { font: { size: 11 } } } } }
   });
 }
