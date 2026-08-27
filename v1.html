@@ -502,17 +502,17 @@
        anual ignora o mês (mostra jan..mês corrente). Respeita o filtro de gestão. -->
   <div id="ppoPanel" style="display:none;">
     <div style="background:#f1edfb;border-left:4px solid #6c4ed8;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#3d2e73;">
-      🩺 <b>Vidas PPO</b> — dado 100% digital do datalake (<code>DIRETORIA='PPO'</code>), fora do levantamento manual. Use o filtro de <b>mês</b> como período e o de <b>gestão</b>. A <b>evolução anual</b> mostra o ano todo. <span id="ppoAteLabel" style="opacity:.75"></span>
+      🩺 <b>Dado 100% digital</b> do datalake (<code>DIRETORIA='PPO'</code>), fora do levantamento manual. Use o filtro de <b>mês</b> como período e o de <b>gestão</b>. A <b>evolução anual</b> mostra o ano todo. <span id="ppoAteLabel" style="opacity:.75"></span>
     </div>
     <!-- KPIs próprios -->
     <div class="kpi-row" id="ppoKpis">
       <div class="kpi-card" style="border-left-color:#6c4ed8">
-        <div class="kpi-label">Total PPO no ano</div>
+        <div class="kpi-label">Total no ano</div>
         <div class="kpi-value" id="ppoKAno">—</div>
         <div class="kpi-sub" id="ppoKAnoSub"></div>
       </div>
       <div class="kpi-card" style="border-left-color:#9b59b6">
-        <div class="kpi-label">Mensal PPO</div>
+        <div class="kpi-label">Total no mês</div>
         <div class="kpi-value" id="ppoKMes">—</div>
         <div class="kpi-sub" id="ppoKMesSub"></div>
       </div>
@@ -531,7 +531,7 @@
     <div class="chart-grid-2">
       <div class="chart-card">
         <div class="ppo-card-head">
-          <div class="chart-title" id="ppoAnualTitle" style="margin-bottom:0">📅 Evolução Anual de Vidas PPO</div>
+          <div class="chart-title" id="ppoAnualTitle" style="margin-bottom:0">📅 Evolução Anual</div>
           <div class="ppo-toggle" id="ppoAnualFilaToggle" data-dim="anualfila">
             <button class="ppo-tg-btn" data-mode="TOTAL" onclick="ppoSetAnualFila('TOTAL')">Total</button>
             <button class="ppo-tg-btn" data-mode="PPO" onclick="ppoSetAnualFila('PPO')">NotreDame Saúde</button>
@@ -544,7 +544,7 @@
       </div>
       <div class="chart-card">
         <div class="ppo-card-head">
-          <div class="chart-title" id="ppoDiaTitle" style="margin-bottom:0">📈 PPO por Dia</div>
+          <div class="chart-title" id="ppoDiaTitle" style="margin-bottom:0">📈 Vidas por Dia</div>
           <div class="ppo-toggle" id="ppoDiaToggle">
             <button class="ppo-tg-btn active" data-modo="diario" onclick="ppoSetDiaModo('diario')">Diário</button>
             <button class="ppo-tg-btn" data-modo="acum" onclick="ppoSetDiaModo('acum')">Acumulado</button>
@@ -558,7 +558,7 @@
     <div class="chart-grid-2">
       <div class="chart-card" id="ppoSecPlano">
         <div class="ppo-card-head">
-          <div class="chart-title" id="ppoPlanoTitle" style="margin-bottom:0">🩺 PPO por Plano</div>
+          <div class="chart-title" id="ppoPlanoTitle" style="margin-bottom:0">🩺 Por Plano</div>
           <div class="ppo-toggle" data-dim="plano">
             <button class="ppo-tg-btn" onclick="ppoSetDim('plano','anual')">Anual</button>
             <button class="ppo-tg-btn" onclick="ppoSetDim('plano','mensal')">Mensal</button>
@@ -568,7 +568,7 @@
       </div>
       <div class="chart-card">
         <div class="ppo-card-head">
-          <div class="chart-title" id="ppoGestorTitle" style="margin-bottom:0">👥 PPO por Gestor</div>
+          <div class="chart-title" id="ppoGestorTitle" style="margin-bottom:0">👥 Por Gestor</div>
           <div class="ppo-toggle" data-dim="gestor">
             <button class="ppo-tg-btn" onclick="ppoSetDim('gestor','anual')">Anual</button>
             <button class="ppo-tg-btn" onclick="ppoSetDim('gestor','mensal')">Mensal</button>
@@ -581,7 +581,7 @@
     <div class="chart-grid-2">
       <div class="chart-card" id="ppoSecUF">
         <div class="ppo-card-head">
-          <div class="chart-title" id="ppoUFTitle" style="margin-bottom:0">🗺️ PPO por UF</div>
+          <div class="chart-title" id="ppoUFTitle" style="margin-bottom:0">🗺️ Por UF</div>
           <div class="ppo-toggle" data-dim="uf">
             <button class="ppo-tg-btn" onclick="ppoSetDim('uf','anual')">Anual</button>
             <button class="ppo-tg-btn" onclick="ppoSetDim('uf','mensal')">Mensal</button>
@@ -591,7 +591,7 @@
       </div>
       <div class="chart-card" id="ppoSecCanal">
         <div class="ppo-card-head">
-          <div class="chart-title" id="ppoCanalTitle" style="margin-bottom:0">🔀 PPO por Canal</div>
+          <div class="chart-title" id="ppoCanalTitle" style="margin-bottom:0">🔀 Por Canal</div>
           <div class="ppo-toggle" data-dim="canal">
             <button class="ppo-tg-btn" onclick="ppoSetDim('canal','anual')">Anual</button>
             <button class="ppo-tg-btn" onclick="ppoSetDim('canal','mensal')">Mensal</button>
@@ -603,18 +603,18 @@
     <!-- Row: Leads PPO & Conversão (TOTAL apenas — leads com Tipo PPO não quebram por gestor) -->
     <div id="ppoSecLeads">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px 0 8px;">
-        <div class="chart-title" style="margin-bottom:0">💬 Leads PPO &amp; Conversão</div>
+        <div class="chart-title" style="margin-bottom:0">💬 Leads &amp; Conversão</div>
         <span style="color:#888;font-size:12px">· leads com Tipo <code>PPO</code> · dia = atribuição ao atendente (não o início da conversa) · conversão = vidas ÷ leads · total (não quebra por gestor)</span>
       </div>
       <div id="ppoLeadsBody">
         <div class="kpi-row">
           <div class="kpi-card" style="border-left-color:#185FA5">
-            <div class="kpi-label">Leads PPO (mês)</div>
+            <div class="kpi-label">Leads (mês)</div>
             <div class="kpi-value" id="ppoKLeads">—</div>
             <div class="kpi-sub" id="ppoKLeadsSub"></div>
           </div>
           <div class="kpi-card" style="border-left-color:#1D9E75">
-            <div class="kpi-label">Conversão PPO (mês)</div>
+            <div class="kpi-label">Conversão (mês)</div>
             <div class="kpi-value" id="ppoKConv">—</div>
             <div class="kpi-sub" id="ppoKConvSub"></div>
           </div>
@@ -631,7 +631,7 @@
         </div>
         <div class="chart-card">
           <div class="ppo-card-head">
-            <div class="chart-title" id="ppoLeadsFilaTitle" style="margin-bottom:0">📶 Leads PPO por Fila</div>
+            <div class="chart-title" id="ppoLeadsFilaTitle" style="margin-bottom:0">📶 Leads por Fila</div>
             <div class="ppo-toggle" id="ppoFilaToggle">
               <button class="ppo-tg-btn active" data-fila="total" onclick="ppoSetFila('total')">Total</button>
               <button class="ppo-tg-btn" data-fila="excl" onclick="ppoSetFila('excl')">NotreDame Saúde</button>
@@ -643,7 +643,7 @@
         </div>
         <div class="chart-grid-2" style="align-items:start;margin-top:18px">
           <div class="chart-card">
-            <div class="chart-title">📅 Conversão Anual de PPO (vidas ÷ leads)</div>
+            <div class="chart-title">📅 Conversão Anual (vidas ÷ leads)</div>
             <div style="position:relative;height:372px;width:100%"><canvas id="chartPpoConvAnual"></canvas></div>
           </div>
           <div class="chart-card">
@@ -675,13 +675,13 @@
         </div>
       </div>
       <div id="ppoLeadsNote" style="display:none;background:#fff8e6;border-left:4px solid #E8A93A;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#7a5c12;">
-        💬 <b>Leads e conversão de PPO são do total</b> — todos os leads com Tipo <code>PPO</code>, sem quebra por gestor. Selecione <b>Total geral</b> no filtro de gestor para visualizá-los.
+        💬 <b>Leads e conversão são do total</b> — todos os leads do tipo <code>PPO</code>, sem quebra por gestor. Selecione <b>Total geral</b> no filtro de gestor para visualizá-los.
       </div>
     </div>
     <!-- Ranking Gestor → Vendedor -->
     <div class="table-card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px">
-        <div class="chart-title" style="margin-bottom:0">📋 Ranking PPO por Vendedor <span style="color:#888;font-weight:400;font-size:12px">· clique no gestor para ver os vendedores</span></div>
+        <div class="chart-title" style="margin-bottom:0">📋 Ranking por Vendedor <span style="color:#888;font-weight:400;font-size:12px">· clique no gestor para ver os vendedores</span></div>
         <div style="display:flex;gap:8px">
           <button onclick="ppoExpandAll(true)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▼ Expandir Todos</button>
           <button onclick="ppoExpandAll(false)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▶ Colapsar Todos</button>
@@ -691,20 +691,20 @@
         <thead>
           <tr>
             <th>Gestor / Vendedor</th>
-            <th class="td-right">Vidas PPO</th>
+            <th class="td-right">Vidas</th>
             <th class="td-right">Premium 900</th>
             <th class="td-right">Premium 900 Care</th>
             <th class="td-right">Advance 700</th>
             <th class="td-right">Advance 600</th>
             <th class="td-right">Infinity 1000</th>
-            <th class="td-right" title="Leads com Tipo 'PPO' atribuídos (dono atual do lead)">Leads</th>
-            <th class="td-right" title="Conversão = Vidas PPO ÷ Leads PPO">Conv.</th>
+            <th class="td-right" title="Leads atribuídos (dono atual do lead)">Leads</th>
+            <th class="td-right" title="Conversão = Vidas ÷ Leads">Conv.</th>
           </tr>
         </thead>
         <tbody id="ppoTabela"></tbody>
       </table>
       <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.5">
-        <b>Leads</b> = leads com Tipo <b>PPO</b> distribuídos ao gestor/vendedor (dono atual do chat, mesmo
+        <b>Leads</b> = leads distribuídos ao gestor/vendedor (dono atual do chat, mesmo
         corte das vidas). <b>Conv.</b> = Vendas feitas ÷ Leads distribuídos. Obs.: quem recebe o lead nem
         sempre é quem fecha a venda, então linhas com poucos leads podem passar de 100%.
       </div>
@@ -3516,9 +3516,9 @@ function renderPpoTab() {
 
 // Charts de dimensão (plano/UF/canal) com toggle Anual/Mensal. Anual = soma o ano todo (por gestor).
 const PPO_DIM_CFG = {
-  plano: { dim:"porPlano", canvas:"chartPpoTabPlano", key:"ppoTabPlano", sec:"ppoSecPlano", title:"ppoPlanoTitle", ico:"🩺 PPO por Plano" },
-  uf:    { dim:"porUF",    canvas:"chartPpoUF",       key:"ppoUF",       sec:"ppoSecUF",    title:"ppoUFTitle",    ico:"🗺️ PPO por UF" },
-  canal: { dim:"porCanal", canvas:"chartPpoCanal",    key:"ppoCanal",    sec:"ppoSecCanal", title:"ppoCanalTitle", ico:"🔀 PPO por Canal" },
+  plano: { dim:"porPlano", canvas:"chartPpoTabPlano", key:"ppoTabPlano", sec:"ppoSecPlano", title:"ppoPlanoTitle", ico:"🩺 Por Plano" },
+  uf:    { dim:"porUF",    canvas:"chartPpoUF",       key:"ppoUF",       sec:"ppoSecUF",    title:"ppoUFTitle",    ico:"🗺️ Por UF" },
+  canal: { dim:"porCanal", canvas:"chartPpoCanal",    key:"ppoCanal",    sec:"ppoSecCanal", title:"ppoCanalTitle", ico:"🔀 Por Canal" },
 };
 function renderPpoDim(which, md){
   const c = PPO_DIM_CFG[which], g = gestorAtivo;
@@ -3627,7 +3627,7 @@ function renderPpoAcum(md) {
   const showAll = diasComDado <= 15;
 
   const ttl = document.getElementById("ppoDiaTitle");
-  if (ttl) ttl.textContent = ppoDiaModo === "diario" ? "📈 PPO por Dia — vidas/dia" : "📈 PPO por Dia — acumulado";
+  if (ttl) ttl.textContent = ppoDiaModo === "diario" ? "📈 Vidas por Dia — diário" : "📈 Vidas por Dia — acumulado";
   const nota = document.getElementById("ppoDiaNota");
   if (nota) nota.textContent = diasComDado > 0 ? `projeção fim do mês (tendência dos dias com venda): ${fmt(projMes)} vidas` : "";
 
@@ -3695,7 +3695,7 @@ function renderPpoGestor(md) {
     ? ((PPO_DATA.anual.porGestor[k] || []).reduce((a,b) => a + b, 0))
     : (md ? (md.porGestor[k] || 0) : 0));
   const t = document.getElementById("ppoGestorTitle");
-  if (t) t.textContent = "👥 PPO por Gestor" + ppoModeSuf("gestor");
+  if (t) t.textContent = "👥 Por Gestor" + ppoModeSuf("gestor");
   charts["ppoGestor"] = new Chart(document.getElementById("chartPpoGestor"), {
     type:"bar",
     data:{ labels, datasets:[{ label:"Vidas PPO", data: valores,
@@ -3763,7 +3763,7 @@ function renderPpoAnual() {
   }
 
   const ttl = document.getElementById("ppoAnualTitle");
-  if (ttl) ttl.textContent = `📅 Evolução Anual de Vidas PPO${suf}`;
+  if (ttl) ttl.textContent = `📅 Evolução Anual${suf}`;
   charts["ppoAnual"] = new Chart(document.getElementById("chartPpoAnual"), {
     type:"bar",
     data:{ labels, datasets },
@@ -3822,7 +3822,7 @@ function renderPpoLeads(md) {
 // PPO/PME PPO (ppoFilaMode). Total = todos os leads Tipo PPO (mesma série de leadsPorDia);
 // Exclusivo = Session Team == "PPO"; PME PPO = Session Team contém "PME" (ex.: "PME | PPO").
 const PPO_FILA_CFG = {
-  total: { campo: "leadsPorDia", label: "Leads PPO (Total)", cor: "rgba(24,95,165,.65)", corTxt: "#185FA5" },
+  total: { campo: "leadsPorDia", label: "Leads (Total)", cor: "rgba(24,95,165,.65)", corTxt: "#185FA5" },
   excl:  { campo: "leadsPorDiaExclusivo", label: "NotreDame Saúde", cor: "rgba(108,78,216,.65)", corTxt: "#6c4ed8" },
   pme:   { campo: "leadsPorDiaPmePpo", label: "PME PPO", cor: "rgba(230,126,34,.65)", corTxt: "#E67E22" },
 };
@@ -3838,7 +3838,7 @@ function renderPpoLeadsFilaChart(md) {
   }
   const total = serie.reduce((a, v) => a + (v || 0), 0);
   const ttl = document.getElementById("ppoLeadsFilaTitle");
-  if (ttl) ttl.textContent = `📶 Leads PPO por Fila · ${cfg.label} = ${fmt(total)}`;
+  if (ttl) ttl.textContent = `📶 Leads por Fila · ${cfg.label} = ${fmt(total)}`;
   charts["ppoLeadsFila"] = new Chart(document.getElementById("chartPpoLeadsFila"), {
     type: "bar",
     data: { labels, datasets: [
@@ -3931,7 +3931,7 @@ function renderPpoConvAnual() {
   charts["ppoConvAnual"] = new Chart(document.getElementById("chartPpoConvAnual"), {
     type: "bar",
     data: { labels, datasets: [
-      { type: "bar", label: "Leads PPO", data: leads, yAxisID: "y", borderRadius: 5,
+      { type: "bar", label: "Leads", data: leads, yAxisID: "y", borderRadius: 5,
         backgroundColor: labels.map(l => l === curto ? "rgba(24,95,165,.85)" : "rgba(24,95,165,.40)"),
         datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "700" }, color: "#185FA5", clip: false, formatter: v => v > 0 ? v : "" } },
       { type: "line", label: "Conversão (%)", data: conv, yAxisID: "y1", borderColor: "#1D9E75",
@@ -3953,7 +3953,7 @@ function renderPpoTabela(md) {
   const tbody = document.getElementById("ppoTabela");
   tbody.innerHTML = "";
   if (!md) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#888;padding:16px">Sem dados de PPO para este mês.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#888;padding:16px">Sem dados para este mês.</td></tr>`;
     return;
   }
   const keys = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
