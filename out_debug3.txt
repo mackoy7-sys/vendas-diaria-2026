@@ -1,0 +1,26 @@
+sla: {"dentro": 663, "ate2min": 375, "pct": 56.6, "porDiaPct": [75.0, 60.0, 29.6, 51.4, 62.5, 50.0, 42.9, 64.3, 62.5, 50.0, 52.2, 51.7, 45.7, 76.9, 55.6, 80.0, 52.2, 71.4, 57.1, 68.6, 76.7, 24.1, 64.0, 39.3, 64.1, 81.0], "cadastroFonte": "supabase"}
+
+--- produtivo (total=343) ---
+  17 - Perdido | Não disse o motivo: 111
+  24 - Cotação | Perdido | Sem resposta do cliente: 59
+  17 - Cotação | Perdido | Não disse o motivo: 57
+  24 - Perdido | Sem resposta do cliente (após cotação): 56
+  33 - Contato futuro: 17
+  10 - Fechado | Pagamento Efetuado: 12
+  33 - Cotação | Contato futuro: 9
+  13 - Cotação | Perdido | Preço: 5
+  Outras: 17
+
+--- improdutivo (total=431) ---
+  11 - Improdutivo | SAC | agendamentos | Teste e etc: 189
+  23 - Improdutivo | Sem resposta do cliente (aborda: 88
+  11 - Improdutivo | SAC | agendamentos | Teste: 52
+  23 - Perdido | Sem resposta do cliente (abordagem inicial): 49
+  25 - Possui Plano Ativo: 18
+  50 - EXCLUIR CONTATO: 9
+  15 - Perdido| Sem abrangência: 5
+  15 - Improdutivo | Sem abrangência: 4
+  Outras: 17
+
+--- em_andamento (total=226) ---
+  (sem tag): 226

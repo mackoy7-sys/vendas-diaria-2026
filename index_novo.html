@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Vendas</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul:    #185FA5;
+      --verde:   #1D9E75;
+      --laranja: #D85A30;
+      --cinza:   #6c757d;
+      --bg:      #f0f2f5;
+      --card:    #ffffff;
+      --shadow:  0 2px 8px rgba(0,0,0,0.08);
+      --radius:  10px;
+      --gap:     14px;
+      --header:  #0f2d52;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1a1a2e; }
+
+    /* HEADER */
+    .header {
+      background: var(--header);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header h1 { font-size: 17px; font-weight: 700; letter-spacing: .3px; }
+    .header .subtitle { font-size: 12px; opacity: .7; margin-top: 2px; }
+
+    /* FILTROS */
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-label { font-size: 11px; opacity: .75; }
+    .btn-gestor {
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: transparent;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn-gestor.active {
+      background: var(--azul);
+      border-color: var(--azul);
+      font-weight: 600;
+    }
+    .btn-gestor:hover:not(.active) { background: rgba(255,255,255,.15); }
+    .btn-mes {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: transparent;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn-mes.active {
+      background: var(--laranja);
+      border-color: var(--laranja);
+      font-weight: 700;
+    }
+    .btn-mes:hover:not(.active) { background: rgba(255,255,255,.15); }
+    .filter-sep { width: 1px; height: 24px; background: rgba(255,255,255,.25); margin: 0 4px; }
+    .filter-select {
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .filter-select option { background: #0f2d52; }
+
+    /* CONTAINER */
+    .container { padding: var(--gap); max-width: 1500px; margin: 0 auto; }
+
+    /* TAB NAV */
+    .tab-nav {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: var(--gap);
+      border-bottom: 2px solid #e2e6ec;
+    }
+    .tab {
+      padding: 9px 18px;
+      border: none;
+      background: transparent;
+      color: #5a6b80;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all .18s;
+    }
+    .tab:hover:not(.active) { background: #e9eef5; color: #1a1a2e; }
+    .tab.active { color: var(--azul); border-bottom-color: var(--azul); background: #fff; }
+    @media(max-width: 900px) {
+      .tab { flex: 1 1 auto; padding: 9px 10px; font-size: 12px; text-align: center; }
+    }
+
+    /* KPIs */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .kpi-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--azul);
+    }
+    .kpi-card.verde  { border-left-color: var(--verde); }
+    .kpi-card.laranja{ border-left-color: var(--laranja); }
+    .kpi-card.cinza  { border-left-color: var(--cinza); }
+    .kpi-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .kpi-value { font-size: 26px; font-weight: 700; color: #1a1a2e; line-height: 1; }
+    .kpi-sub   { font-size: 12px; margin-top: 5px; color: #555; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .badge.green  { background: #d4f4e8; color: #0d6e4a; }
+    .badge.yellow { background: #fef3cd; color: #7a5000; }
+    .badge.red    { background: #fde8e4; color: #8c2315; }
+
+    /* GRÁFICOS */
+    .chart-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .chart-card canvas { max-height: 420px; }
+
+    /* Gráficos principais em largura total (um por linha) para melhor leitura */
+    .chart-grid-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-grid-1 .chart-card canvas { max-height: 380px; }
+
+    /* LEADS CARD */
+    .leads-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .leads-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .leads-card canvas { max-height: 340px; }
+
+    /* TABELA */
+    .table-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: var(--gap);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 2px solid #e9ecef;
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      white-space: nowrap;
+    }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid #f4f4f4; }
+    tbody tr:last-child td { border-bottom: none; font-weight: 700; background: #f8f9fb; }
+    tbody tr:hover { background: #f8f9fb; }
+    .td-right { text-align: right; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    @media(max-width: 900px) {
+      .chart-grid-2, .chart-grid-3, .leads-grid { grid-template-columns: 1fr; }
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  /* Login overlay */
+  #login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+  #login-overlay.hidden{display:none}
+  .login-box{background:var(--card);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,.12);padding:40px 36px;width:100%;max-width:360px;text-align:center}
+  .login-logo{width:60px;height:60px;background:var(--header);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;color:#fff;font-weight:700}
+  .login-box h2{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+  .login-box p{font-size:12px;color:#888;margin-bottom:24px}
+  .login-box input{width:100%;padding:10px 14px;border:1px solid #dde1e7;border-radius:7px;font-size:14px;color:#1a1a2e;outline:none;margin-bottom:12px;letter-spacing:2px}
+  .login-box input:focus{border-color:var(--azul)}
+  .login-box button{width:100%;padding:11px;background:var(--header);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer}
+  .login-box button:hover{background:var(--azul)}
+  .login-error{font-size:12px;color:#c0392b;margin-top:8px;min-height:16px}
+  </style>
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">H</div>
+    <h2>Dashboard de Vendas</h2>
+    <p>Hapvida – RMSP</p>
+    <input type="password" id="login-input" placeholder="Digite a senha" autocomplete="current-password" />
+    <button onclick="checkLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header h1" style="font-size:17px;font-weight:700;">📊 Dashboard de Vendas — <span id="mesLabel"></span></div>
+    <div class="subtitle">Atualizado: dia <span id="diaAtualLabel"></span> &nbsp;|&nbsp; Filtro: Dia <span id="filtroLabel"></span></div>
+  </div>
+  <div class="filters" id="subFilters">
+    <span class="filter-label">Mês:</span>
+    <button class="btn-mes" onclick="setMes('ABRIL')">Abril</button>
+    <button class="btn-mes" onclick="setMes('MAIO')">Maio</button>
+    <button class="btn-mes active" onclick="setMes('JUNHO')">Junho</button>
+    <div class="filter-sep"></div>
+    <span class="filter-label">Gestor:</span>
+    <button class="btn-gestor active" onclick="setGestor('TOTAL')">Total</button>
+    <button class="btn-gestor" onclick="setGestor('FABIO')">Fabio</button>
+    <button class="btn-gestor" onclick="setGestor('JOSY')">Josy</button>
+    <button class="btn-gestor" onclick="setGestor('ADMINISTRATIVO')">Administrativo</button>
+    <button class="btn-gestor" onclick="setGestor('ACTIONLINE')">Actionline</button>
+    <div class="filter-sep"></div>
+    <span class="filter-label">Período:</span>
+    <select class="filter-select" id="diaIni" onchange="aplicarFiltro()"></select>
+    <span class="filter-label" style="opacity:.6">até</span>
+    <select class="filter-select" id="diaFim" onchange="aplicarFiltro()"></select>
+  </div>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="container">
+
+  <!-- NAVEGAÇÃO POR ABAS -->
+  <div class="tab-nav">
+    <button class="tab active" id="tab-vendas" onclick="setAba('vendas')">📊 Vendas</button>
+    <button class="tab" id="tab-leads" onclick="setAba('leads')">📥 Leads e Conversão</button>
+    <button class="tab" id="tab-funil" onclick="setAba('funil')">⏱️ Funil de Atendimento</button>
+    <button class="tab" id="tab-juxmai" onclick="setAba('juxmai')">🔄 Jun × Mai</button>
+    <button class="tab" id="tab-trimestre" onclick="setAba('trimestre')">📅 Trimestre</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="mainKpis">
+    <div class="kpi-card" id="kpi1">
+      <div class="kpi-label">Vendas realizadas</div>
+      <div class="kpi-value" id="kVendas">—</div>
+      <div class="kpi-sub" id="kVendasSub"></div>
+    </div>
+    <div class="kpi-card verde" id="kpi2">
+      <div class="kpi-label">% da Meta</div>
+      <div class="kpi-value" id="kMeta">—</div>
+      <div class="kpi-sub" id="kMetaSub"></div>
+    </div>
+    <div class="kpi-card laranja" id="kpi3">
+      <div class="kpi-label">Projeção mensal</div>
+      <div class="kpi-value" id="kProj">—</div>
+      <div class="kpi-sub" id="kProjSub"></div>
+    </div>
+    <div class="kpi-card cinza" id="kpi4">
+      <div class="kpi-label">Média / dia</div>
+      <div class="kpi-value" id="kMedia">—</div>
+      <div class="kpi-sub" id="kMediaSub"></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#9b59b6">
+      <div class="kpi-label" id="kAbrLabel">Var. vs mês anterior</div>
+      <div class="kpi-value" id="kAbr">—</div>
+      <div class="kpi-sub" id="kAbrSub"></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#e67e22" id="kpiConv">
+      <div class="kpi-label">Conv. Média</div>
+      <div class="kpi-value" id="kConv">—</div>
+      <div class="kpi-sub" id="kConvSub"></div>
+    </div>
+  </div>
+
+  <!-- PAINEL 2º TRIMESTRE (visível só na visão trimestre) -->
+  <div id="triPanel" style="display:none;">
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Meta vs Realizado — 2º Trimestre (por gestor)</div>
+        <canvas id="chartTriMeta"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📅 Vendas por Mês — Abril / Maio / Junho</div>
+        <canvas id="chartTriMes"></canvas>
+      </div>
+    </div>
+    <div class="table-card" style="margin-top:16px">
+      <div class="chart-title">📋 Consolidado do Trimestre — Meta vs Realizado</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Gestor</th>
+            <th class="td-right">Abril</th>
+            <th class="td-right">Maio</th>
+            <th class="td-right">Junho</th>
+            <th class="td-right">Realizado Trim.</th>
+            <th class="td-right">Meta Trim.</th>
+            <th class="td-right">% Meta</th>
+            <th class="td-right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaTri"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAINEL COMPARATIVO JUN × MAI (visível só na visão comparativo) -->
+  <div id="compPanel" style="display:none;">
+    <div style="background:#eaf3ee;border-left:4px solid #0d6e4a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#0d4a32;">
+      📊 <b>Comparativo por dias comparáveis</b> — como Junho ainda está em curso, a comparação usa os <b>mesmos dias do mês</b> em ambos (dias 1 a <span id="compNlabel"></span>). Vendas e produtos seguem o filtro de gestor; conversão e leads são consolidados (Total). Os comparativos de leads <b>por origem e por canal</b> usam <b>média de leads/dia</b> (Maio ÷ 31 × Junho ÷ <span id="compNlabel2"></span>), normalizando a diferença de dias entre os meses.
+    </div>
+    <div class="kpi-row" id="compKpis"></div>
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">📈 Vendas Acumuladas — Maio × Junho (dias comparáveis)</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartCompAcum"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🏷️ Realizado por Produto — Maio × Junho</div>
+        <div style="position:relative;height:340px;width:100%"><canvas id="chartCompProduto"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Conversão Diária — Maio × Junho (Total)</div>
+        <div style="position:relative;height:320px;width:100%"><canvas id="chartCompConv"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📥 Volume de Leads Diário — Maio × Junho (Total)</div>
+        <div style="position:relative;height:320px;width:100%"><canvas id="chartCompLeads"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Leads/dia por Origem — Maio × Junho</div>
+        <div style="position:relative;height:400px;width:100%"><canvas id="chartCompOrigem"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🏷️ Leads/dia por Canal — Maio × Junho</div>
+        <div style="position:relative;height:400px;width:100%"><canvas id="chartCompCanal"></canvas></div>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="chart-title">📋 Resumo Comparativo — Maio × Junho (dias comparáveis)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Métrica</th>
+            <th class="td-right">Maio (1–N)</th>
+            <th class="td-right">Junho (1–N)</th>
+            <th class="td-right">Variação</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaComp"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW 1: Acumulado + Volume (largura total para melhor visualização) -->
+  <div class="chart-grid-1 vendas-view">
+    <div class="chart-card">
+      <div class="chart-title">📈 Vendas Acumuladas por Dia</div>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartAcumulado"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">📊 Volume de Vendas por Dia</div>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartVolume"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Média produto + Conversão + Mix -->
+  <div class="chart-grid-3 vendas-view">
+    <div class="chart-card">
+      <div class="chart-title">🏷️ Média de Vendas por Produto</div>
+      <canvas id="chartProduto"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🎯 Taxa de Conversão Diária</div>
+      <canvas id="chartConv"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🍩 Mix por Tipo de Venda</div>
+      <canvas id="chartMix"></canvas>
+    </div>
+  </div>
+
+  <!-- KPIs de Leads (aba Leads e Conversão) -->
+  <div class="kpi-row leads-view" id="leadsKpis">
+    <div class="kpi-card">
+      <div class="kpi-label">Leads Recebidos</div>
+      <div class="kpi-value" id="kLeadRec">—</div>
+      <div class="kpi-sub" id="kLeadRecSub"></div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-label">Leads Tratados</div>
+      <div class="kpi-value" id="kLeadTrat">—</div>
+      <div class="kpi-sub" id="kLeadTratSub"></div>
+    </div>
+    <div class="kpi-card laranja">
+      <div class="kpi-label">Taxa de Tratamento</div>
+      <div class="kpi-value" id="kLeadTaxa">—</div>
+      <div class="kpi-sub" id="kLeadTaxaSub"></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#e67e22">
+      <div class="kpi-label">Conv. Média</div>
+      <div class="kpi-value" id="kLeadConv">—</div>
+      <div class="kpi-sub" id="kLeadConvSub"></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Leads (funil em largura total) -->
+  <div class="chart-grid-1 leads-view" id="leadsSection">
+    <div class="leads-card">
+      <div class="chart-title">📥 Funil de Leads: Recebidos × Tratados (dia)</div>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartLeads"></canvas></div>
+    </div>
+    <div class="leads-card">
+      <div class="chart-title">⚡ Performance do Lead (Leads/Venda vs Conv %)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartLeadPerf"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3b: Leads por Origem e por Tipo (mês completo) -->
+  <div class="leads-grid leads-view" id="leadsOrigemSection">
+    <div class="leads-card">
+      <div class="chart-title">🎯 Leads por Origem (mês)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartLeadsOrigem"></canvas></div>
+    </div>
+    <div class="leads-card">
+      <div class="chart-title">🏷️ Leads por Tipo (mês)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartLeadsTipo"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3c: Tabela de Conversão por Origem -->
+  <div class="table-card leads-view" id="conversaoSection">
+    <div class="chart-title">📈 Conversão por Origem (mês)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Origem</th>
+          <th class="td-right">Leads Totais</th>
+          <th class="td-right">Leads Produtivos</th>
+          <th class="td-right">% Produtivos</th>
+          <th class="td-right">Contratos</th>
+          <th class="td-right">Vidas</th>
+          <th class="td-right">Conv. Contratos</th>
+          <th class="td-right">Conv. Vidas</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaConversao"></tbody>
+    </table>
+  </div>
+
+  <!-- ROW 3d: Entrada de Leads por Origem por Dia -->
+  <div class="table-card leads-view" id="leadsDiaSection">
+    <div class="chart-title">📥 Entrada de Leads por Origem por Dia (mês)</div>
+    <div style="overflow-x:auto;">
+      <table id="tabelaLeadsDia" style="font-size:11px;white-space:nowrap;">
+        <thead id="leadsDiaHead"></thead>
+        <tbody id="leadsDiaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ ABA: FUNIL DE ATENDIMENTO (Abertura → Atribuição → Resposta) ══════════ -->
+  <!-- Fonte: leads_ano (Supabase). Respeita filtros de mês, período (dias) e gestor. -->
+  <div class="kpi-row funil-view" id="funilKpis">
+    <div class="kpi-card">
+      <div class="kpi-label">Leads Abertos</div>
+      <div class="kpi-value" id="kFunAbertos">—</div>
+      <div class="kpi-sub" id="kFunAbertosSub"></div>
+    </div>
+    <div class="kpi-card verde">
+      <div class="kpi-label">Mediana Fila (abertura→atrib.)</div>
+      <div class="kpi-value" id="kFunFila">—</div>
+      <div class="kpi-sub" id="kFunFilaSub">tempo até cair p/ um vendedor</div>
+    </div>
+    <div class="kpi-card laranja">
+      <div class="kpi-label">Mediana Atendimento (atrib.→resp.)</div>
+      <div class="kpi-value" id="kFunAtend">—</div>
+      <div class="kpi-sub" id="kFunAtendSub">tempo até a 1ª resposta</div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#6c4ed8">
+      <div class="kpi-label">Mediana Total (abertura→resp.)</div>
+      <div class="kpi-value" id="kFunTotal">—</div>
+      <div class="kpi-sub" id="kFunTotalSub">ponta a ponta</div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#2E86C1">
+      <div class="kpi-label">Respondidos ≤ 15 min</div>
+      <div class="kpi-value" id="kFun15">—</div>
+      <div class="kpi-sub" id="kFun15Sub"></div>
+    </div>
+    <div class="kpi-card cinza">
+      <div class="kpi-label">Sem Resposta</div>
+      <div class="kpi-value" id="kFunSem">—</div>
+      <div class="kpi-sub" id="kFunSemSub">leads que não obtiveram 1ª resposta</div>
+    </div>
+  </div>
+
+  <div class="chart-grid-1 funil-view" id="funilVolSection">
+    <div class="chart-card">
+      <div class="chart-title">⏱️ Funil de Atendimento — Abertura → Atribuição → Resposta</div>
+      <div style="position:relative;height:300px;width:100%"><canvas id="chartFunilVol"></canvas></div>
+      <div id="funilVolNote" style="font-size:12px;color:var(--cinza);margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <div class="chart-grid-2 funil-view" id="funilChartsSection">
+    <div class="chart-card">
+      <div class="chart-title">📊 Distribuição por Tempo (Abertura → 1ª Resposta)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartFunilDist"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">📈 Evolução Diária — Mediana Fila × Atendimento (min)</div>
+      <div style="position:relative;height:340px;width:100%"><canvas id="chartFunilEvol"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card funil-view" id="funilDiaSection">
+    <div class="chart-title">🔎 Atuação por Dia (investigar cada dia do período)</div>
+    <div style="overflow-x:auto;">
+      <table id="tabelaFunilDia">
+        <thead>
+          <tr>
+            <th>Dia</th>
+            <th class="td-right">Abertos</th>
+            <th class="td-right">Atribuídos</th>
+            <th class="td-right">Respondidos</th>
+            <th class="td-right">Med. Fila (min)</th>
+            <th class="td-right">Med. Atend. (min)</th>
+            <th class="td-right">Med. Total (min)</th>
+            <th class="td-right">% ≤ 15 min</th>
+            <th class="td-right">% Sem Resp.</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaFunilDiaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-card vendas-view">
+    <div class="chart-title">📋 Resumo por Gestor</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Gestor</th>
+          <th class="td-right">Realizadas</th>
+          <th class="td-right">Meta</th>
+          <th class="td-right">% Meta</th>
+          <th class="td-right">Projeção</th>
+          <th class="td-right">% Proj</th>
+          <th class="td-right">Média/dia</th>
+          <th class="td-right">Var vs Abr</th>
+          <th class="td-right">PF</th>
+          <th class="td-right">PME</th>
+          <th class="td-right">Adesão</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  C O N F I G   —   DADOS POR MÊS (Abril / Maio / Junho)
+// ============================================================
+// Cada mês tem a MESMA estrutura. Para atualizar dados diários,
+// edite o mês desejado dentro de DADOS_MESES.
+// O mês exibido é controlado pelo filtro de mês no topo.
+// ============================================================
+const DADOS_MESES = {
+
+  ABRIL: {
+    mesLabel: "Abril 2026",
+    mesAnteriorLabel: "Março",
+    diasNoMes: 30,
+    diaAtual: 30,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 11600,
+        acumulado: [259,531,608,705,825,1169,1655,2073,2481,2875,
+                    3022,3118,3500,3885,4253,4708,5028,5151,5241,5646,
+                    5776,6164,6565,6869,6989,7076,7553,7971,8385,8996],
+        pf: 5631, pme: 3247, adesao: 118,
+        conv: [3.8,4.6,3.5,4.3,9.5,4.5,7.4,7.0,7.6,8.9,
+               8.2,8.7,5.4,5.9,6.2,8.0,7.1,6.2,6.3,9.2,
+               5.4,7.3,8.2,7.2,5.9,8.3,9.4,7.7,8.7,17.9],
+        leads: [6830,5910,2176,2251,1259,7702,6560,5948,5363,4446,
+                1789,1108,7086,6483,5981,5684,4483,1998,1430,4419,
+                2405,5318,4898,4241,2039,1044,5076,5395,4781,3417],
+        vendas_ant: 8996, projecao_fixa: 8996
+      },
+      FABIO: {
+        label: "Fabio", meta: 5900,
+        acumulado: [123,243,283,356,450,605,865,1074,1283,1451,
+                    1566,1643,1820,2009,2187,2433,2591,2697,2753,2969,
+                    3064,3256,3443,3597,3680,3746,4010,4232,4477,4794],
+        pf: 1681, pme: 3056, adesao: 57,
+        conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4630,
+        acumulado: [131,262,292,313,333,500,693,889,1063,1265,
+                    1293,1311,1491,1661,1828,2009,2142,2154,2176,2337,
+                    2360,2529,2708,2833,2855,2869,3054,3216,3368,3612],
+        pf: 3362, pme: 191, adesao: 59,
+        conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 685,
+        acumulado: [5,26,33,36,42,61,92,103,124,148,
+                    152,153,177,201,222,245,271,275,287,312,
+                    324,347,381,404,419,426,452,484,501,548],
+        pf: 546, pme: 0, adesao: 2,
+        conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 280,
+        acumulado: [0,0,0,0,0,3,5,7,11,11,
+                    11,11,12,14,16,21,24,25,25,28,
+                    28,32,33,35,35,35,37,39,39,42],
+        pf: 42, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
+      }
+    }
+  },
+
+  MAIO: {
+    mesLabel: "Maio 2026",
+    mesAnteriorLabel: "Abril",
+    diasNoMes: 31,
+    diaAtual: 31,
+    leadsOrigem: [
+      { label: "Campanhas Marketing", valor: 21872 },
+      { label: "Repique Comercial", valor: 18839 },
+      { label: "Carrinho Aband. Conecta", valor: 18317 },
+      { label: "Carrinho Abandonado", valor: 17514 },
+      { label: "Espontâneo", valor: 16936 },
+      { label: "Conecta", valor: 13529 },
+      { label: "Eugenia", valor: 9838 },
+      { label: "Outros", valor: 8862 },
+      { label: "VPC", valor: 3373 },
+      { label: "Mídia", valor: 507 },
+      { label: "Leads Frios", valor: 391 },
+      { label: "Televendas", valor: 233 },
+      { label: "Flamengo", valor: 60 },
+      { label: "Acompanhantes", valor: 3 }
+    ],
+    leadsTipo: [
+      { label: "PF", valor: 77762 },
+      { label: "Outros", valor: 25678 },
+      { label: "PME", valor: 25339 },
+      { label: "Adesão", valor: 1495 }
+    ],
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 11600,
+        acumulado: [509,591,665,1060,1509,1933,2400,2744,2898,3068,
+                    3517,3967,4425,4798,5173,5295,5392,5842,6339,6806,
+                    7217,7564,7759,7875,8310,8729,9153,9555,10041,10327,10569],
+        pf: 6417, pme: 3686, adesao: 466,
+        conv: [26.5,4.4,6.5,5.5,6.9,7.2,9.6,7.6,6.1,11.3,
+               7.6,7.9,9.2,7.0,8.6,5.9,4.9,5.4,8.9,8.4,
+               8.1,8.0,9.1,7.8,7.1,11.4,12.5,16.5,8.3,8.1,8.1],
+        leads: [1924,1878,1140,7158,6528,5909,4865,4525,2533,1509,
+                5873,5683,4995,5356,4351,2085,2036,8268,5607,5542,
+                5093,4334,2251,1438,5219,5039,5453,5648,4271,2295,1468],
+        vendas_ant: 8996, projecao_fixa: 10569
+      },
+      FABIO: {
+        label: "Fabio", meta: 6000,
+        acumulado: [483,526,568,765,1002,1199,1449,1616,1732,1846,
+                    2068,2333,2559,2743,2942,3021,3099,3311,3594,3846,
+                    4076,4246,4384,4462,4686,4901,5163,5375,5633,5844,6004],
+        pf: 2380, pme: 3211, adesao: 413,
+        conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4700,
+        acumulado: [20,51,64,232,415,605,797,948,983,1035,
+                    1245,1412,1621,1778,1920,1955,1968,2178,2380,2558,
+                    2724,2872,2914,2945,3143,3334,3478,3652,3848,3912,3988],
+        pf: 3461, pme: 475, adesao: 52,
+        conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 700,
+        acumulado: [6,14,33,60,88,124,148,171,174,178,
+                    192,209,228,260,292,300,306,331,343,378,
+                    393,419,434,441,453,465,480,491,518,529,533],
+        pf: 532, pme: 1, adesao: 0,
+        conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 200,
+        acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,22,
+                    24,24,24,27,27,27,28,29,32,42,44],
+        pf: 44, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
+      }
+    }
+  },
+
+  JUNHO: {
+    mesLabel: "Junho 2026",
+    mesAnteriorLabel: "Maio",
+    diasNoMes: 30,
+    diaAtual: 30,
+    leadsOrigem: [
+      { label: "Carrinho Aband. Conecta", valor: 15340 },
+      { label: "Campanhas Marketing", valor: 13322 },
+      { label: "Conecta", valor: 13818 },
+      { label: "Carrinho Abandonado", valor: 9195 },
+      { label: "Espontâneo", valor: 8123 },
+      { label: "Eugenia", valor: 6095 },
+      { label: "Repique Comercial", valor: 7740 },
+      { label: "VPC", valor: 1847 },
+      { label: "Outros", valor: 5131 },
+      { label: "Leads Frios", valor: 122 },
+      { label: "Mídia", valor: 27 },
+      { label: "Televendas", valor: 14 },
+      { label: "Flamengo", valor: 2 }
+    ],
+    leadsTipo: [
+      { label: "PF", valor: 53289 },
+      { label: "Outros", valor: 16416 },
+      { label: "PME", valor: 10030 },
+      { label: "Adesão", valor: 693 },
+      { label: "PPO", valor: 348 }
+    ],
+    leadsConversao: [
+      { origem: "Carrinho Abandonado Conecta", leads: 15340, produtivos: 7725, contratos: 806, vidas: 952 },
+      { origem: "Campanhas Marketing", leads: 13322, produtivos: 4162, contratos: 154, vidas: 208 },
+      { origem: "Conecta", leads: 13818, produtivos: 8046, contratos: 769, vidas: 909 },
+      { origem: "Carrinho Abandonado", leads: 9195, produtivos: 4288, contratos: 393, vidas: 466 },
+      { origem: "Espontâneo", leads: 8123, produtivos: 5215, contratos: 322, vidas: 415 },
+      { origem: "Repique Comercial", leads: 7740, produtivos: 3370, contratos: 154, vidas: 214 },
+      { origem: "Eugenia", leads: 6095, produtivos: 3549, contratos: 708, vidas: 857 },
+      { origem: "VPC", leads: 1847, produtivos: 666, contratos: 30, vidas: 32 },
+      { origem: "Outros", leads: 5131, produtivos: 3326, contratos: 168, vidas: 207 },
+      { origem: "Leads Frios", leads: 122, produtivos: 56, contratos: 11, vidas: 14 },
+      { origem: "Mídia", leads: 27, produtivos: 13, contratos: 4, vidas: 8 },
+      { origem: "Televendas", leads: 14, produtivos: 8, contratos: 1, vidas: 1 },
+      { origem: "Flamengo", leads: 2, produtivos: 0, contratos: 0, vidas: 0 }
+    ],
+    leadsOrigemDia: {
+      dias: 22,
+      origens: [
+        { origem: "Carrinho Abandonado Conecta", dias: [1152,1031,1053,604,873,308,182,1261,1236,1124,942,695,385,397,1214,993,478,403,278,120,167,444] },
+        { origem: "Campanhas Marketing", dias: [1116,556,356,1521,1360,1802,409,287,499,738,455,408,220,151,412,268,999,525,412,211,127,490] },
+        { origem: "Conecta", dias: [1326,838,821,469,680,341,140,1231,981,999,761,425,298,326,801,783,560,486,417,281,165,689] },
+        { origem: "Carrinho Abandonado", dias: [571,606,543,411,519,398,138,531,570,501,439,249,142,145,480,650,607,553,404,132,158,448] },
+        { origem: "Espontâneo", dias: [1056,805,404,132,178,98,70,317,374,481,440,227,149,150,446,572,508,363,305,274,242,532] },
+        { origem: "Eugenia", dias: [775,597,520,184,357,201,106,401,392,348,252,161,64,48,405,317,273,202,128,74,48,242] },
+        { origem: "Repique Comercial", dias: [569,604,585,407,548,290,53,139,291,267,172,107,34,37,199,1378,516,552,292,132,45,523] },
+        { origem: "VPC", dias: [316,607,46,9,9,12,7,147,229,24,11,101,3,6,41,14,42,44,32,4,3,140] },
+        { origem: "Outros", dias: [221,105,76,39,78,34,7,94,217,198,189,136,18,18,166,179,736,664,461,278,236,981] },
+        { origem: "Leads Frios", dias: [8,10,6,5,11,0,3,4,8,7,7,3,2,0,5,3,9,13,5,3,0,10] },
+        { origem: "Mídia", dias: [1,0,1,0,3,1,1,1,3,4,2,0,0,0,2,0,1,4,3,0,0,0] },
+        { origem: "Televendas", dias: [0,0,0,0,0,0,0,1,3,1,0,0,0,0,2,2,1,1,2,0,0,1] },
+        { origem: "Flamengo", dias: [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] }
+      ]
+    },
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 12460,
+        acumulado: [547,965,1399,1497,1838,1923,2007,2426,2891,3371,
+                    3778,4043,4156,4250,4692,5108,5504,5833,6088,6249,
+                    6310,6632,6677,6702,6709,6726,6761,6775,6777,6779],
+        pf: 4474, pme: 2025, adesao: 280,
+        conv: [7.7,7.3,9.8,2.6,7.4,2.4,7.5,9.5,9.7,10.2,
+                    11.1,10.5,8.6,7.4,10.6,8.1,8.4,8.6,9.3,10.7,
+                    5.1,7.2,null,null,null,null,null,null,null,null],
+        leads: [7113,5759,4411,3781,4616,3485,1116,4414,4803,4692,
+                    3670,2512,1315,1278,4173,5159,4730,3810,2739,1509,
+                    1191,4500,null,null,null,null,null,null,null,null],
+        vendas_ant: 10563, projecao_fixa: 8444
+      },
+      FABIO: {
+        label: "Fabio", meta: 6600,
+        acumulado: [331,524,759,808,968,1018,1060,1243,1477,1747,
+                    1959,2091,2172,2242,2453,2671,2866,3035,3152,3238,
+                    3274,3417,3451,3463,3466,3481,3509,3521,3523,3525],
+        pf: 1762, pme: 1542, adesao: 221,
+        conv: null, leads: null, vendas_ant: 6000, projecao_fixa: 4275
+      },
+      JOSY: {
+        label: "Josy", meta: 4960,
+        acumulado: [188,382,541,583,743,771,804,993,1200,1377,
+                    1534,1643,1670,1690,1890,2070,2254,2387,2502,2574,
+                    2592,2743,2754,2767,2771,2773,2780,2782,2782,2782],
+        pf: 2243, pme: 483, adesao: 56,
+        conv: null, leads: null, vendas_ant: 3986, projecao_fixa: 3541
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 600,
+        acumulado: [24,51,78,84,100,105,114,154,171,194,
+                    224,247,252,256,281,298,310,328,345,348,
+                    355,378,378,378,378,378,378,378,378,378],
+        pf: 375, pme: 0, adesao: 3,
+        conv: null, leads: null, vendas_ant: 533, projecao_fixa: 494
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 300,
+        acumulado: [4,8,21,22,27,29,29,36,43,53,
+                    61,62,62,62,68,69,74,83,89,89,
+                    89,94,94,94,94,94,94,94,94,94],
+        pf: 94, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 44, projecao_fixa: 134
+      }
+    }
+  }
+
+};
+
+// ============================================================
+// 2º TRIMESTRE — gerado automaticamente a partir de ABRIL+MAIO+JUNHO
+// Soma de vendas realizadas (acumulado final) e soma das metas.
+// ============================================================
+(function montaTrimestre(){
+  const meses = ["ABRIL","MAIO","JUNHO"];
+  const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
+  const labels = { TOTAL:"Total geral", FABIO:"Fabio", JOSY:"Josy", ADMINISTRATIVO:"Administrativo", ACTIONLINE:"Actionline" };
+
+  const tri = {
+    mesLabel: "2º Trimestre 2026 (Abr+Mai+Jun)",
+    mesAnteriorLabel: "1º Trim.",
+    diasNoMes: meses.reduce((s,m) => s + DADOS_MESES[m].diaAtual, 0),
+    diaAtual: meses.length, // 1 ponto por mês no eixo
+    isTrimestre: true,
+    mesesInclusos: meses,
+    gestores: {}
+  };
+
+  for (const k of gestores) {
+    // venda total de cada mês = último valor do acumulado
+    const porMes = meses.map(m => {
+      const arr = DADOS_MESES[m].gestores[k].acumulado;
+      return arr[arr.length - 1] || 0;
+    });
+    // acumulado trimestral progressivo (Abr, Abr+Mai, Abr+Mai+Jun)
+    const acumProg = [];
+    let soma = 0;
+    porMes.forEach(v => { soma += v; acumProg.push(soma); });
+
+    const metaTri = meses.reduce((s,m) => s + DADOS_MESES[m].gestores[k].meta, 0);
+    const pf  = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].pf||0), 0);
+    const pme = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].pme||0), 0);
+    const ade = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].adesao||0), 0);
+
+    tri.gestores[k] = {
+      label: labels[k],
+      meta: metaTri,
+      acumulado: acumProg,           // [Abr, Abr+Mai, Abr+Mai+Jun]
+      porMes: porMes,                // vendas de cada mês isolado
+      metasPorMes: meses.map(m => DADOS_MESES[m].gestores[k].meta),
+      pf, pme, adesao: ade,
+      conv: null, leads: null,
+      vendas_ant: 0,
+      projecao_fixa: soma            // realizado = projeção (trimestre fechado)
+    };
+  }
+  DADOS_MESES.TRIMESTRE = tri;
+})();
+
+// Mês exibido por padrão ao abrir o dashboard:
+let mesAtivo = "JUNHO";
+// Aba de navegação ativa: "vendas" | "leads" | "juxmai" | "trimestre"
+let abaAtiva = "vendas";
+
+// CONFIG = espelho do mês ativo (não editar manualmente — use DADOS_MESES)
+let CONFIG = DADOS_MESES[mesAtivo];
+// ============================================================
+// FIM CONFIG
+// ============================================================
+
+// Estado
+let gestorAtivo = "TOTAL";
+let diaIni = 1;
+let diaFim = CONFIG.diaAtual;
+
+// Charts
+let charts = {};
+
+// ── INIT ──
+document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+
+function buildSelects() {
+  const si = document.getElementById("diaIni");
+  const sf = document.getElementById("diaFim");
+  si.innerHTML = "";
+  sf.innerHTML = "";
+  for (let d = 1; d <= CONFIG.diaAtual; d++) {
+    si.innerHTML += `<option value="${d}" ${d===1?'selected':''}>Dia ${d}</option>`;
+    sf.innerHTML += `<option value="${d}" ${d===CONFIG.diaAtual?'selected':''}>Dia ${d}</option>`;
+  }
+}
+buildSelects();
+
+// ── TROCA DE ABA ──
+function setAba(aba) {
+  abaAtiva = aba;
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  const tb = document.getElementById("tab-" + aba);
+  if (tb) tb.classList.add("active");
+
+  if (aba === "vendas" || aba === "leads" || aba === "funil") {
+    // garantir um mês normal selecionado (sair de comparativo/trimestre)
+    if (!DADOS_MESES[mesAtivo] || DADOS_MESES[mesAtivo].isTrimestre) mesAtivo = "JUNHO";
+    CONFIG = DADOS_MESES[mesAtivo];
+    document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+    document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+  } else if (aba === "juxmai") {
+    mesAtivo = "COMPARATIVO";
+    document.getElementById("mesLabel").textContent = "Comparativo Junho × Maio";
+  } else if (aba === "trimestre") {
+    mesAtivo = "TRIMESTRE";
+    CONFIG = DADOS_MESES["TRIMESTRE"];
+    document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+  }
+  renderAll();
+}
+
+// ── TROCA DE MÊS (sub-filtro das abas Vendas/Leads) ──
+function setMes(m) {
+  mesAtivo = m;
+  document.querySelectorAll(".btn-mes").forEach(b => b.classList.remove("active"));
+  if (typeof event !== "undefined" && event && event.target) event.target.classList.add("active");
+
+  CONFIG = DADOS_MESES[mesAtivo];
+  // resetar período para o mês inteiro disponível
+  diaIni = 1;
+  diaFim = CONFIG.diaAtual;
+  document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+  document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+  buildSelects();
+  renderAll();
+}
+
+function setGestor(g) {
+  gestorAtivo = g;
+  document.querySelectorAll(".btn-gestor").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  renderAll();
+}
+
+function aplicarFiltro() {
+  diaIni = parseInt(document.getElementById("diaIni").value);
+  diaFim = parseInt(document.getElementById("diaFim").value);
+  if (diaIni > diaFim) { diaFim = diaIni; document.getElementById("diaFim").value = diaFim; }
+  renderAll();
+}
+
+// ── HELPERS ──
+function acum(g, dia) {
+  const arr = CONFIG.gestores[g].acumulado;
+  if (dia < 1) return 0;
+  return arr[Math.min(dia, arr.length) - 1] || 0;
+}
+function vendas(g, ini, fim) {
+  return acum(g, fim) - acum(g, ini - 1);
+}
+function diasNoIntervalo(ini, fim) { return fim - ini + 1; }
+
+function fmt(n) { return n.toLocaleString("pt-BR"); }
+function fmtDec(n, d=1) { return n.toFixed(d).replace(".", ","); }
+
+function badgeClass(pct, ref) {
+  if (pct >= ref) return "green";
+  if (pct >= ref * 0.7) return "yellow";
+  return "red";
+}
+
+// ── KPIs ──
+function renderKPIs() {
+  const g = CONFIG.gestores[gestorAtivo];
+
+  // ── Modo TRIMESTRE ──
+  if (CONFIG.isTrimestre) {
+    const real = g.projecao_fixa;        // realizado = soma dos meses
+    const meta = g.meta;
+    const pctMeta = (real / meta) * 100;
+    const saldo = real - meta;
+    const mediaMes = real / 3;
+
+    document.getElementById("diaAtualLabel").textContent = "Abr+Mai+Jun";
+    document.getElementById("filtroLabel").textContent = "Trimestre completo";
+
+    document.getElementById("kVendas").textContent = fmt(real);
+    document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>`;
+
+    document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
+    document.getElementById("kMetaSub").innerHTML = `Meta trimestral acumulada`;
+
+    document.getElementById("kProj").textContent = (saldo>=0?'+':'') + fmt(saldo);
+    document.getElementById("kProjSub").innerHTML = saldo>=0 ? "acima da meta" : "abaixo da meta";
+
+    document.getElementById("kMedia").textContent = fmtDec(mediaMes, 0);
+    document.getElementById("kMediaSub").textContent = "vendas/mês (3 meses)";
+
+    document.getElementById("kAbr").textContent = fmt(g.porMes[2]);
+    document.getElementById("kAbrSub").textContent = "vendas em Junho";
+    const labAbr = document.getElementById("kAbrLabel");
+    if (labAbr) labAbr.textContent = "Último mês (Jun)";
+    document.getElementById("kAbr").style.color = "#6c4ed8";
+
+    document.getElementById("kConv").textContent = "—";
+    document.getElementById("kConvSub").textContent = "n/d no trimestre";
+    return;
+  }
+
+  const real = vendas(gestorAtivo, diaIni, diaFim);
+  const dias = diasNoIntervalo(diaIni, diaFim);
+  const meta = g.meta;
+  const pctMeta = (real / meta) * 100;
+  const media = real / dias;
+  const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
+  const pctProj = (proj / meta) * 100;
+  const varAbr = ((proj / g.vendas_ant) - 1) * 100;
+  const ref = (diaFim / CONFIG.diasNoMes) * 100;
+
+  document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+  document.getElementById("filtroLabel").textContent = `${diaIni} até ${diaFim}`;
+
+  document.getElementById("kVendas").textContent = fmt(real);
+  document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${badgeClass(pctMeta,ref)}">${fmtDec(pctMeta)}%</span>`;
+
+  document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
+  document.getElementById("kMetaSub").innerHTML = `Ref. proporcional: ${fmtDec(ref)}%`;
+
+  document.getElementById("kProj").textContent = fmt(proj);
+  document.getElementById("kProjSub").innerHTML = `${fmtDec(pctProj)}% da meta`;
+
+  document.getElementById("kMedia").textContent = fmtDec(media, 0);
+  document.getElementById("kMediaSub").textContent = `vendas/dia (${dias} dias)`;
+
+  const varSign = varAbr >= 0 ? "+" : "";
+  document.getElementById("kAbr").textContent = varSign + fmtDec(varAbr) + "%";
+  document.getElementById("kAbrSub").textContent = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
+  const labAbr = document.getElementById("kAbrLabel");
+  if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
+  document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
+
+  // Conv média
+  if (g.conv && Array.isArray(g.conv)) {
+    const _cl = (function(){ let s=0,n=0,last=0; if (g.leads && Array.isArray(g.leads)) { for (let d=diaIni; d<=diaFim; d++){ const L=g.leads[d-1]; if (L!==null && L!==undefined){ s+=L; n++; last=d; } } } return {s:s,n:n,last:last}; })();
+    // Conversão ponderada = vendas ÷ leads, restrita aos MESMOS dias com leads (numerador e denominador no mesmo período)
+    const vendasConv = _cl.last >= diaIni ? vendas(gestorAtivo, diaIni, _cl.last) : 0;
+    const convMedia = _cl.s > 0 ? (vendasConv / _cl.s) * 100 : null;
+    document.getElementById("kConv").textContent = convMedia !== null ? fmtDec(convMedia) + "%" : "—";
+    document.getElementById("kConvSub").textContent = convMedia !== null ? `vendas÷leads · ${_cl.n} dias` : "Disponível p/ Total";
+    document.getElementById("kpiConv").style.display = "";
+  } else {
+    document.getElementById("kConv").textContent = "—";
+    document.getElementById("kConvSub").textContent = "Disponível p/ Total";
+  }
+}
+
+// ── LABELS ──
+function getDayLabels() {
+  const labels = [];
+  for (let d = diaIni; d <= diaFim; d++) labels.push(`Dia ${d}`);
+  return labels;
+}
+
+function getAcumData() {
+  const arr = CONFIG.gestores[gestorAtivo].acumulado;
+  const data = [];
+  for (let d = diaIni; d <= diaFim; d++) data.push(arr[d-1] || 0);
+  return data;
+}
+
+function getVolumeData() {
+  const arr = CONFIG.gestores[gestorAtivo].acumulado;
+  const pf = []; const pme = []; const ades = [];
+  // proporcional por tipo
+  const g = CONFIG.gestores[gestorAtivo];
+  const totalReal = acum(gestorAtivo, diaFim) - acum(gestorAtivo, diaIni - 1);
+  const pfRatio  = totalReal > 0 ? g.pf  / (g.pf + g.pme + g.adesao || 1) : 0;
+  const pmeRatio = totalReal > 0 ? g.pme / (g.pf + g.pme + g.adesao || 1) : 0;
+  const adRatio  = totalReal > 0 ? g.adesao / (g.pf + g.pme + g.adesao || 1) : 0;
+
+  for (let d = diaIni; d <= diaFim; d++) {
+    const vol = (arr[d-1] || 0) - (arr[d-2] || (d===1?0:arr[d-2]||0));
+    const v = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
+    pf.push(Math.round(v * pfRatio));
+    pme.push(Math.round(v * pmeRatio));
+    ades.push(Math.round(v * adRatio));
+  }
+  return { pf, pme, ades };
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── CHART: ACUMULADO ──
+function renderAcumulado() {
+  destroyChart("acumulado");
+  const g = CONFIG.gestores[gestorAtivo];
+  const labels = getDayLabels();
+  const data = getAcumData();
+  const meta = g.meta;
+  const metaLine = labels.map(() => meta);
+  // Projeção: usa projecao_fixa se houver, senão estima por média/dia × dias do mês.
+  // A linha tracejada cresce linearmente do dia 1 até atingir a projeção no fim do mês.
+  const real = data[data.length-1] - (acum(gestorAtivo, diaIni-1) || 0);
+  const diasDecorridos = diaFim - diaIni + 1;
+  const mediaDia = diasDecorridos > 0 ? real / diasDecorridos : 0;
+  const projMes = g.projecao_fixa || Math.round(mediaDia * CONFIG.diasNoMes);
+  const projDia = projMes / CONFIG.diasNoMes;
+  const projecaoLine = labels.map((_,i) => Math.round(projDia * (diaIni + i)));
+
+  const showAllLabels = (diaFim - diaIni + 1) <= 15;
+  charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Acumulado", data, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5,
+          datalabels: {
+            display: ctx => showAllLabels || ctx.dataIndex === data.length - 1,
+            align: "top", anchor: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v
+          }
+        },
+        { label: "Meta", data: metaLine, borderColor: "#1D9E75", borderDash: [6,3], borderWidth: 1.5, pointRadius: 0, fill: false,
+          datalabels: {
+            display: ctx => ctx.dataIndex === metaLine.length - 1,
+            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#1D9E75",
+            formatter: v => "Meta: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
+          }
+        },
+        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false,
+          datalabels: {
+            display: ctx => ctx.dataIndex === projecaoLine.length - 1,
+            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#E8623A",
+            formatter: v => "Proj: " + (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v)
+          }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 55 } },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {}
+      },
+      scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } }
+    }
+  });
+}
+
+// ── CHART: VOLUME ──
+function renderVolume() {
+  destroyChart("volume");
+  const labels = getDayLabels();
+  const { pf, pme, ades } = getVolumeData();
+  const numDias = diaFim - diaIni + 1;
+  const totaisVol = pf.map((v,i) => v + pme[i] + ades[i]);
+  const totFont = numDias <= 16 ? 13 : numDias <= 25 ? 11 : 10;   // total sempre legivel
+  charts["volume"] = new Chart(document.getElementById("chartVolume"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "PF",     data: pf,   backgroundColor: "#185FA5", datalabels: { display: false } },
+        { label: "PME",    data: pme,  backgroundColor: "#1D9E75", datalabels: { display: false } },
+        { label: "Adesão", data: ades, backgroundColor: "#D85A30",
+          datalabels: {
+            display: ctx => totaisVol[ctx.dataIndex] > 0,
+            anchor: "end", align: "end", offset: 4, clamp: true,
+            font: { size: totFont, weight: "800" }, color: "#0B3D6B",
+            formatter: (v, ctx) => totaisVol[ctx.dataIndex] ? totaisVol[ctx.dataIndex].toLocaleString("pt-BR") : ""
+          }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 22 } },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {},
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y||0).toLocaleString("pt-BR")}`,
+            footer: items => "Total: " + items.reduce((s,i)=>s+(i.parsed.y||0),0).toLocaleString("pt-BR")
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 }, maxTicksLimit: 31 } },
+        y: { stacked: true, ticks: { font: { size: 10 } }, grace: "8%" }
+      }
+    }
+  });
+}
+
+// ── CHART: PRODUTO ──
+function renderProduto() {
+  destroyChart("produto");
+  const g = CONFIG.gestores[gestorAtivo];
+  const real = vendas(gestorAtivo, diaIni, diaFim);
+  const dias = diasNoIntervalo(diaIni, diaFim);
+  const total = g.pf + g.pme + g.adesao;
+  const ratio = total > 0 ? real / total : 0;
+  const pfV   = Math.round(g.pf * ratio / dias);
+  const pmeV  = Math.round(g.pme * ratio / dias);
+  const adesV = Math.round(g.adesao * ratio / dias);
+  charts["produto"] = new Chart(document.getElementById("chartProduto"), {
+    type: "bar",
+    data: {
+      labels: ["PF", "PME", "Adesão"],
+      datasets: [{ label: "Média/dia", data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderRadius: 5,
+        datalabels: {
+          anchor: "end", align: "right",
+          font: { size: 11, weight: "700" }, color: "#333",
+          formatter: v => v > 0 ? v : ""
+        }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true, indexAxis: "y",
+      layout: { padding: { right: 30 } },
+      plugins: { legend: { display: false }, datalabels: {} },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
+    }
+  });
+}
+
+// ── CHART: CONVERSÃO ──
+function renderConv() {
+  destroyChart("conv");
+  const g = CONFIG.gestores[gestorAtivo];
+  const showConv = g.conv && Array.isArray(g.conv);
+  const labels = getDayLabels();
+  let data = labels.map(() => null);
+  let bgColors = labels.map(() => "#cccccc");
+
+  if (showConv) {
+    data = [];
+    bgColors = [];
+    for (let d = diaIni; d <= diaFim; d++) {
+      const v = g.conv[d-1];
+      data.push(v);
+      if (v === null || v === undefined) bgColors.push("rgba(200,200,200,0.3)");
+      else if (v >= 8) bgColors.push("#0F6E56");
+      else if (v >= 5) bgColors.push("#854F0B");
+      else bgColors.push("#993C1D");
+    }
+  }
+
+  const showConvLabels = (diaFim - diaIni + 1) <= 20;
+  charts["conv"] = new Chart(document.getElementById("chartConv"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Conv %", data, backgroundColor: bgColors, borderRadius: 3,
+        datalabels: {
+          display: ctx => showConvLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+          anchor: "end", align: "top",
+          font: { size: 9, weight: "600" },
+          color: ctx => {
+            const v = ctx.dataset.data[ctx.dataIndex];
+            if (v === null) return "transparent";
+            return v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D";
+          },
+          formatter: v => v !== null ? v + "%" : ""
+        }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw}%` : "—" } },
+        datalabels: {}
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } },
+        y: { ticks: { font: { size: 10 }, callback: v => v + "%" } }
+      }
+    }
+  });
+}
+
+// ── CHART: MIX ──
+function renderMix() {
+  destroyChart("mix");
+  const g = CONFIG.gestores[gestorAtivo];
+  const real = vendas(gestorAtivo, diaIni, diaFim);
+  const total = g.pf + g.pme + g.adesao;
+  const ratio = total > 0 ? real / total : 0;
+  const pfV   = Math.round(g.pf * ratio);
+  const pmeV  = Math.round(g.pme * ratio);
+  const adesV = Math.round(g.adesao * ratio);
+
+  charts["mix"] = new Chart(document.getElementById("chartMix"), {
+    type: "doughnut",
+    data: {
+      labels: ["PF","PME","Adesão"],
+      datasets: [{ data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderWidth: 2,
+        datalabels: {
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          color: "#fff",
+          font: { size: 11, weight: "700" },
+          formatter: (v, ctx) => {
+            const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct = sum > 0 ? ((v/sum)*100).toFixed(1) : 0;
+            return pct + "%";
+          }
+        }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: "bottom", labels: { font: { size: 11 }, padding: 12 } },
+        datalabels: {},
+        tooltip: { callbacks: {
+          label: ctx => {
+            const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct = sum > 0 ? ((ctx.raw / sum)*100).toFixed(1) : 0;
+            return ` ${ctx.label}: ${fmt(ctx.raw)} (${pct}%)`;
+          }
+        }}
+      }
+    }
+  });
+}
+
+// ── CHART: LEADS ──
+function renderLeadsKPIs() {
+  const fn = CONFIG.leadsFunil;
+  const vals = ["kLeadRec","kLeadTrat","kLeadTaxa","kLeadConv"];
+  const subs = ["kLeadRecSub","kLeadTratSub","kLeadTaxaSub","kLeadConvSub"];
+  if (!fn || !Array.isArray(fn.recebidos)) {
+    vals.forEach(id => document.getElementById(id).textContent = "—");
+    subs.forEach(id => document.getElementById(id).textContent = "");
+    return;
+  }
+  let rec = 0, tra = 0;
+  for (let d = diaIni; d <= diaFim; d++) {
+    if (fn.recebidos[d-1] != null) rec += fn.recebidos[d-1];
+    if (fn.tratados[d-1]  != null) tra += fn.tratados[d-1];
+  }
+  const taxa = rec > 0 ? (tra / rec) * 100 : null;
+  // Conv. Média = MESMA fórmula do KPI oficial de Vendas (vendas ÷ leads RESUMO_6, até o último dia c/ leads)
+  const g = CONFIG.gestores["TOTAL"];
+  let conv = null, ndiasConv = 0;
+  if (g && Array.isArray(g.conv) && Array.isArray(g.leads)) {
+    let s = 0, last = 0;
+    for (let d = diaIni; d <= diaFim; d++) { const L = g.leads[d-1]; if (L != null) { s += L; ndiasConv++; last = d; } }
+    const vConv = last >= diaIni ? vendas("TOTAL", diaIni, last) : 0;
+    conv = s > 0 ? (vConv / s) * 100 : null;
+  }
+  document.getElementById("kLeadRec").textContent  = fmt(rec);
+  document.getElementById("kLeadRecSub").textContent = `Dias ${diaIni}–${diaFim}`;
+  document.getElementById("kLeadTrat").textContent = fmt(tra);
+  document.getElementById("kLeadTratSub").textContent = "atribuídos + dedup";
+  document.getElementById("kLeadTaxa").textContent = taxa != null ? fmtDec(taxa) + "%" : "—";
+  document.getElementById("kLeadTaxaSub").textContent = "tratados / recebidos";
+  document.getElementById("kLeadConv").textContent = conv != null ? fmtDec(conv) + "%" : "—";
+  document.getElementById("kLeadConvSub").textContent = conv != null ? `vendas÷leads · ${ndiasConv} dias` : "Disponível p/ Total";
+}
+
+function renderLeads() {
+  destroyChart("leads");
+  destroyChart("leadPerf");
+  const g = CONFIG.gestores[gestorAtivo];
+  const showLeads = g.leads && Array.isArray(g.leads);
+  document.getElementById("leadsSection").style.display = showLeads ? "" : "none";
+  if (!showLeads) return;
+
+  const labels = getDayLabels();
+  const leadsData = [];
+  const volData = [];
+  for (let d = diaIni; d <= diaFim; d++) {
+    leadsData.push(g.leads[d-1] ?? null);
+    const arr = g.acumulado;
+    const vol = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
+    volData.push(vol);
+  }
+
+  const leadsValidos = leadsData.filter(v => v !== null);
+  const mediaLeads = leadsValidos.length ? leadsValidos.reduce((a,b)=>a+b,0)/leadsValidos.length : 0;
+  const mediaLeadsLine = leadsData.map(v => v !== null ? mediaLeads : null);
+
+  const showLeadLabels = (diaFim - diaIni + 1) <= 15;
+  if (CONFIG.leadsFunil && Array.isArray(CONFIG.leadsFunil.recebidos)) {
+    const _fn = CONFIG.leadsFunil, _rec = [], _tra = [], _labels = [];
+    const _fim = Math.min(diaFim, _fn.dias || diaFim);   // não estender além do último dia com dado
+    for (let d = diaIni; d <= _fim; d++) { _rec.push(_fn.recebidos[d-1] ?? null); _tra.push(_fn.tratados[d-1] ?? null); _labels.push(`Dia ${d}`); }
+    const _np = (_fim - diaIni + 1);
+    const _lbl = (v) => v == null ? "" : (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v);
+    charts["leads"] = new Chart(document.getElementById("chartLeads"), {
+      type: "line",
+      data: { labels: _labels, datasets: [
+        { label: "Recebidos", data: _rec, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)",
+          borderWidth: 2.5, fill: true, tension: .35, pointRadius: _np <= 22 ? 3 : 0, pointHoverRadius: 5, order: 2,
+          datalabels: { display: ctx => _np <= 15 && ctx.dataset.data[ctx.dataIndex] != null, anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5", formatter: _lbl } },
+        { label: "Tratados", data: _tra, borderColor: "#1D9E75", backgroundColor: "rgba(29,158,117,.10)",
+          borderWidth: 2.5, fill: true, tension: .35, pointRadius: _np <= 22 ? 3 : 0, pointHoverRadius: 5, order: 1,
+          datalabels: { display: ctx => _np <= 15 && ctx.dataset.data[ctx.dataIndex] != null, anchor: "start", align: "bottom",
+            font: { size: 9, weight: "600" }, color: "#1D9E75", formatter: _lbl } }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+          tooltip: { callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y||0).toLocaleString("pt-BR")}`,
+            footer: items => { const r = items.find(i => i.dataset.label === "Recebidos"),
+              t = items.find(i => i.dataset.label === "Tratados");
+              return (r && t && r.parsed.y) ? "Tratamento: " + (t.parsed.y / r.parsed.y * 100).toFixed(1).replace(".",",") + "%" : ""; }
+          } } },
+        scales: { x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } },
+                  y: { beginAtZero: true, ticks: { font: { size: 10 } } } } }
+    });
+  } else {
+    charts["leads"] = new Chart(document.getElementById("chartLeads"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Leads", data: leadsData, backgroundColor: "rgba(24,95,165,.6)", borderRadius: 3, order: 2,
+          datalabels: {
+            display: ctx => showLeadLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v !== null ? (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v) : ""
+          }
+        },
+        { label: "Média", data: mediaLeadsLine, type: "line", borderColor: "#E8623A", borderDash: [5,3], borderWidth: 2, pointRadius: 0, fill: false, order: 1,
+          datalabels: { display: false }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { x: { ticks: { font:{size:10}, maxTicksLimit:12 } }, y: { ticks: { font:{size:10} } } }
+    }
+  });
+  }
+
+  // Lead perf: leads/venda vs conv%
+  const lv = [], cv2 = [];
+  const labels2 = [];
+  for (let d = diaIni; d <= diaFim; d++) {
+    const l = g.leads[d-1];
+    const arr = g.acumulado;
+    const vol = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
+    const c = g.conv ? g.conv[d-1] : null;
+    if (l !== null && l !== undefined && vol > 0) {
+      labels2.push(`Dia ${d}`);
+      lv.push(+(l / vol).toFixed(1));
+      cv2.push(c ?? null);
+    }
+  }
+
+  const showLPLabels = labels2.length <= 15;
+  charts["leadPerf"] = new Chart(document.getElementById("chartLeadPerf"), {
+    type: "bar",
+    data: {
+      labels: labels2,
+      datasets: [
+        { label: "Leads/Venda", data: lv, backgroundColor: "rgba(24,95,165,.55)", borderRadius: 3, yAxisID: "y",
+          datalabels: {
+            display: showLPLabels,
+            anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v
+          }
+        },
+        { label: "Conv %", data: cv2, type: "line", borderColor: "#E8623A", borderWidth: 2, pointRadius: 3, fill: false, yAxisID: "y2",
+          datalabels: {
+            display: ctx => showLPLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            align: "top", anchor: "top",
+            font: { size: 9, weight: "600" }, color: "#E8623A",
+            formatter: v => v !== null ? v + "%" : ""
+          }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font:{size:11} } }, datalabels: {} },
+      scales: {
+        x: { ticks: { font:{size:10}, maxTicksLimit:12 } },
+        y: { type:"linear", position:"left", ticks:{ font:{size:10} }, title:{ display:true, text:"Leads/Venda", font:{size:10} } },
+        y2: { type:"linear", position:"right", grid:{ drawOnChartArea:false }, ticks:{ font:{size:10}, callback: v => v+"%" }, title:{ display:true, text:"Conv %", font:{size:10} } }
+      }
+    }
+  });
+}
+
+// ── CHART: LEADS POR ORIGEM ──
+function renderLeadsOrigem() {
+  destroyChart("leadsOrigem");
+  const sec = document.getElementById("leadsOrigemSection");
+  const dados = CONFIG.leadsOrigem;
+  // só exibe se o mês tiver os dados e o gestor ativo for TOTAL (dado é consolidado)
+  const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
+  sec.style.display = exibir ? "" : "none";
+  if (!exibir) return;
+
+  const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
+  const labels = ordenado.map(d => d.label);
+  const valores = ordenado.map(d => d.valor);
+  const total = valores.reduce((a,b)=>a+b,0);
+  const cores = ["#185FA5","#1D9E75","#6c4ed8","#D85A30","#2E86C1","#17A589","#8E44AD",
+                 "#E67E22","#5499C7","#48C9B0","#A569BD","#EB984E","#85929E"];
+
+  charts["leadsOrigem"] = new Chart(document.getElementById("chartLeadsOrigem"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Leads", data: valores,
+        backgroundColor: labels.map((_,i)=>cores[i % cores.length]), borderRadius: 4,
+        datalabels: { anchor:"end", align:"end", font:{size:10,weight:"600"}, color:"#333",
+          formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 36 } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const pct = total>0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+          return ` ${fmt(ctx.raw)} leads (${pct}%)`;
+        }}}
+      },
+      scales: { x: { beginAtZero:true, ticks:{ font:{size:9} } }, y: { ticks:{ font:{size:10} } } }
+    }
+  });
+}
+
+// ── CHART: LEADS POR TIPO ──
+function renderLeadsTipo() {
+  destroyChart("leadsTipo");
+  const dados = CONFIG.leadsTipo;
+  const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
+  if (!exibir) return;
+
+  const ordenado = [...dados].sort((a,b) => b.valor - a.valor);
+  const labels = ordenado.map(d => d.label);
+  const valores = ordenado.map(d => d.valor);
+  const total = valores.reduce((a,b)=>a+b,0);
+  const cores = ["#185FA5","#1D9E75","#D85A30","#6c4ed8","#EB984E"];
+
+  charts["leadsTipo"] = new Chart(document.getElementById("chartLeadsTipo"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Leads", data: valores,
+        backgroundColor: labels.map((_,i)=>cores[i % cores.length]), borderRadius: 4,
+        datalabels: { anchor:"end", align:"end", font:{size:11,weight:"700"}, color:"#333",
+          formatter: v => {
+            const pct = total>0 ? (v/total*100).toFixed(1).replace(".",",") : 0;
+            const val = v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v;
+            return `${val} (${pct}%)`;
+          } } }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 80 } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const pct = total>0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+          return ` ${ctx.label}: ${fmt(ctx.raw)} (${pct}%)`;
+        }}}
+      },
+      scales: { x: { beginAtZero:true, ticks:{ font:{size:9} } }, y: { ticks:{ font:{size:11} } } }
+    }
+  });
+}
+
+// ── TABELA: CONVERSÃO POR ORIGEM ──
+function renderConversao() {
+  const sec = document.getElementById("conversaoSection");
+  const dados = CONFIG.leadsConversao;
+  const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
+  sec.style.display = exibir ? "" : "none";
+  if (!exibir) return;
+
+  const tbody = document.getElementById("tabelaConversao");
+  tbody.innerHTML = "";
+  let tLeads=0, tProd=0, tContr=0, tVidas=0;
+
+  // ordena por leads totais (maior primeiro)
+  const ordenado = [...dados].sort((a,b) => b.leads - a.leads);
+  for (const d of ordenado) {
+    tLeads += d.leads; tProd += d.produtivos; tContr += d.contratos; tVidas += d.vidas;
+    const pctProd = d.leads>0 ? (d.produtivos/d.leads*100) : 0;
+    const convContr = d.leads>0 ? (d.contratos/d.leads*100) : 0;
+    const convVidas = d.leads>0 ? (d.vidas/d.leads*100) : 0;
+    const bcV = convVidas>=8 ? "green" : convVidas>=5 ? "yellow" : "red";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.origem}</td>
+      <td class="td-right num">${fmt(d.leads)}</td>
+      <td class="td-right num">${fmt(d.produtivos)}</td>
+      <td class="td-right">${fmtDec(pctProd)}%</td>
+      <td class="td-right num">${fmt(d.contratos)}</td>
+      <td class="td-right num">${fmt(d.vidas)}</td>
+      <td class="td-right">${fmtDec(convContr)}%</td>
+      <td class="td-right"><span class="badge ${bcV}">${fmtDec(convVidas)}%</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+  // linha de total
+  const pctProdT = tLeads>0 ? (tProd/tLeads*100) : 0;
+  const convContrT = tLeads>0 ? (tContr/tLeads*100) : 0;
+  const convVidasT = tLeads>0 ? (tVidas/tLeads*100) : 0;
+  const trT = document.createElement("tr");
+  trT.style.fontWeight = "700";
+  trT.style.borderTop = "2px solid #185FA5";
+  trT.innerHTML = `
+    <td>Total Geral</td>
+    <td class="td-right num">${fmt(tLeads)}</td>
+    <td class="td-right num">${fmt(tProd)}</td>
+    <td class="td-right">${fmtDec(pctProdT)}%</td>
+    <td class="td-right num">${fmt(tContr)}</td>
+    <td class="td-right num">${fmt(tVidas)}</td>
+    <td class="td-right">${fmtDec(convContrT)}%</td>
+    <td class="td-right">${fmtDec(convVidasT)}%</td>
+  `;
+  tbody.appendChild(trT);
+}
+
+// ── TABELA: ENTRADA DE LEADS POR ORIGEM POR DIA ──
+function renderLeadsDia() {
+  const sec = document.getElementById("leadsDiaSection");
+  const dados = CONFIG.leadsOrigemDia;
+  const exibir = dados && Array.isArray(dados.origens) && dados.origens.length && gestorAtivo === "TOTAL";
+  sec.style.display = exibir ? "" : "none";
+  if (!exibir) return;
+
+  const nDias = dados.dias;
+  // Cabeçalho: Origem | Dia 1..N | Total
+  const head = document.getElementById("leadsDiaHead");
+  let th = '<tr><th style="position:sticky;left:0;background:#185FA5;color:#fff;z-index:2">Origem</th>';
+  for (let d = 1; d <= nDias; d++) th += `<th class="td-right">${d}</th>`;
+  th += '<th class="td-right" style="background:#0d4a85;color:#fff">Total</th></tr>';
+  head.innerHTML = th;
+
+  // Linhas: ordenadas por total (maior primeiro)
+  const comTotal = dados.origens.map(o => ({
+    origem: o.origem,
+    dias: o.dias,
+    total: o.dias.reduce((a,b) => a + (b||0), 0)
+  })).sort((a,b) => b.total - a.total);
+
+  const body = document.getElementById("leadsDiaBody");
+  body.innerHTML = "";
+  const totalPorDia = new Array(nDias).fill(0);
+  let totalGeral = 0;
+
+  for (const o of comTotal) {
+    let tr = `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600">${o.origem}</td>`;
+    for (let d = 0; d < nDias; d++) {
+      const v = o.dias[d] || 0;
+      totalPorDia[d] += v;
+      // sombreamento leve por intensidade
+      const tr_op = v === 0 ? "" : ' style="background:rgba(24,95,165,'+Math.min(0.18, v/6000).toFixed(3)+')"';
+      tr += `<td class="td-right"${tr_op}>${v === 0 ? "–" : fmt(v)}</td>`;
+    }
+    totalGeral += o.total;
+    tr += `<td class="td-right num" style="font-weight:700;background:#eef4fb">${fmt(o.total)}</td></tr>`;
+    body.innerHTML += tr;
+  }
+
+  // Linha total geral
+  let trT = '<tr style="font-weight:700;border-top:2px solid #185FA5"><td style="position:sticky;left:0;background:#eef4fb">Total Geral</td>';
+  for (let d = 0; d < nDias; d++) trT += `<td class="td-right" style="background:#eef4fb">${fmt(totalPorDia[d])}</td>`;
+  trT += `<td class="td-right" style="background:#185FA5;color:#fff">${fmt(totalGeral)}</td></tr>`;
+  body.innerHTML += trT;
+}
+
+// ── TABELA ──
+function renderTabela() {
+  const tbody = document.getElementById("tabela");
+  tbody.innerHTML = "";
+  const keys = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+  for (const k of keys) {
+    const g = CONFIG.gestores[k];
+    const real = vendas(k, diaIni, diaFim);
+    const dias = diasNoIntervalo(diaIni, diaFim);
+    const pctMeta = ((real / g.meta) * 100).toFixed(1);
+    const media = real / dias;
+    const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
+    const pctProj = ((proj / g.meta) * 100).toFixed(1);
+    const varAbr = (((proj / g.vendas_ant) - 1) * 100).toFixed(1);
+    const ref = (diaFim / CONFIG.diasNoMes) * 100;
+    const bc = badgeClass(parseFloat(pctMeta), ref);
+    const total = g.pf + g.pme + g.adesao;
+    const ratio = total > 0 ? real / total : 0;
+
+    const tr = document.createElement("tr");
+    if (k === "TOTAL") tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>${g.label}</td>
+      <td class="td-right num">${fmt(real)}</td>
+      <td class="td-right num">${fmt(g.meta)}</td>
+      <td class="td-right"><span class="badge ${bc}">${pctMeta}%</span></td>
+      <td class="td-right num">${fmt(proj)}</td>
+      <td class="td-right">${pctProj}%</td>
+      <td class="td-right num">${fmtDec(media,0)}</td>
+      <td class="td-right" style="color:${parseFloat(varAbr)>=0?'#1D9E75':'#D85A30'}">${varAbr>=0?'+':''}${varAbr}%</td>
+      <td class="td-right num">${fmt(Math.round(g.pf*ratio))}</td>
+      <td class="td-right num">${fmt(Math.round(g.pme*ratio))}</td>
+      <td class="td-right num">${fmt(Math.round(g.adesao*ratio))}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// Registra plugin globalmente
+Chart.register(ChartDataLabels);
+
+// ── RENDER ALL (dirigido pela aba ativa) ──
+function renderAll() {
+  const isVendas = abaAtiva === "vendas";
+  const isLeads  = abaAtiva === "leads";
+  const isFunil  = abaAtiva === "funil";
+  const isComp   = abaAtiva === "juxmai";
+  const isTri    = abaAtiva === "trimestre";
+
+  // alterna seções por aba
+  document.querySelectorAll(".vendas-view").forEach(el => el.style.display = isVendas ? "" : "none");
+  document.querySelectorAll(".leads-view").forEach(el => el.style.display = isLeads ? "" : "none");
+  document.querySelectorAll(".funil-view").forEach(el => el.style.display = isFunil ? "" : "none");
+  document.getElementById("triPanel").style.display = isTri ? "" : "none";
+  document.getElementById("compPanel").style.display = isComp ? "" : "none";
+  // KPIs de vendas: aba Vendas e aba Trimestre
+  document.getElementById("mainKpis").style.display = (isVendas || isTri) ? "" : "none";
+  // sub-filtros (mês/gestor/período) nas abas Vendas/Leads/Funil
+  document.getElementById("subFilters").style.display = (isVendas || isLeads || isFunil) ? "" : "none";
+  // período habilitado em Vendas/Leads/Funil
+  document.getElementById("diaIni").disabled = !(isVendas || isLeads || isFunil);
+  document.getElementById("diaFim").disabled = !(isVendas || isLeads || isFunil);
+
+  if (isComp) { renderComparativo(); return; }
+  if (isTri)  { renderKPIs(); renderTrimestre(); return; }
+
+  if (isVendas) {
+    renderKPIs();
+    renderAcumulado();
+    renderVolume();
+    renderProduto();
+    renderConv();
+    renderMix();
+    renderTabela();
+  } else if (isFunil) {
+    renderFunil();
+  } else { // leads
+    renderLeadsKPIs();
+    renderLeads();
+    renderLeadsOrigem();
+    renderLeadsTipo();
+    renderConversao();
+    renderLeadsDia();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── RENDER FUNIL DE ATENDIMENTO (Abertura → Atribuição → Resposta) ──
+// Fonte: CONFIG.funilAtendimento (injetado do leads_ano do Supabase por vendas_diaria.py).
+// Contagens e distribuição por faixa somam EXATO no período; a mediana de um recorte é
+// interpolada do histograma acumulado (mediana não é agregável a partir de medianas diárias).
+// ══════════════════════════════════════════════════════════════════════════════
+const FUNIL_BANDS = [
+  { label: "≤ 2 min",   bins: [0, 1],       cor: "#1D9E75" },
+  { label: "2–15 min",  bins: [2, 3],       cor: "#5DBB99" },
+  { label: "15–60 min", bins: [4, 5],       cor: "#E9C46A" },
+  { label: "1–3 h",     bins: [6],          cor: "#E67E22" },
+  { label: "> 3 h",     bins: [7, 8, 9],    cor: "#D85A30" },
+];
+
+function funLimites(fa) {
+  const edg = fa.edges;                      // [1,2,5,15,30,60,180,720,1440]
+  return { EDG: edg, LO: [0, ...edg], HI: [...edg, edg[edg.length - 1] * 2] };
+}
+function funMediana(h, lim) {
+  const n = h.reduce((a, b) => a + b, 0);
+  if (!n) return null;
+  const alvo = n / 2; let cum = 0;
+  for (let b = 0; b < h.length; b++) {
+    if (cum + h[b] >= alvo && h[b] > 0) return lim.LO[b] + (alvo - cum) / h[b] * (lim.HI[b] - lim.LO[b]);
+    cum += h[b];
+  }
+  return lim.HI[lim.HI.length - 1];
+}
+function funCntLE(h, x, lim) {              // nº de casos com tempo ≤ x min (edges exatos)
+  let s = 0;
+  for (let b = 0; b < lim.EDG.length; b++) if (lim.EDG[b] <= x) s += h[b];
+  return s;
+}
+function funMin(m) {
+  if (m == null) return "—";
+  return m < 60 ? fmtDec(m, 1) + " min" : fmtDec(m / 60, 1) + " h";
+}
+// soma um histograma (which = 'histFila'|'histAtend'|'histTotal') no intervalo [ini,fim] (dias 1..N)
+function funSomaHist(g, which, ini, fim, nbins) {
+  const acc = new Array(nbins).fill(0);
+  for (let d = ini; d <= fim; d++) {
+    const h = g[which][d - 1]; if (!h) continue;
+    for (let b = 0; b < nbins; b++) acc[b] += (h[b] || 0);
+  }
+  return acc;
+}
+function funSomaCont(arr, ini, fim) {
+  let s = 0; for (let d = ini; d <= fim; d++) s += (arr[d - 1] || 0); return s;
+}
+
+function renderFunil() {
+  const fa = CONFIG.funilAtendimento;
+  ["funilVol", "funilDist", "funilEvol"].forEach(destroyChart);
+  const semDados = !fa || !fa.gestoes || !fa.dias;
+  const gkey = (!semDados && fa.gestoes[gestorAtivo]) ? gestorAtivo : "TOTAL";
+  const g = semDados ? null : fa.gestoes[gkey];
+  const isTot = gkey === "TOTAL";
+
+  // guarda de estado vazio
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  if (semDados || !g) {
+    ["kFunAbertos","kFunFila","kFunAtend","kFunTotal","kFun15","kFunSem"].forEach(id => setTxt(id, "—"));
+    document.getElementById("funilVolNote").textContent =
+      "Sem dados de funil neste mês. Rode o build (vendas_diaria.py) para popular a partir do leads_ano (Supabase).";
+    document.getElementById("tabelaFunilDiaBody").innerHTML =
+      '<tr><td colspan="9" style="text-align:center;color:var(--cinza)">Sem dados</td></tr>';
+    return;
+  }
+
+  const lim = funLimites(fa);
+  const nb = fa.edges.length + 1;
+  const ini = diaIni, fim = diaFim;
+  const abertos = funSomaCont(g.abertos, ini, fim);
+  const atrib   = funSomaCont(g.atribuidos, ini, fim);
+  const resp    = funSomaCont(g.respondidos, ini, fim);
+  const hFila = funSomaHist(g, "histFila", ini, fim, nb);
+  const hAtend = funSomaHist(g, "histAtend", ini, fim, nb);
+  const hTotal = funSomaHist(g, "histTotal", ini, fim, nb);
+  const medFila = funMediana(hFila, lim), medAtend = funMediana(hAtend, lim), medTotal = funMediana(hTotal, lim);
+  const base15 = isTot ? abertos : atrib;              // denom do "≤15min total"
+  const pct15 = base15 ? funCntLE(hTotal, 15, lim) / base15 * 100 : 0;
+  const sem = abertos - resp;
+  const pctSem = abertos ? sem / abertos * 100 : 0;
+
+  // ── KPIs ──
+  setTxt("kFunAbertos", fmt(abertos));
+  setTxt("kFunAbertosSub", `${fmt(atrib)} atribuídos · ${fmt(resp)} respondidos`);
+  setTxt("kFunFila", funMin(medFila));
+  setTxt("kFunAtend", funMin(medAtend));
+  setTxt("kFunTotal", funMin(medTotal));
+  setTxt("kFun15", fmtDec(pct15, 1) + "%");
+  setTxt("kFun15Sub", `${fmt(funCntLE(hTotal, 15, lim))} de ${fmt(base15)} leads`);
+  setTxt("kFunSem", fmt(sem));
+  setTxt("kFunSemSub", `${fmtDec(pctSem, 1)}% dos abertos sem 1ª resposta`);
+
+  // ── Funil (barras horizontais decrescentes) ──
+  const estagios = isTot
+    ? [["Abertos", abertos, "#185FA5"], ["Atribuídos", atrib, "#2E86C1"], ["Respondidos", resp, "#1D9E75"]]
+    : [["Atribuídos", atrib, "#2E86C1"], ["Respondidos", resp, "#1D9E75"]];
+  const topo = estagios[0][1] || 1;
+  charts["funilVol"] = new Chart(document.getElementById("chartFunilVol"), {
+    type: "bar",
+    data: {
+      labels: estagios.map(e => e[0]),
+      datasets: [{
+        data: estagios.map(e => e[1]),
+        backgroundColor: estagios.map(e => e[2]), borderRadius: 5,
+        datalabels: {
+          anchor: "end", align: "right", clamp: true, color: "#0B3D6B", font: { size: 13, weight: "700" },
+          formatter: (v, ctx) => `${fmt(v)}  (${fmtDec(v / topo * 100, 1)}%)`
+        }
+      }]
+    },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 90 } },
+      plugins: { legend: { display: false }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => `${fmt(ctx.parsed.x)} leads (${fmtDec(ctx.parsed.x / topo * 100, 1)}% dos abertos)` } } },
+      scales: { x: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => fmt(v) } },
+                y: { ticks: { font: { size: 12, weight: "600" } } } }
+    }
+  });
+  const quedaAtrib = abertos ? (abertos - atrib) / abertos * 100 : 0;
+  document.getElementById("funilVolNote").innerHTML = isTot
+    ? `Perda na fila (abertos sem atribuição): <b>${fmt(abertos - atrib)}</b> (${fmtDec(quedaAtrib, 1)}%) · `
+      + `Sem resposta: <b>${fmt(sem)}</b> (${fmtDec(pctSem, 1)}%). Período: dias ${ini}–${fim}.`
+    : `Gestão <b>${g_label(gkey)}</b> — leads atribuídos à equipe. Sem resposta: <b>${fmt(sem)}</b> (${fmtDec(pctSem, 1)}%). Período: dias ${ini}–${fim}.`;
+
+  // ── Distribuição por faixa de tempo (Abertura → 1ª Resposta) em % dos abertos ──
+  const bandaVals = FUNIL_BANDS.map(bd => bd.bins.reduce((s, b) => s + (hTotal[b] || 0), 0));
+  const labelsDist = FUNIL_BANDS.map(b => b.label).concat("Sem resposta");
+  const coresDist = FUNIL_BANDS.map(b => b.cor).concat("#95a5a6");
+  const valsDist = bandaVals.concat(sem);
+  const denomDist = abertos || 1;
+  charts["funilDist"] = new Chart(document.getElementById("chartFunilDist"), {
+    type: "bar",
+    data: {
+      labels: labelsDist,
+      datasets: [{
+        data: valsDist.map(v => +(v / denomDist * 100).toFixed(1)),
+        backgroundColor: coresDist, borderRadius: 4,
+        datalabels: { anchor: "end", align: "top", color: "#333", font: { size: 10, weight: "700" },
+          formatter: (v, ctx) => v >= 0.5 ? fmtDec(v, 1) + "%" : "" }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: { top: 18 } },
+      plugins: { legend: { display: false }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => `${fmtDec(ctx.parsed.y, 1)}%  (${fmt(valsDist[ctx.dataIndex])} leads)` } } },
+      scales: { x: { ticks: { font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => v + "%" } } }
+    }
+  });
+
+  // ── Evolução diária: mediana da fila × atendimento por dia ──
+  const diasLbl = [], serieFila = [], serieAtend = [];
+  for (let d = ini; d <= fim; d++) {
+    diasLbl.push("Dia " + d);
+    serieFila.push(funMediana(g.histFila[d - 1] || [], lim));
+    serieAtend.push(funMediana(g.histAtend[d - 1] || [], lim));
+  }
+  charts["funilEvol"] = new Chart(document.getElementById("chartFunilEvol"), {
+    type: "line",
+    data: {
+      labels: diasLbl,
+      datasets: [
+        { label: "Mediana Fila (min)", data: serieFila, borderColor: "#1D9E75", backgroundColor: "rgba(29,158,117,.12)",
+          tension: .3, spanGaps: true, pointRadius: 2, fill: true, datalabels: { display: false } },
+        { label: "Mediana Atendimento (min)", data: serieAtend, borderColor: "#E67E22", backgroundColor: "rgba(230,126,34,.10)",
+          tension: .3, spanGaps: true, pointRadius: 2, fill: true, datalabels: { display: false } }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? "—" : fmtDec(ctx.parsed.y, 1) + " min"}` } } },
+      scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 31 } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => v + "m" } } }
+    }
+  });
+
+  // ── Tabela: atuação por dia ──
+  const tb = document.getElementById("tabelaFunilDiaBody");
+  tb.innerHTML = "";
+  for (let d = ini; d <= fim; d++) {
+    const di = d - 1;
+    const ab = g.abertos[di] || 0; if (!ab) continue;
+    const at = g.atribuidos[di] || 0, rp = g.respondidos[di] || 0;
+    const mf = funMediana(g.histFila[di] || [], lim), ma = funMediana(g.histAtend[di] || [], lim), mt = funMediana(g.histTotal[di] || [], lim);
+    const b15 = isTot ? ab : at;
+    const p15 = b15 ? funCntLE(g.histTotal[di] || [], 15, lim) / b15 * 100 : 0;
+    const psem = ab ? (ab - rp) / ab * 100 : 0;
+    const semCor = psem >= 25 ? "#D85A30" : psem >= 12 ? "#E67E22" : "#1D9E75";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>Dia ${d}</td>
+      <td class="td-right num">${fmt(ab)}</td>
+      <td class="td-right num">${fmt(at)}</td>
+      <td class="td-right num">${fmt(rp)}</td>
+      <td class="td-right num">${funMin(mf)}</td>
+      <td class="td-right num">${funMin(ma)}</td>
+      <td class="td-right num">${funMin(mt)}</td>
+      <td class="td-right num">${fmtDec(p15, 1)}%</td>
+      <td class="td-right num" style="color:${semCor};font-weight:600">${fmtDec(psem, 1)}%</td>`;
+    tb.appendChild(tr);
+  }
+  if (!tb.children.length)
+    tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--cinza)">Sem leads no período selecionado</td></tr>';
+}
+
+function g_label(k) {
+  const m = { TOTAL: "Total", FABIO: "Fabio", JOSY: "Josy", ADMINISTRATIVO: "Administrativo", ACTIONLINE: "Actionline" };
+  return m[k] || k;
+}
+
+// ── RENDER TRIMESTRE ──
+function renderTrimestre() {
+  const meses = ["Abril","Maio","Junho"];
+  const gestores = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+
+  // Gráfico 1: Meta vs Realizado por gestor (barras agrupadas)
+  destroyChart("triMeta");
+  const labelsG = gestores.map(k => CONFIG.gestores[k].label);
+  const realizadoG = gestores.map(k => CONFIG.gestores[k].projecao_fixa);
+  const metaG = gestores.map(k => CONFIG.gestores[k].meta);
+  charts["triMeta"] = new Chart(document.getElementById("chartTriMeta"), {
+    type: "bar",
+    data: {
+      labels: labelsG,
+      datasets: [
+        { label: "Realizado", data: realizadoG, backgroundColor: "#185FA5", borderRadius: 4,
+          datalabels: { anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#185FA5",
+            formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } },
+        { label: "Meta", data: metaG, backgroundColor: "rgba(29,158,117,.55)", borderRadius: 4,
+          datalabels: { anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#1D9E75",
+            formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend:{ labels:{font:{size:11}} }, datalabels:{} },
+      scales: { x:{ ticks:{font:{size:10}} }, y:{ beginAtZero:true, ticks:{font:{size:10}} } }
+    }
+  });
+
+  // Gráfico 2: Vendas por mês (Abr/Mai/Jun) do gestor ativo
+  destroyChart("triMes");
+  const g = CONFIG.gestores[gestorAtivo];
+  charts["triMes"] = new Chart(document.getElementById("chartTriMes"), {
+    type: "bar",
+    data: {
+      labels: meses,
+      datasets: [{ label: "Vendas — " + g.label, data: g.porMes,
+        backgroundColor: ["#185FA5","#1D9E75","#6c4ed8"], borderRadius: 5,
+        datalabels: { anchor:"end", align:"top", font:{size:12,weight:"700"}, color:"#333",
+          formatter: v => fmt(v) } }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend:{display:false}, datalabels:{} },
+      scales: { x:{ ticks:{font:{size:11}} }, y:{ beginAtZero:true, ticks:{font:{size:10}} } }
+    }
+  });
+
+  // Tabela consolidada
+  const tbody = document.getElementById("tabelaTri");
+  tbody.innerHTML = "";
+  for (const k of gestores) {
+    const gg = CONFIG.gestores[k];
+    const realizado = gg.projecao_fixa;
+    const pctMeta = ((realizado / gg.meta) * 100).toFixed(1);
+    const saldo = realizado - gg.meta;
+    const bc = parseFloat(pctMeta) >= 100 ? "green" : parseFloat(pctMeta) >= 90 ? "yellow" : "red";
+    const tr = document.createElement("tr");
+    if (k === "TOTAL") tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>${gg.label}</td>
+      <td class="td-right num">${fmt(gg.porMes[0])}</td>
+      <td class="td-right num">${fmt(gg.porMes[1])}</td>
+      <td class="td-right num">${fmt(gg.porMes[2])}</td>
+      <td class="td-right num">${fmt(realizado)}</td>
+      <td class="td-right num">${fmt(gg.meta)}</td>
+      <td class="td-right"><span class="badge ${bc}">${pctMeta}%</span></td>
+      <td class="td-right num" style="color:${saldo>=0?'#1D9E75':'#D85A30'}">${saldo>=0?'+':''}${fmt(saldo)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ── RENDER COMPARATIVO (Junho × Maio, dias comparáveis) ──
+function renderComparativo() {
+  const mesA = "MAIO", mesB = "JUNHO";
+  const corA = "#D85A30", corB = "#185FA5"; // Maio = laranja, Junho = azul
+
+  // dias comparáveis = último dia com leads preenchido em Junho
+  const junLeads = DADOS_MESES[mesB].gestores.TOTAL.leads;
+  let N = 0;
+  for (let i = 0; i < junLeads.length; i++) {
+    if (junLeads[i] !== null && junLeads[i] !== undefined) N = i + 1;
+  }
+  if (N < 1) N = DADOS_MESES[mesB].diaAtual;
+
+  const g = gestorAtivo;
+  const labelG = DADOS_MESES[mesB].gestores[g].label;
+
+  const acumM = (mes, gg, dia) => {
+    const a = DADOS_MESES[mes].gestores[gg].acumulado;
+    return dia < 1 ? 0 : (a[Math.min(dia, a.length) - 1] || 0);
+  };
+  const prodPer = (mes, gg) => {
+    const G = DADOS_MESES[mes].gestores[gg];
+    const tot = G.pf + G.pme + G.adesao;
+    const real = acumM(mes, gg, N);
+    const r = tot > 0 ? real / tot : 0;
+    return { pf: Math.round(G.pf * r), pme: Math.round(G.pme * r), adesao: Math.round(G.adesao * r) };
+  };
+  const leadsSum = (mes) => {
+    const L = DADOS_MESES[mes].gestores.TOTAL.leads;
+    let s = 0; for (let i = 0; i < N; i++) s += (L[i] || 0);
+    return s;
+  };
+
+  const realA = acumM(mesA, g, N), realB = acumM(mesB, g, N);
+  const medA = realA / N, medB = realB / N;
+  const prodA = prodPer(mesA, g), prodB = prodPer(mesB, g);
+
+  // conversão & leads (consolidado Total)
+  const vTotA = acumM(mesA, "TOTAL", N), vTotB = acumM(mesB, "TOTAL", N);
+  const lA = leadsSum(mesA), lB = leadsSum(mesB);
+  const convA = lA > 0 ? (vTotA / lA * 100) : 0;
+  const convB = lB > 0 ? (vTotB / lB * 100) : 0;
+  const lpvA = vTotA > 0 ? lA / vTotA : 0;
+  const lpvB = vTotB > 0 ? lB / vTotB : 0;
+
+  const delta = (a, b) => a !== 0 ? ((b - a) / a * 100) : 0;
+  const deltaBadge = (a, b, inv) => {
+    const d = delta(a, b);
+    const good = inv ? d <= 0 : d >= 0;
+    const sign = d >= 0 ? "+" : "";
+    return `<span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span>`;
+  };
+
+  document.getElementById("compNlabel").textContent = N;
+  document.getElementById("diaAtualLabel").textContent = `dias 1–${N} (comparáveis)`;
+  document.getElementById("filtroLabel").textContent = `Jun × Mai · ${labelG}`;
+
+  // ── KPI CARDS ──
+  const kpis = [
+    { lab: `Realizado (${labelG})`, val: fmt(realB), sub: `Mai: ${fmt(realA)}`, badge: deltaBadge(realA, realB, false), cor: corB },
+    { lab: "Média / dia", val: fmtDec(medB, 0), sub: `Mai: ${fmtDec(medA, 0)}`, badge: deltaBadge(medA, medB, false), cor: corB },
+    { lab: "Conversão (Total)", val: fmtDec(convB) + "%", sub: `Mai: ${fmtDec(convA)}%`, badge: deltaBadge(convA, convB, false), cor: "#e67e22" },
+    { lab: "Volume Leads (Total)", val: fmt(lB), sub: `Mai: ${fmt(lA)}`, badge: deltaBadge(lA, lB, false), cor: "#9b59b6" },
+    { lab: "Leads / Venda (Total)", val: fmtDec(lpvB), sub: `Mai: ${fmtDec(lpvA)}`, badge: deltaBadge(lpvA, lpvB, true), cor: "#6c757d" }
+  ];
+  document.getElementById("compKpis").innerHTML = kpis.map(k => `
+    <div class="kpi-card" style="border-left-color:${k.cor}">
+      <div class="kpi-label">${k.lab}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub} &nbsp; ${k.badge}</div>
+    </div>`).join("");
+
+  const labels = [];
+  for (let d = 1; d <= N; d++) labels.push("Dia " + d);
+
+  // ── CHART: ACUMULADO ──
+  destroyChart("compAcum");
+  const acA = [], acB = [];
+  for (let d = 1; d <= N; d++) { acA.push(acumM(mesA, g, d)); acB.push(acumM(mesB, g, d)); }
+  charts["compAcum"] = new Chart(document.getElementById("chartCompAcum"), {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Maio", data: acA, borderColor: corA, borderWidth: 2.5, fill: false, tension: .3, pointRadius: 2,
+        datalabels: { display: ctx => ctx.dataIndex === acA.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: corA, formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } },
+      { label: "Junho", data: acB, borderColor: corB, backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .3, pointRadius: 2,
+        datalabels: { display: ctx => ctx.dataIndex === acB.length - 1, align: "left", anchor: "end", font: { size: 9, weight: "600" }, color: corB, formatter: v => v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { right: 40 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } } } }
+  });
+
+  // ── CHART: PRODUTO ──
+  destroyChart("compProduto");
+  charts["compProduto"] = new Chart(document.getElementById("chartCompProduto"), {
+    type: "bar",
+    data: { labels: ["PF", "PME", "Adesão"], datasets: [
+      { label: "Maio", data: [prodA.pf, prodA.pme, prodA.adesao], backgroundColor: corA, borderRadius: 4,
+        datalabels: { anchor: "end", align: "end", font: { size: 10, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } },
+      { label: "Junho", data: [prodB.pf, prodB.pme, prodB.adesao], backgroundColor: corB, borderRadius: 4,
+        datalabels: { anchor: "end", align: "end", font: { size: 10, weight: "600" }, color: "#333", formatter: v => v > 0 ? fmt(v) : "" } }
+    ] },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 44 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } } }
+  });
+
+  // ── CHART: CONVERSÃO DIÁRIA ──
+  destroyChart("compConv");
+  const convArrA = DADOS_MESES[mesA].gestores.TOTAL.conv, convArrB = DADOS_MESES[mesB].gestores.TOTAL.conv;
+  const cvA = [], cvB = [];
+  for (let d = 1; d <= N; d++) { cvA.push(convArrA ? convArrA[d-1] : null); cvB.push(convArrB ? convArrB[d-1] : null); }
+  charts["compConv"] = new Chart(document.getElementById("chartCompConv"), {
+    type: "bar",
+    data: { labels, datasets: [
+      { label: "Maio", data: cvA, backgroundColor: corA, borderRadius: 3, datalabels: { display: false } },
+      { label: "Junho", data: cvB, backgroundColor: corB, borderRadius: 3, datalabels: { display: false } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ": " + (ctx.raw != null ? ctx.raw + "%" : "—") } } },
+      scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 }, callback: v => v + "%" } } } }
+  });
+
+  // ── CHART: LEADS DIÁRIO ──
+  destroyChart("compLeads");
+  const lArrA = DADOS_MESES[mesA].gestores.TOTAL.leads, lArrB = DADOS_MESES[mesB].gestores.TOTAL.leads;
+  const ldA = [], ldB = [];
+  for (let d = 1; d <= N; d++) { ldA.push(lArrA ? lArrA[d-1] : null); ldB.push(lArrB ? lArrB[d-1] : null); }
+  charts["compLeads"] = new Chart(document.getElementById("chartCompLeads"), {
+    type: "bar",
+    data: { labels, datasets: [
+      { label: "Maio", data: ldA, backgroundColor: corA, borderRadius: 3, datalabels: { display: false } },
+      { label: "Junho", data: ldB, backgroundColor: corB, borderRadius: 3, datalabels: { display: false } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { x: { ticks: { font: { size: 9 }, maxTicksLimit: 21 } }, y: { ticks: { font: { size: 10 } } } } }
+  });
+
+  // ── LEADS/DIA POR ORIGEM (Maio × Junho, média do mês) ──
+  const compN2 = document.getElementById("compNlabel2"); if (compN2) compN2.textContent = N;
+  const diasMaio = DADOS_MESES[mesA].diaAtual;   // 31
+  const diasJun = N;                              // dias com leads em Junho (21)
+  const mapBy = (mes, campo) => { const o = {}; (DADOS_MESES[mes][campo] || []).forEach(x => o[x.label] = x.valor); return o; };
+
+  destroyChart("compOrigem");
+  const oriA = mapBy(mesA, "leadsOrigem"), oriB = mapBy(mesB, "leadsOrigem");
+  const oriLabels = Array.from(new Set([...Object.keys(oriB), ...Object.keys(oriA)]));
+  oriLabels.sort((x, y) => ((oriB[y] || 0) / diasJun + (oriA[y] || 0) / diasMaio) - ((oriB[x] || 0) / diasJun + (oriA[x] || 0) / diasMaio));
+  const oriDiaA = oriLabels.map(l => Math.round((oriA[l] || 0) / diasMaio));
+  const oriDiaB = oriLabels.map(l => Math.round((oriB[l] || 0) / diasJun));
+  const tipTotDias = (mapObj, l, dias) => `${(mapObj[l] || 0).toLocaleString("pt-BR")} em ${dias}d`;
+  charts["compOrigem"] = new Chart(document.getElementById("chartCompOrigem"), {
+    type: "bar",
+    data: { labels: oriLabels, datasets: [
+      { label: "Maio", data: oriDiaA, backgroundColor: corA, borderRadius: 3,
+        datalabels: { anchor: "end", align: "end", font: { size: 8, weight: "600" }, color: "#555", formatter: v => v > 0 ? fmt(v) : "" } },
+      { label: "Junho", data: oriDiaB, backgroundColor: corB, borderRadius: 3,
+        datalabels: { anchor: "end", align: "end", font: { size: 8, weight: "600" }, color: "#555", formatter: v => v > 0 ? fmt(v) : "" } }
+    ] },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, layout: { padding: { right: 42 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const mes = ctx.dataset.label, l = ctx.label;
+          return `${mes}: ${fmt(ctx.raw)}/dia  (${tipTotDias(mes === "Maio" ? oriA : oriB, l, mes === "Maio" ? diasMaio : diasJun)})`;
+        } } } },
+      scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
+  });
+
+  // ── LEADS/DIA POR CANAL / TIPO (Maio × Junho, média do mês) ──
+  destroyChart("compCanal");
+  const tA = mapBy(mesA, "leadsTipo"), tB = mapBy(mesB, "leadsTipo");
+  const tLabels = Array.from(new Set([...Object.keys(tB), ...Object.keys(tA)]));
+  const tDiaA = tLabels.map(l => Math.round((tA[l] || 0) / diasMaio));
+  const tDiaB = tLabels.map(l => Math.round((tB[l] || 0) / diasJun));
+  charts["compCanal"] = new Chart(document.getElementById("chartCompCanal"), {
+    type: "bar",
+    data: { labels: tLabels, datasets: [
+      { label: "Maio", data: tDiaA, backgroundColor: corA, borderRadius: 4,
+        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "600" }, color: corA, formatter: v => v > 0 ? fmt(v) : "" } },
+      { label: "Junho", data: tDiaB, backgroundColor: corB, borderRadius: 4,
+        datalabels: { anchor: "end", align: "top", font: { size: 9, weight: "600" }, color: corB, formatter: v => v > 0 ? fmt(v) : "" } }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {},
+        tooltip: { callbacks: { label: ctx => {
+          const mes = ctx.dataset.label, l = ctx.label;
+          return `${mes}: ${fmt(ctx.raw)}/dia  (${tipTotDias(mes === "Maio" ? tA : tB, l, mes === "Maio" ? diasMaio : diasJun)})`;
+        } } } },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } } }
+  });
+
+  // ── TABELA RESUMO ──
+  const rows = [
+    ["Realizado (" + labelG + ")", fmt(realA), fmt(realB), delta(realA, realB), false],
+    ["Média / dia", fmtDec(medA, 0), fmtDec(medB, 0), delta(medA, medB), false],
+    ["PF", fmt(prodA.pf), fmt(prodB.pf), delta(prodA.pf, prodB.pf), false],
+    ["PME", fmt(prodA.pme), fmt(prodB.pme), delta(prodA.pme, prodB.pme), false],
+    ["Adesão", fmt(prodA.adesao), fmt(prodB.adesao), delta(prodA.adesao, prodB.adesao), false],
+    ["Conversão % (Total)", fmtDec(convA) + "%", fmtDec(convB) + "%", delta(convA, convB), false],
+    ["Volume Leads (Total)", fmt(lA), fmt(lB), delta(lA, lB), false],
+    ["Leads / Venda (Total)", fmtDec(lpvA), fmtDec(lpvB), delta(lpvA, lpvB), true]
+  ];
+  document.getElementById("tabelaComp").innerHTML = rows.map(r => {
+    const d = r[3], good = r[4] ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
+    return `<tr><td>${r[0]}</td><td class="td-right num">${r[1]}</td><td class="td-right num">${r[2]}</td><td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td></tr>`;
+  }).join("");
+}
+
+// Inicia (abre na aba Vendas)
+setAba("vendas");
+</script>
+
+<script>
+(function(){
+  const KEY = 'vendasdiaria_auth';
+  if(sessionStorage.getItem(KEY)==='1'){
+    document.getElementById('login-overlay').classList.add('hidden');
+  }
+  document.getElementById('login-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter') checkLogin();
+  });
+})();
+
+function checkLogin(){
+  const val = document.getElementById('login-input').value;
+  if(val==='hapvida1234'){
+    sessionStorage.setItem('vendasdiaria_auth','1');
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else {
+    document.getElementById('login-error').textContent='Senha incorreta. Tente novamente.';
+    document.getElementById('login-input').value='';
+    document.getElementById('login-input').focus();
+  }
+}
+</script>
+</body>
+</html>

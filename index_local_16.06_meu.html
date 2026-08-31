@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Vendas</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul:    #185FA5;
+      --verde:   #1D9E75;
+      --laranja: #D85A30;
+      --cinza:   #6c757d;
+      --bg:      #f0f2f5;
+      --card:    #ffffff;
+      --shadow:  0 2px 8px rgba(0,0,0,0.08);
+      --radius:  10px;
+      --gap:     14px;
+      --header:  #0f2d52;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1a1a2e; }
+
+    /* HEADER */
+    .header {
+      background: var(--header);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header h1 { font-size: 17px; font-weight: 700; letter-spacing: .3px; }
+    .header .subtitle { font-size: 12px; opacity: .7; margin-top: 2px; }
+
+    /* FILTROS */
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-label { font-size: 11px; opacity: .75; }
+    .btn-gestor {
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: transparent;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn-gestor.active {
+      background: var(--azul);
+      border-color: var(--azul);
+      font-weight: 600;
+    }
+    .btn-gestor:hover:not(.active) { background: rgba(255,255,255,.15); }
+    .btn-mes {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: transparent;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .btn-mes.active {
+      background: var(--laranja);
+      border-color: var(--laranja);
+      font-weight: 700;
+    }
+    .btn-mes:hover:not(.active) { background: rgba(255,255,255,.15); }
+    .filter-sep { width: 1px; height: 24px; background: rgba(255,255,255,.25); margin: 0 4px; }
+    .filter-select {
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1.5px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .filter-select option { background: #0f2d52; }
+
+    /* CONTAINER */
+    .container { padding: var(--gap); max-width: 1500px; margin: 0 auto; }
+
+    /* KPIs */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .kpi-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--azul);
+    }
+    .kpi-card.verde  { border-left-color: var(--verde); }
+    .kpi-card.laranja{ border-left-color: var(--laranja); }
+    .kpi-card.cinza  { border-left-color: var(--cinza); }
+    .kpi-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .kpi-value { font-size: 26px; font-weight: 700; color: #1a1a2e; line-height: 1; }
+    .kpi-sub   { font-size: 12px; margin-top: 5px; color: #555; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .badge.green  { background: #d4f4e8; color: #0d6e4a; }
+    .badge.yellow { background: #fef3cd; color: #7a5000; }
+    .badge.red    { background: #fde8e4; color: #8c2315; }
+
+    /* GRÁFICOS */
+    .chart-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .chart-card canvas { max-height: 420px; }
+
+    /* Gráficos principais em largura total (um por linha) para melhor leitura */
+    .chart-grid-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .chart-grid-1 .chart-card canvas { max-height: 380px; }
+
+    /* LEADS CARD */
+    .leads-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+    .leads-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+    .leads-card canvas { max-height: 340px; }
+
+    /* TABELA */
+    .table-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: var(--gap);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 2px solid #e9ecef;
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      white-space: nowrap;
+    }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid #f4f4f4; }
+    tbody tr:last-child td { border-bottom: none; font-weight: 700; background: #f8f9fb; }
+    tbody tr:hover { background: #f8f9fb; }
+    .td-right { text-align: right; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    @media(max-width: 900px) {
+      .chart-grid-2, .chart-grid-3, .leads-grid { grid-template-columns: 1fr; }
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  /* Login overlay */
+  #login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+  #login-overlay.hidden{display:none}
+  .login-box{background:var(--card);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,.12);padding:40px 36px;width:100%;max-width:360px;text-align:center}
+  .login-logo{width:60px;height:60px;background:var(--header);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;color:#fff;font-weight:700}
+  .login-box h2{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+  .login-box p{font-size:12px;color:#888;margin-bottom:24px}
+  .login-box input{width:100%;padding:10px 14px;border:1px solid #dde1e7;border-radius:7px;font-size:14px;color:#1a1a2e;outline:none;margin-bottom:12px;letter-spacing:2px}
+  .login-box input:focus{border-color:var(--azul)}
+  .login-box button{width:100%;padding:11px;background:var(--header);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer}
+  .login-box button:hover{background:var(--azul)}
+  .login-error{font-size:12px;color:#c0392b;margin-top:8px;min-height:16px}
+  </style>
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">H</div>
+    <h2>Dashboard de Vendas</h2>
+    <p>Hapvida – RMSP</p>
+    <input type="password" id="login-input" placeholder="Digite a senha" autocomplete="current-password" />
+    <button onclick="checkLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header h1" style="font-size:17px;font-weight:700;">📊 Dashboard de Vendas — <span id="mesLabel"></span></div>
+    <div class="subtitle">Atualizado: dia <span id="diaAtualLabel"></span> &nbsp;|&nbsp; Filtro: Dia <span id="filtroLabel"></span></div>
+  </div>
+  <div class="filters">
+    <span class="filter-label">Mês:</span>
+    <button class="btn-mes" onclick="setMes('ABRIL')">Abril</button>
+    <button class="btn-mes active" onclick="setMes('MAIO')">Maio</button>
+    <button class="btn-mes" onclick="setMes('JUNHO')">Junho</button>
+    <button class="btn-mes" onclick="setMes('TRIMESTRE')" style="background:#6c4ed8;color:#fff;border-color:#6c4ed8">2º Trimestre</button>
+    <div class="filter-sep"></div>
+    <span class="filter-label">Gestor:</span>
+    <button class="btn-gestor active" onclick="setGestor('TOTAL')">Total</button>
+    <button class="btn-gestor" onclick="setGestor('FABIO')">Fabio</button>
+    <button class="btn-gestor" onclick="setGestor('JOSY')">Josy</button>
+    <button class="btn-gestor" onclick="setGestor('ADMINISTRATIVO')">Administrativo</button>
+    <button class="btn-gestor" onclick="setGestor('ACTIONLINE')">Actionline</button>
+    <div class="filter-sep"></div>
+    <span class="filter-label">Período:</span>
+    <select class="filter-select" id="diaIni" onchange="aplicarFiltro()"></select>
+    <span class="filter-label" style="opacity:.6">até</span>
+    <select class="filter-select" id="diaFim" onchange="aplicarFiltro()"></select>
+  </div>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="container">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card" id="kpi1">
+      <div class="kpi-label">Vendas realizadas</div>
+      <div class="kpi-value" id="kVendas">—</div>
+      <div class="kpi-sub" id="kVendasSub"></div>
+    </div>
+    <div class="kpi-card verde" id="kpi2">
+      <div class="kpi-label">% da Meta</div>
+      <div class="kpi-value" id="kMeta">—</div>
+      <div class="kpi-sub" id="kMetaSub"></div>
+    </div>
+    <div class="kpi-card laranja" id="kpi3">
+      <div class="kpi-label">Projeção mensal</div>
+      <div class="kpi-value" id="kProj">—</div>
+      <div class="kpi-sub" id="kProjSub"></div>
+    </div>
+    <div class="kpi-card cinza" id="kpi4">
+      <div class="kpi-label">Média / dia</div>
+      <div class="kpi-value" id="kMedia">—</div>
+      <div class="kpi-sub" id="kMediaSub"></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#9b59b6">
+      <div class="kpi-label" id="kAbrLabel">Var. vs mês anterior</div>
+      <div class="kpi-value" id="kAbr">—</div>
+      <div class="kpi-sub" id="kAbrSub"></div>
+    </div>
+    <div class="kpi-card" style="border-left-color:#e67e22" id="kpiConv">
+      <div class="kpi-label">Conv. Média</div>
+      <div class="kpi-value" id="kConv">—</div>
+      <div class="kpi-sub" id="kConvSub"></div>
+    </div>
+  </div>
+
+  <!-- PAINEL 2º TRIMESTRE (visível só na visão trimestre) -->
+  <div id="triPanel" style="display:none;">
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">🎯 Meta vs Realizado — 2º Trimestre (por gestor)</div>
+        <canvas id="chartTriMeta"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📅 Vendas por Mês — Abril / Maio / Junho</div>
+        <canvas id="chartTriMes"></canvas>
+      </div>
+    </div>
+    <div class="table-card" style="margin-top:16px">
+      <div class="chart-title">📋 Consolidado do Trimestre — Meta vs Realizado</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Gestor</th>
+            <th class="td-right">Abril</th>
+            <th class="td-right">Maio</th>
+            <th class="td-right">Junho</th>
+            <th class="td-right">Realizado Trim.</th>
+            <th class="td-right">Meta Trim.</th>
+            <th class="td-right">% Meta</th>
+            <th class="td-right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaTri"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW 1: Acumulado + Volume (largura total para melhor visualização) -->
+  <div class="chart-grid-1 normal-view">
+    <div class="chart-card">
+      <div class="chart-title">📈 Vendas Acumuladas por Dia</div>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartAcumulado"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">📊 Volume de Vendas por Dia</div>
+      <div style="position:relative;height:360px;width:100%"><canvas id="chartVolume"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Média produto + Conversão + Mix -->
+  <div class="chart-grid-3 normal-view">
+    <div class="chart-card">
+      <div class="chart-title">🏷️ Média de Vendas por Produto</div>
+      <canvas id="chartProduto"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🎯 Taxa de Conversão Diária</div>
+      <canvas id="chartConv"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🍩 Mix por Tipo de Venda</div>
+      <canvas id="chartMix"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 3: Leads -->
+  <div class="leads-grid normal-view" id="leadsSection">
+    <div class="leads-card">
+      <div class="chart-title">📥 Volume Diário de Leads</div>
+      <canvas id="chartLeads"></canvas>
+    </div>
+    <div class="leads-card">
+      <div class="chart-title">⚡ Performance do Lead (Leads/Venda vs Conv %)</div>
+      <canvas id="chartLeadPerf"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-card normal-view">
+    <div class="chart-title">📋 Resumo por Gestor</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Gestor</th>
+          <th class="td-right">Realizadas</th>
+          <th class="td-right">Meta</th>
+          <th class="td-right">% Meta</th>
+          <th class="td-right">Projeção</th>
+          <th class="td-right">% Proj</th>
+          <th class="td-right">Média/dia</th>
+          <th class="td-right">Var vs Abr</th>
+          <th class="td-right">PF</th>
+          <th class="td-right">PME</th>
+          <th class="td-right">Adesão</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
+  </div>
+
+  <!-- Tabela Leads por Origem (GUP) -->
+  <div class="table-card normal-view" id="cardOrigem">
+    <div class="chart-title">🎯 Conversão de Leads por Origem — GUP</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Origem</th>
+          <th class="td-right">Leads</th>
+          <th class="td-right">Produtivos</th>
+          <th class="td-right">% Prod.</th>
+          <th class="td-right">Contratos</th>
+          <th class="td-right">Vidas</th>
+          <th class="td-right">Conv. Contr.</th>
+          <th class="td-right">Conv. Vidas</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaOrigem"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  C O N F I G   —   DADOS POR MÊS (Abril / Maio / Junho)
+// ============================================================
+// Cada mês tem a MESMA estrutura. Para atualizar dados diários,
+// edite o mês desejado dentro de DADOS_MESES.
+// O mês exibido é controlado pelo filtro de mês no topo.
+// ============================================================
+const DADOS_MESES = {
+
+  ABRIL: {
+    mesLabel: "Abril 2026",
+    mesAnteriorLabel: "Março",
+    diasNoMes: 30,
+    diaAtual: 30,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 11600,
+        acumulado: [259,531,608,705,825,1169,1655,2073,2481,2875,
+                    3022,3118,3500,3885,4253,4708,5028,5151,5241,5646,
+                    5776,6164,6565,6869,6989,7076,7553,7971,8385,8996],
+        pf: 5631, pme: 3247, adesao: 118,
+        conv: [3.8,4.6,3.5,4.3,9.5,4.5,7.4,7.0,7.6,8.9,
+               8.2,8.7,5.4,5.9,6.2,8.0,7.1,6.2,6.3,9.2,
+               5.4,7.3,8.2,7.2,5.9,8.3,9.4,7.7,8.7,17.9],
+        leads: [6830,5910,2176,2251,1259,7702,6560,5948,5363,4446,
+                1789,1108,7086,6483,5981,5684,4483,1998,1430,4419,
+                2405,5318,4898,4241,2039,1044,5076,5395,4781,3417],
+        vendas_ant: 8996, projecao_fixa: 8996
+      },
+      FABIO: {
+        label: "Fabio", meta: 5900,
+        acumulado: [123,243,283,356,450,605,865,1074,1283,1451,
+                    1566,1643,1820,2009,2187,2433,2591,2697,2753,2969,
+                    3064,3256,3443,3597,3680,3746,4010,4232,4477,4794],
+        pf: 1681, pme: 3056, adesao: 57,
+        conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4630,
+        acumulado: [131,262,292,313,333,500,693,889,1063,1265,
+                    1293,1311,1491,1661,1828,2009,2142,2154,2176,2337,
+                    2360,2529,2708,2833,2855,2869,3054,3216,3368,3612],
+        pf: 3362, pme: 191, adesao: 59,
+        conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 685,
+        acumulado: [5,26,33,36,42,61,92,103,124,148,
+                    152,153,177,201,222,245,271,275,287,312,
+                    324,347,381,404,419,426,452,484,501,548],
+        pf: 546, pme: 0, adesao: 2,
+        conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 280,
+        acumulado: [0,0,0,0,0,3,5,7,11,11,
+                    11,11,12,14,16,21,24,25,25,28,
+                    28,32,33,35,35,35,37,39,39,42],
+        pf: 42, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
+      }
+    }
+  },
+
+  MAIO: {
+    mesLabel: "Maio 2026",
+    mesAnteriorLabel: "Abril",
+    diasNoMes: 31,
+    diaAtual: 31,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 11600,
+        acumulado: [509,591,665,1060,1509,1933,2400,2744,2898,3068,
+                    3517,3967,4425,4798,5173,5295,5392,5842,6339,6806,
+                    7217,7564,7759,7875,8310,8729,9153,9555,10041,10327,10569],
+        pf: 6417, pme: 3686, adesao: 466,
+        conv: [26.5,4.4,6.5,5.5,6.9,7.2,9.6,7.6,6.1,11.3,
+               7.6,7.9,9.2,7.0,8.6,5.9,4.9,5.4,8.9,8.4,
+               8.1,8.0,9.1,7.8,7.1,11.4,12.5,16.5,8.3,8.1,8.1],
+        leads: [1924,1878,1140,7158,6528,5909,4865,4525,2533,1509,
+                5873,5683,4995,5356,4351,2085,2036,8268,5607,5542,
+                5093,4334,2251,1438,5219,5039,5453,5648,4271,2295,1468],
+        vendas_ant: 8996, projecao_fixa: 10569
+      },
+      FABIO: {
+        label: "Fabio", meta: 6000,
+        acumulado: [483,526,568,765,1002,1199,1449,1616,1732,1846,
+                    2068,2333,2559,2743,2942,3021,3099,3311,3594,3846,
+                    4076,4246,4384,4462,4686,4901,5163,5375,5633,5844,6004],
+        pf: 2380, pme: 3211, adesao: 413,
+        conv: null, leads: null, vendas_ant: 4794, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4700,
+        acumulado: [20,51,64,232,415,605,797,948,983,1035,
+                    1245,1412,1621,1778,1920,1955,1968,2178,2380,2558,
+                    2724,2872,2914,2945,3143,3334,3478,3652,3848,3912,3988],
+        pf: 3461, pme: 475, adesao: 52,
+        conv: null, leads: null, vendas_ant: 3612, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 700,
+        acumulado: [6,14,33,60,88,124,148,171,174,178,
+                    192,209,228,260,292,300,306,331,343,378,
+                    393,419,434,441,453,465,480,491,518,529,533],
+        pf: 532, pme: 1, adesao: 0,
+        conv: null, leads: null, vendas_ant: 548, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 200,
+        acumulado: [0,0,0,3,4,5,6,9,9,9,12,13,17,17,19,19,19,22,22,22,
+                    24,24,24,27,27,27,28,29,32,42,44],
+        pf: 44, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 42, projecao_fixa: null
+      }
+    }
+  },
+
+  JUNHO: {
+    mesLabel: "Junho 2026",
+    mesAnteriorLabel: "Maio",
+    diasNoMes: 30,
+    diaAtual: 15,
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 12460,
+        acumulado: [519,940,1375,1473,1816,1899,1983,2404,2855,3331,
+                    3738,3999,4107,4200,4599,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 3126, pme: 1260, adesao: 213,
+        conv: [7.3,7.4,9.9,2.6,7.5,2.4,7.6,9.6,9.4,10.2,
+               11.2,10.6,8.4,7.7,10.8,null,null,null,null,null,
+               null,null,null,null,null,null,null,null,null,null],
+        leads: [7062,5724,4378,3770,4587,3472,1112,4385,4787,4647,
+                3632,2467,1291,1215,3688,null,null,null,null,null,
+                null,null,null,null,null,null,null,null,null,null],
+        vendas_ant: 10563, projecao_fixa: 8511
+      },
+      FABIO: {
+        label: "Fabio", meta: 6600,
+        acumulado: [300,492,726,775,935,985,1027,1211,1432,1698,
+                    1910,2037,2114,2185,2367,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 1227, pme: 973, adesao: 167,
+        conv: null, leads: null, vendas_ant: 6000, projecao_fixa: null
+      },
+      JOSY: {
+        label: "Josy", meta: 4960,
+        acumulado: [188,383,542,584,746,772,805,995,1201,1377,
+                    1533,1643,1669,1687,1866,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 1539, pme: 287, adesao: 40,
+        conv: null, leads: null, vendas_ant: 3986, projecao_fixa: null
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 600,
+        acumulado: [27,55,84,90,105,110,119,159,176,200,
+                    231,254,259,263,295,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 289, pme: 0, adesao: 6,
+        conv: null, leads: null, vendas_ant: 533, projecao_fixa: null
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 300,
+        acumulado: [4,10,23,24,30,32,32,39,46,56,
+                    64,65,65,65,71,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        pf: 71, pme: 0, adesao: 0,
+        conv: null, leads: null, vendas_ant: 44, projecao_fixa: null
+      }
+    }
+  }
+
+};
+
+// ============================================================
+// 2º TRIMESTRE — gerado automaticamente a partir de ABRIL+MAIO+JUNHO
+// Soma de vendas realizadas (acumulado final) e soma das metas.
+// ============================================================
+(function montaTrimestre(){
+  const meses = ["ABRIL","MAIO","JUNHO"];
+  const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
+  const labels = { TOTAL:"Total geral", FABIO:"Fabio", JOSY:"Josy", ADMINISTRATIVO:"Administrativo", ACTIONLINE:"Actionline" };
+
+  const tri = {
+    mesLabel: "2º Trimestre 2026 (Abr+Mai+Jun)",
+    mesAnteriorLabel: "1º Trim.",
+    diasNoMes: meses.reduce((s,m) => s + DADOS_MESES[m].diaAtual, 0),
+    diaAtual: meses.length, // 1 ponto por mês no eixo
+    isTrimestre: true,
+    mesesInclusos: meses,
+    gestores: {}
+  };
+
+  for (const k of gestores) {
+    // venda total de cada mês = último valor do acumulado
+    const porMes = meses.map(m => {
+      const arr = DADOS_MESES[m].gestores[k].acumulado;
+      return arr[arr.length - 1] || 0;
+    });
+    // acumulado trimestral progressivo (Abr, Abr+Mai, Abr+Mai+Jun)
+    const acumProg = [];
+    let soma = 0;
+    porMes.forEach(v => { soma += v; acumProg.push(soma); });
+
+    const metaTri = meses.reduce((s,m) => s + DADOS_MESES[m].gestores[k].meta, 0);
+    const pf  = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].pf||0), 0);
+    const pme = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].pme||0), 0);
+    const ade = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].adesao||0), 0);
+
+    tri.gestores[k] = {
+      label: labels[k],
+      meta: metaTri,
+      acumulado: acumProg,           // [Abr, Abr+Mai, Abr+Mai+Jun]
+      porMes: porMes,                // vendas de cada mês isolado
+      metasPorMes: meses.map(m => DADOS_MESES[m].gestores[k].meta),
+      pf, pme, adesao: ade,
+      conv: null, leads: null,
+      vendas_ant: 0,
+      projecao_fixa: soma            // realizado = projeção (trimestre fechado)
+    };
+  }
+  DADOS_MESES.TRIMESTRE = tri;
+})();
+
+// ============================================================
+//  LEADS POR ORIGEM (GUP) — snapshot mensal, fonte: build_leads_por_origem.py
+//  Contagens cruas; os % são recalculados em renderTabelaOrigem().
+//  Para novo mês: adicionar nova chave (ex.: MAIO: [...]).
+// ============================================================
+const DADOS_LEADS_ORIGEM = {
+  JUNHO: [
+    {origem:"CARRINHO ABANDONADO CONECTA", leads:12350, prod:6703, contratos:568, vidas:670},
+    {origem:"CONECTA", leads:10384, prod:6204, contratos:510, vidas:603},
+    {origem:"CAMPANHAS MARKETING", leads:9951, prod:2761, contratos:94, vidas:118},
+    {origem:"CARRINHO ABANDONADO", leads:6231, prod:2953, contratos:240, vidas:278},
+    {origem:"ESPONTÂNEO", leads:5321, prod:3429, contratos:195, vidas:253},
+    {origem:"EUGENIA", leads:4565, prod:2731, contratos:461, vidas:553},
+    {origem:"REPIQUE COMERCIAL", leads:4219, prod:1911, contratos:106, vidas:143},
+    {origem:"VPC", leads:1559, prod:542, contratos:27, vidas:29},
+    {origem:"OUTROS", leads:1535, prod:917, contratos:64, vidas:83},
+    {origem:"LEADS FRIOS", leads:74, prod:38, contratos:7, vidas:7},
+    {origem:"MÍDIA", leads:19, prod:10, contratos:2, vidas:2},
+    {origem:"TELEVENDAS", leads:7, prod:5, contratos:1, vidas:1},
+    {origem:"FLAMENGO", leads:2, prod:0, contratos:0, vidas:0}
+  ]
+};
+
+// Mês exibido por padrão ao abrir o dashboard:
+let mesAtivo = "MAIO";
+
+// CONFIG = espelho do mês ativo (não editar manualmente — use DADOS_MESES)
+let CONFIG = DADOS_MESES[mesAtivo];
+// ============================================================
+// FIM CONFIG
+// ============================================================
+
+// Estado
+let gestorAtivo = "TOTAL";
+let diaIni = 1;
+let diaFim = CONFIG.diaAtual;
+
+// Charts
+let charts = {};
+
+// ── INIT ──
+document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+
+function buildSelects() {
+  const si = document.getElementById("diaIni");
+  const sf = document.getElementById("diaFim");
+  si.innerHTML = "";
+  sf.innerHTML = "";
+  for (let d = 1; d <= CONFIG.diaAtual; d++) {
+    si.innerHTML += `<option value="${d}" ${d===1?'selected':''}>Dia ${d}</option>`;
+    sf.innerHTML += `<option value="${d}" ${d===CONFIG.diaAtual?'selected':''}>Dia ${d}</option>`;
+  }
+}
+buildSelects();
+
+// ── TROCA DE MÊS ──
+function setMes(m) {
+  mesAtivo = m;
+  CONFIG = DADOS_MESES[mesAtivo];
+  document.querySelectorAll(".btn-mes").forEach(b => b.classList.remove("active"));
+  if (typeof event !== "undefined" && event && event.target) event.target.classList.add("active");
+  // resetar período para o mês inteiro disponível
+  diaIni = 1;
+  diaFim = CONFIG.diaAtual;
+  document.getElementById("mesLabel").textContent = CONFIG.mesLabel;
+  document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+  buildSelects();
+  renderAll();
+}
+
+function setGestor(g) {
+  gestorAtivo = g;
+  document.querySelectorAll(".btn-gestor").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  renderAll();
+}
+
+function aplicarFiltro() {
+  diaIni = parseInt(document.getElementById("diaIni").value);
+  diaFim = parseInt(document.getElementById("diaFim").value);
+  if (diaIni > diaFim) { diaFim = diaIni; document.getElementById("diaFim").value = diaFim; }
+  renderAll();
+}
+
+// ── HELPERS ──
+function acum(g, dia) {
+  const arr = CONFIG.gestores[g].acumulado;
+  if (dia < 1) return 0;
+  return arr[Math.min(dia, arr.length) - 1] || 0;
+}
+function vendas(g, ini, fim) {
+  return acum(g, fim) - acum(g, ini - 1);
+}
+function diasNoIntervalo(ini, fim) { return fim - ini + 1; }
+
+function fmt(n) { return n.toLocaleString("pt-BR"); }
+function fmtDec(n, d=1) { return n.toFixed(d).replace(".", ","); }
+
+function badgeClass(pct, ref) {
+  if (pct >= ref) return "green";
+  if (pct >= ref * 0.7) return "yellow";
+  return "red";
+}
+
+// ── KPIs ──
+function renderKPIs() {
+  const g = CONFIG.gestores[gestorAtivo];
+
+  // ── Modo TRIMESTRE ──
+  if (CONFIG.isTrimestre) {
+    const real = g.projecao_fixa;        // realizado = soma dos meses
+    const meta = g.meta;
+    const pctMeta = (real / meta) * 100;
+    const saldo = real - meta;
+    const mediaMes = real / 3;
+
+    document.getElementById("diaAtualLabel").textContent = "Abr+Mai+Jun";
+    document.getElementById("filtroLabel").textContent = "Trimestre completo";
+
+    document.getElementById("kVendas").textContent = fmt(real);
+    document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>`;
+
+    document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
+    document.getElementById("kMetaSub").innerHTML = `Meta trimestral acumulada`;
+
+    document.getElementById("kProj").textContent = (saldo>=0?'+':'') + fmt(saldo);
+    document.getElementById("kProjSub").innerHTML = saldo>=0 ? "acima da meta" : "abaixo da meta";
+
+    document.getElementById("kMedia").textContent = fmtDec(mediaMes, 0);
+    document.getElementById("kMediaSub").textContent = "vendas/mês (3 meses)";
+
+    document.getElementById("kAbr").textContent = fmt(g.porMes[2]);
+    document.getElementById("kAbrSub").textContent = "vendas em Junho";
+    const labAbr = document.getElementById("kAbrLabel");
+    if (labAbr) labAbr.textContent = "Último mês (Jun)";
+    document.getElementById("kAbr").style.color = "#6c4ed8";
+
+    document.getElementById("kConv").textContent = "—";
+    document.getElementById("kConvSub").textContent = "n/d no trimestre";
+    return;
+  }
+
+  const real = vendas(gestorAtivo, diaIni, diaFim);
+  const dias = diasNoIntervalo(diaIni, diaFim);
+  const meta = g.meta;
+  const pctMeta = (real / meta) * 100;
+  const media = real / dias;
+  const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
+  const pctProj = (proj / meta) * 100;
+  // Var vs mês anterior — comparação no MESMO período (acumulado até o dia),
+  // e não contra o total fechado do mês anterior.
+  const PREV_MES = { JUNHO: "MAIO", MAIO: "ABRIL" };
+  const prevKey = PREV_MES[mesAtivo];
+  const realAteDia = acum(gestorAtivo, diaFim);
+  let baseAnt = g.vendas_ant;
+  let subAntTxt = `vs ${CONFIG.mesAnteriorLabel} (${fmt(g.vendas_ant)})`;
+  let varAbr;
+  if (prevKey && DADOS_MESES[prevKey] && DADOS_MESES[prevKey].gestores[gestorAtivo]) {
+    const arrAnt = DADOS_MESES[prevKey].gestores[gestorAtivo].acumulado;
+    baseAnt = arrAnt[Math.min(diaFim, arrAnt.length) - 1] || 0;
+    subAntTxt = `vs ${CONFIG.mesAnteriorLabel} até dia ${diaFim} (${fmt(baseAnt)})`;
+    varAbr = baseAnt > 0 ? ((realAteDia / baseAnt) - 1) * 100 : 0;
+  } else {
+    varAbr = g.vendas_ant > 0 ? ((proj / g.vendas_ant) - 1) * 100 : 0;
+  }
+  const ref = (diaFim / CONFIG.diasNoMes) * 100;
+
+  document.getElementById("diaAtualLabel").textContent = CONFIG.diaAtual;
+  document.getElementById("filtroLabel").textContent = `${diaIni} até ${diaFim}`;
+
+  document.getElementById("kVendas").textContent = fmt(real);
+  document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${badgeClass(pctMeta,ref)}">${fmtDec(pctMeta)}%</span>`;
+
+  document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
+  document.getElementById("kMetaSub").innerHTML = `Ref. proporcional: ${fmtDec(ref)}%`;
+
+  document.getElementById("kProj").textContent = fmt(proj);
+  document.getElementById("kProjSub").innerHTML = `${fmtDec(pctProj)}% da meta`;
+
+  document.getElementById("kMedia").textContent = fmtDec(media, 0);
+  document.getElementById("kMediaSub").textContent = `vendas/dia (${dias} dias)`;
+
+  const varSign = varAbr >= 0 ? "+" : "";
+  document.getElementById("kAbr").textContent = varSign + fmtDec(varAbr) + "%";
+  document.getElementById("kAbrSub").textContent = subAntTxt;
+  const labAbr = document.getElementById("kAbrLabel");
+  if (labAbr) labAbr.textContent = `Var. vs ${CONFIG.mesAnteriorLabel}`;
+  document.getElementById("kAbr").style.color = varAbr >= 0 ? "#1D9E75" : "#D85A30";
+
+  // Conv média
+  if (g.conv && Array.isArray(g.conv)) {
+    const convSlice = g.conv.slice(diaIni - 1, diaFim);
+    const vals = convSlice.filter(v => v !== null && v !== undefined);
+    const convMedia = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+    document.getElementById("kConv").textContent = convMedia !== null ? fmtDec(convMedia) + "%" : "—";
+    document.getElementById("kConvSub").textContent = convMedia !== null ? `${vals.length} dias c/ dado` : "Disponível p/ Total";
+    document.getElementById("kpiConv").style.display = "";
+  } else {
+    document.getElementById("kConv").textContent = "—";
+    document.getElementById("kConvSub").textContent = "Disponível p/ Total";
+  }
+}
+
+// ── LABELS ──
+function getDayLabels() {
+  const labels = [];
+  for (let d = diaIni; d <= diaFim; d++) labels.push(`Dia ${d}`);
+  return labels;
+}
+
+function getAcumData() {
+  const arr = CONFIG.gestores[gestorAtivo].acumulado;
+  const data = [];
+  for (let d = diaIni; d <= diaFim; d++) data.push(arr[d-1] || 0);
+  return data;
+}
+
+function getVolumeData() {
+  const arr = CONFIG.gestores[gestorAtivo].acumulado;
+  const pf = []; const pme = []; const ades = [];
+  // proporcional por tipo
+  const g = CONFIG.gestores[gestorAtivo];
+  const totalReal = acum(gestorAtivo, diaFim) - acum(gestorAtivo, diaIni - 1);
+  const pfRatio  = totalReal > 0 ? g.pf  / (g.pf + g.pme + g.adesao || 1) : 0;
+  const pmeRatio = totalReal > 0 ? g.pme / (g.pf + g.pme + g.adesao || 1) : 0;
+  const adRatio  = totalReal > 0 ? g.adesao / (g.pf + g.pme + g.adesao || 1) : 0;
+
+  for (let d = diaIni; d <= diaFim; d++) {
+    const vol = (arr[d-1] || 0) - (arr[d-2] || (d===1?0:arr[d-2]||0));
+    const v = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
+    pf.push(Math.round(v * pfRatio));
+    pme.push(Math.round(v * pmeRatio));
+    ades.push(Math.round(v * adRatio));
+  }
+  return { pf, pme, ades };
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── CHART: ACUMULADO ──
+function renderAcumulado() {
+  destroyChart("acumulado");
+  const g = CONFIG.gestores[gestorAtivo];
+  const meta = g.meta;
+  const endMonth = CONFIG.diasNoMes;
+  const start = diaIni;
+  const lastReal = Math.min(diaFim, CONFIG.diaAtual);
+
+  // Eixo X: do dia inicial do filtro até o FIM do mês (a projeção precisa chegar lá)
+  const labels = [];
+  for (let d = start; d <= endMonth; d++) labels.push(`Dia ${d}`);
+  const idxLastReal = lastReal - start;   // último ponto com dado real
+  const idxEnd = labels.length - 1;       // fim do mês
+
+  // Acumulado real: preenche até lastReal, null depois
+  const data = labels.map((_, i) => {
+    const d = start + i;
+    return d <= lastReal ? acum(gestorAtivo, d) : null;
+  });
+
+  // Projeção do mês (acumulado projetado p/ o fim do mês)
+  const acumReal = acum(gestorAtivo, lastReal);
+  const projMes = g.projecao_fixa || (lastReal > 0 ? Math.round(acumReal / lastReal * endMonth) : 0);
+
+  // Linha de projeção: parte do último ponto real e cresce até projMes no último dia.
+  // (null antes de lastReal => a tracejada só aparece como continuação do real)
+  const projecaoLine = labels.map((_, i) => {
+    const d = start + i;
+    if (d < lastReal) return null;
+    if (d === lastReal) return acumReal;
+    if (endMonth <= lastReal) return acumReal;
+    const frac = (d - lastReal) / (endMonth - lastReal);
+    return Math.round(acumReal + (projMes - acumReal) * frac);
+  });
+
+  const metaLine = labels.map(() => meta);
+  const kfmt = v => v == null ? "" : (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v);
+
+  charts["acumulado"] = new Chart(document.getElementById("chartAcumulado"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Acumulado", data, borderColor: "#185FA5", backgroundColor: "rgba(24,95,165,.08)", borderWidth: 2.5, fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5,
+          datalabels: {
+            display: ctx => ctx.dataIndex === idxLastReal,
+            align: "top", anchor: "top",
+            font: { size: 10, weight: "700" }, color: "#185FA5",
+            formatter: kfmt
+          }
+        },
+        { label: "Meta", data: metaLine, borderColor: "#1D9E75", borderDash: [6,3], borderWidth: 1.5, pointRadius: 0, fill: false,
+          datalabels: {
+            display: ctx => ctx.dataIndex === idxEnd,
+            align: "right", anchor: "end", font: { size: 9, weight:"600" }, color: "#1D9E75",
+            formatter: v => "Meta: " + kfmt(v)
+          }
+        },
+        { label: "Projeção", data: projecaoLine, borderColor: "#E8623A", borderDash: [4,3], borderWidth: 1.5, pointRadius: 0, fill: false, spanGaps: true,
+          datalabels: {
+            display: ctx => ctx.dataIndex === idxEnd,
+            align: "top", anchor: "end", font: { size: 10, weight:"700" }, color: "#E8623A",
+            formatter: v => "Proj: " + kfmt(v)
+          }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 55 } },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {},
+        tooltip: { callbacks: { label: ctx => ctx.raw == null ? null : `${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
+      },
+      scales: { y: { beginAtZero: false, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 31 } } }
+    }
+  });
+}
+
+// ── CHART: VOLUME ──
+function renderVolume() {
+  destroyChart("volume");
+  const labels = getDayLabels();
+  const { pf, pme, ades } = getVolumeData();
+  const numDias = diaFim - diaIni + 1;
+  const volFontSize = numDias <= 15 ? 10 : numDias <= 25 ? 8 : 7;
+  const totaisVol = pf.map((v,i) => v + pme[i] + ades[i]);
+  charts["volume"] = new Chart(document.getElementById("chartVolume"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "PF",     data: pf,   backgroundColor: "#185FA5",
+          datalabels: { display: false }
+        },
+        { label: "PME",    data: pme,  backgroundColor: "#1D9E75",
+          datalabels: { display: false }
+        },
+        { label: "Adesão", data: ades, backgroundColor: "#D85A30",
+          datalabels: {
+            display: ctx => totaisVol[ctx.dataIndex] > 0,
+            anchor: "end", align: "top",
+            font: { size: volFontSize, weight: "600" }, color: "#333",
+            formatter: (v, ctx) => totaisVol[ctx.dataIndex] || ""
+          }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {}
+      },
+      scales: { x: { stacked: true, ticks: { font: { size: 10 }, maxTicksLimit: 31 } }, y: { stacked: true, ticks: { font: { size: 10 } } } }
+    }
+  });
+}
+
+// ── CHART: PRODUTO ──
+function renderProduto() {
+  destroyChart("produto");
+  const g = CONFIG.gestores[gestorAtivo];
+  const real = vendas(gestorAtivo, diaIni, diaFim);
+  const dias = diasNoIntervalo(diaIni, diaFim);
+  const total = g.pf + g.pme + g.adesao;
+  const ratio = total > 0 ? real / total : 0;
+  const pfV   = Math.round(g.pf * ratio / dias);
+  const pmeV  = Math.round(g.pme * ratio / dias);
+  const adesV = Math.round(g.adesao * ratio / dias);
+  charts["produto"] = new Chart(document.getElementById("chartProduto"), {
+    type: "bar",
+    data: {
+      labels: ["PF", "PME", "Adesão"],
+      datasets: [{ label: "Média/dia", data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderRadius: 5,
+        datalabels: {
+          anchor: "end", align: "right",
+          font: { size: 11, weight: "700" }, color: "#333",
+          formatter: v => v > 0 ? v : ""
+        }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true, indexAxis: "y",
+      layout: { padding: { right: 30 } },
+      plugins: { legend: { display: false }, datalabels: {} },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
+    }
+  });
+}
+
+// ── CHART: CONVERSÃO ──
+function renderConv() {
+  destroyChart("conv");
+  const g = CONFIG.gestores[gestorAtivo];
+  const showConv = g.conv && Array.isArray(g.conv);
+  const labels = getDayLabels();
+  let data = labels.map(() => null);
+  let bgColors = labels.map(() => "#cccccc");
+
+  if (showConv) {
+    data = [];
+    bgColors = [];
+    for (let d = diaIni; d <= diaFim; d++) {
+      const v = g.conv[d-1];
+      data.push(v);
+      if (v === null || v === undefined) bgColors.push("rgba(200,200,200,0.3)");
+      else if (v >= 8) bgColors.push("#0F6E56");
+      else if (v >= 5) bgColors.push("#854F0B");
+      else bgColors.push("#993C1D");
+    }
+  }
+
+  const showConvLabels = (diaFim - diaIni + 1) <= 20;
+  charts["conv"] = new Chart(document.getElementById("chartConv"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Conv %", data, backgroundColor: bgColors, borderRadius: 3,
+        datalabels: {
+          display: ctx => showConvLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+          anchor: "end", align: "top",
+          font: { size: 9, weight: "600" },
+          color: ctx => {
+            const v = ctx.dataset.data[ctx.dataIndex];
+            if (v === null) return "transparent";
+            return v >= 8 ? "#0F6E56" : v >= 5 ? "#854F0B" : "#993C1D";
+          },
+          formatter: v => v !== null ? v + "%" : ""
+        }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.raw !== null ? `${ctx.raw}%` : "—" } },
+        datalabels: {}
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } },
+        y: { ticks: { font: { size: 10 }, callback: v => v + "%" } }
+      }
+    }
+  });
+}
+
+// ── CHART: MIX ──
+function renderMix() {
+  destroyChart("mix");
+  const g = CONFIG.gestores[gestorAtivo];
+  const real = vendas(gestorAtivo, diaIni, diaFim);
+  const total = g.pf + g.pme + g.adesao;
+  const ratio = total > 0 ? real / total : 0;
+  const pfV   = Math.round(g.pf * ratio);
+  const pmeV  = Math.round(g.pme * ratio);
+  const adesV = Math.round(g.adesao * ratio);
+
+  charts["mix"] = new Chart(document.getElementById("chartMix"), {
+    type: "doughnut",
+    data: {
+      labels: ["PF","PME","Adesão"],
+      datasets: [{ data: [pfV, pmeV, adesV], backgroundColor: ["#185FA5","#1D9E75","#D85A30"], borderWidth: 2,
+        datalabels: {
+          display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+          color: "#fff",
+          font: { size: 11, weight: "700" },
+          formatter: (v, ctx) => {
+            const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct = sum > 0 ? ((v/sum)*100).toFixed(1) : 0;
+            return pct + "%";
+          }
+        }
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: "bottom", labels: { font: { size: 11 }, padding: 12 } },
+        datalabels: {},
+        tooltip: { callbacks: {
+          label: ctx => {
+            const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            const pct = sum > 0 ? ((ctx.raw / sum)*100).toFixed(1) : 0;
+            return ` ${ctx.label}: ${fmt(ctx.raw)} (${pct}%)`;
+          }
+        }}
+      }
+    }
+  });
+}
+
+// ── CHART: LEADS ──
+function renderLeads() {
+  destroyChart("leads");
+  destroyChart("leadPerf");
+  const g = CONFIG.gestores[gestorAtivo];
+  const showLeads = g.leads && Array.isArray(g.leads);
+  document.getElementById("leadsSection").style.display = showLeads ? "" : "none";
+  if (!showLeads) return;
+
+  const labels = getDayLabels();
+  const leadsData = [];
+  const volData = [];
+  for (let d = diaIni; d <= diaFim; d++) {
+    leadsData.push(g.leads[d-1] ?? null);
+    const arr = g.acumulado;
+    const vol = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
+    volData.push(vol);
+  }
+
+  const leadsValidos = leadsData.filter(v => v !== null);
+  const mediaLeads = leadsValidos.length ? leadsValidos.reduce((a,b)=>a+b,0)/leadsValidos.length : 0;
+  const mediaLeadsLine = leadsData.map(v => v !== null ? mediaLeads : null);
+
+  const showLeadLabels = (diaFim - diaIni + 1) <= 15;
+  charts["leads"] = new Chart(document.getElementById("chartLeads"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Leads", data: leadsData, backgroundColor: "rgba(24,95,165,.6)", borderRadius: 3, order: 2,
+          datalabels: {
+            display: ctx => showLeadLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v !== null ? (v >= 1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v) : ""
+          }
+        },
+        { label: "Média", data: mediaLeadsLine, type: "line", borderColor: "#E8623A", borderDash: [5,3], borderWidth: 2, pointRadius: 0, fill: false, order: 1,
+          datalabels: { display: false }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { font: { size: 11 } } }, datalabels: {} },
+      scales: { x: { ticks: { font:{size:10}, maxTicksLimit:12 } }, y: { ticks: { font:{size:10} } } }
+    }
+  });
+
+  // Lead perf: leads/venda vs conv%
+  const lv = [], cv2 = [];
+  const labels2 = [];
+  for (let d = diaIni; d <= diaFim; d++) {
+    const l = g.leads[d-1];
+    const arr = g.acumulado;
+    const vol = d === 1 ? (arr[0]||0) : (arr[d-1]||0) - (arr[d-2]||0);
+    const c = g.conv ? g.conv[d-1] : null;
+    if (l !== null && l !== undefined && vol > 0) {
+      labels2.push(`Dia ${d}`);
+      lv.push(+(l / vol).toFixed(1));
+      cv2.push(c ?? null);
+    }
+  }
+
+  const showLPLabels = labels2.length <= 15;
+  charts["leadPerf"] = new Chart(document.getElementById("chartLeadPerf"), {
+    type: "bar",
+    data: {
+      labels: labels2,
+      datasets: [
+        { label: "Leads/Venda", data: lv, backgroundColor: "rgba(24,95,165,.55)", borderRadius: 3, yAxisID: "y",
+          datalabels: {
+            display: showLPLabels,
+            anchor: "end", align: "top",
+            font: { size: 9, weight: "600" }, color: "#185FA5",
+            formatter: v => v
+          }
+        },
+        { label: "Conv %", data: cv2, type: "line", borderColor: "#E8623A", borderWidth: 2, pointRadius: 3, fill: false, yAxisID: "y2",
+          datalabels: {
+            display: ctx => showLPLabels && ctx.dataset.data[ctx.dataIndex] !== null,
+            align: "top", anchor: "top",
+            font: { size: 9, weight: "600" }, color: "#E8623A",
+            formatter: v => v !== null ? v + "%" : ""
+          }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { font:{size:11} } }, datalabels: {} },
+      scales: {
+        x: { ticks: { font:{size:10}, maxTicksLimit:12 } },
+        y: { type:"linear", position:"left", ticks:{ font:{size:10} }, title:{ display:true, text:"Leads/Venda", font:{size:10} } },
+        y2: { type:"linear", position:"right", grid:{ drawOnChartArea:false }, ticks:{ font:{size:10}, callback: v => v+"%" }, title:{ display:true, text:"Conv %", font:{size:10} } }
+      }
+    }
+  });
+}
+
+// ── TABELA ──
+function renderTabela() {
+  const tbody = document.getElementById("tabela");
+  tbody.innerHTML = "";
+  const keys = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+  for (const k of keys) {
+    const g = CONFIG.gestores[k];
+    const real = vendas(k, diaIni, diaFim);
+    const dias = diasNoIntervalo(diaIni, diaFim);
+    const pctMeta = ((real / g.meta) * 100).toFixed(1);
+    const media = real / dias;
+    const proj = g.projecao_fixa || Math.round(media * CONFIG.diasNoMes);
+    const pctProj = ((proj / g.meta) * 100).toFixed(1);
+    const varAbr = (((proj / g.vendas_ant) - 1) * 100).toFixed(1);
+    const ref = (diaFim / CONFIG.diasNoMes) * 100;
+    const bc = badgeClass(parseFloat(pctMeta), ref);
+    const total = g.pf + g.pme + g.adesao;
+    const ratio = total > 0 ? real / total : 0;
+
+    const tr = document.createElement("tr");
+    if (k === "TOTAL") tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>${g.label}</td>
+      <td class="td-right num">${fmt(real)}</td>
+      <td class="td-right num">${fmt(g.meta)}</td>
+      <td class="td-right"><span class="badge ${bc}">${pctMeta}%</span></td>
+      <td class="td-right num">${fmt(proj)}</td>
+      <td class="td-right">${pctProj}%</td>
+      <td class="td-right num">${fmtDec(media,0)}</td>
+      <td class="td-right" style="color:${parseFloat(varAbr)>=0?'#1D9E75':'#D85A30'}">${varAbr>=0?'+':''}${varAbr}%</td>
+      <td class="td-right num">${fmt(Math.round(g.pf*ratio))}</td>
+      <td class="td-right num">${fmt(Math.round(g.pme*ratio))}</td>
+      <td class="td-right num">${fmt(Math.round(g.adesao*ratio))}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ── TABELA LEADS POR ORIGEM (GUP) ──
+function renderTabelaOrigem() {
+  const card = document.getElementById("cardOrigem");
+  const dados = DADOS_LEADS_ORIGEM[mesAtivo];
+  if (!dados) { card.style.display = "none"; return; }   // meses sem dados (Abril/Maio)
+  card.style.display = "";
+  const tbody = document.getElementById("tabelaOrigem");
+  tbody.innerHTML = "";
+  const pct = (a, b) => b ? (a / b * 100) : 0;
+  const linha = (o, bold = false) => {
+    const tr = document.createElement("tr");
+    if (bold) tr.style.fontWeight = "700";
+    tr.innerHTML =
+      `<td>${o.origem}</td>` +
+      `<td class="td-right num">${fmt(o.leads)}</td>` +
+      `<td class="td-right num">${fmt(o.prod)}</td>` +
+      `<td class="td-right">${fmtDec(pct(o.prod, o.leads))}%</td>` +
+      `<td class="td-right num">${fmt(o.contratos)}</td>` +
+      `<td class="td-right num">${fmt(o.vidas)}</td>` +
+      `<td class="td-right">${fmtDec(pct(o.contratos, o.leads))}%</td>` +
+      `<td class="td-right">${fmtDec(pct(o.vidas, o.leads))}%</td>`;
+    tbody.appendChild(tr);
+  };
+  dados.forEach(o => linha(o));
+  const t = dados.reduce((a, o) => ({
+    origem: "TOTAL GERAL", leads: a.leads + o.leads, prod: a.prod + o.prod,
+    contratos: a.contratos + o.contratos, vidas: a.vidas + o.vidas
+  }), {leads: 0, prod: 0, contratos: 0, vidas: 0});
+  linha(t, true);
+}
+
+// Registra plugin globalmente
+Chart.register(ChartDataLabels);
+
+// ── RENDER ALL ──
+function renderAll() {
+  const isTri = !!CONFIG.isTrimestre;
+  // alterna blocos
+  document.querySelectorAll(".normal-view").forEach(el => el.style.display = isTri ? "none" : "");
+  document.getElementById("triPanel").style.display = isTri ? "" : "none";
+  // desabilita seletor de período no trimestre
+  document.getElementById("diaIni").disabled = isTri;
+  document.getElementById("diaFim").disabled = isTri;
+
+  renderKPIs();
+  if (isTri) {
+    renderTrimestre();
+  } else {
+    renderAcumulado();
+    renderVolume();
+    renderProduto();
+    renderConv();
+    renderMix();
+    renderLeads();
+    renderTabela();
+    renderTabelaOrigem();
+  }
+}
+
+// ── RENDER TRIMESTRE ──
+function renderTrimestre() {
+  const meses = ["Abril","Maio","Junho"];
+  const gestores = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+
+  // Gráfico 1: Meta vs Realizado por gestor (barras agrupadas)
+  destroyChart("triMeta");
+  const labelsG = gestores.map(k => CONFIG.gestores[k].label);
+  const realizadoG = gestores.map(k => CONFIG.gestores[k].projecao_fixa);
+  const metaG = gestores.map(k => CONFIG.gestores[k].meta);
+  charts["triMeta"] = new Chart(document.getElementById("chartTriMeta"), {
+    type: "bar",
+    data: {
+      labels: labelsG,
+      datasets: [
+        { label: "Realizado", data: realizadoG, backgroundColor: "#185FA5", borderRadius: 4,
+          datalabels: { anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#185FA5",
+            formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } },
+        { label: "Meta", data: metaG, backgroundColor: "rgba(29,158,117,.55)", borderRadius: 4,
+          datalabels: { anchor:"end", align:"top", font:{size:9,weight:"600"}, color:"#1D9E75",
+            formatter: v => v>=1000 ? (v/1000).toFixed(1).replace(".",",")+"k" : v } }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend:{ labels:{font:{size:11}} }, datalabels:{} },
+      scales: { x:{ ticks:{font:{size:10}} }, y:{ beginAtZero:true, ticks:{font:{size:10}} } }
+    }
+  });
+
+  // Gráfico 2: Vendas por mês (Abr/Mai/Jun) do gestor ativo
+  destroyChart("triMes");
+  const g = CONFIG.gestores[gestorAtivo];
+  charts["triMes"] = new Chart(document.getElementById("chartTriMes"), {
+    type: "bar",
+    data: {
+      labels: meses,
+      datasets: [{ label: "Vendas — " + g.label, data: g.porMes,
+        backgroundColor: ["#185FA5","#1D9E75","#6c4ed8"], borderRadius: 5,
+        datalabels: { anchor:"end", align:"top", font:{size:12,weight:"700"}, color:"#333",
+          formatter: v => fmt(v) } }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend:{display:false}, datalabels:{} },
+      scales: { x:{ ticks:{font:{size:11}} }, y:{ beginAtZero:true, ticks:{font:{size:10}} } }
+    }
+  });
+
+  // Tabela consolidada
+  const tbody = document.getElementById("tabelaTri");
+  tbody.innerHTML = "";
+  for (const k of gestores) {
+    const gg = CONFIG.gestores[k];
+    const realizado = gg.projecao_fixa;
+    const pctMeta = ((realizado / gg.meta) * 100).toFixed(1);
+    const saldo = realizado - gg.meta;
+    const bc = parseFloat(pctMeta) >= 100 ? "green" : parseFloat(pctMeta) >= 90 ? "yellow" : "red";
+    const tr = document.createElement("tr");
+    if (k === "TOTAL") tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>${gg.label}</td>
+      <td class="td-right num">${fmt(gg.porMes[0])}</td>
+      <td class="td-right num">${fmt(gg.porMes[1])}</td>
+      <td class="td-right num">${fmt(gg.porMes[2])}</td>
+      <td class="td-right num">${fmt(realizado)}</td>
+      <td class="td-right num">${fmt(gg.meta)}</td>
+      <td class="td-right"><span class="badge ${bc}">${pctMeta}%</span></td>
+      <td class="td-right num" style="color:${saldo>=0?'#1D9E75':'#D85A30'}">${saldo>=0?'+':''}${fmt(saldo)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// Inicia
+renderAll();
+</script>
+
+<script>
+(function(){
+  const KEY = 'vendasdiaria_auth';
+  if(sessionStorage.getItem(KEY)==='1'){
+    document.getElementById('login-overlay').classList.add('hidden');
+  }
+  document.getElementById('login-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter') checkLogin();
+  });
+})();
+
+function checkLogin(){
+  const val = document.getElementById('login-input').value;
+  if(val==='hapvida1234'){
+    sessionStorage.setItem('vendasdiaria_auth','1');
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else {
+    document.getElementById('login-error').textContent='Senha incorreta. Tente novamente.';
+    document.getElementById('login-input').value='';
+    document.getElementById('login-input').focus();
+  }
+}
+</script>
+</body>
+</html>
