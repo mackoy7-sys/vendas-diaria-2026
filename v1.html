@@ -379,6 +379,31 @@
   .login-box button{width:100%;padding:11px;background:var(--header);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer}
   .login-box button:hover{background:var(--azul)}
   .login-error{font-size:12px;color:#c0392b;margin-top:8px;min-height:16px}
+  /* --- Modal do login que libera CPF/nome/celular na exportacao (02/09/2026) --- */
+  #piiOv{position:fixed;inset:0;background:rgba(20,26,38,.55);z-index:9999;
+    display:none;align-items:center;justify-content:center;padding:16px}
+  #piiOv.on{display:flex}
+  #piiOv .box{background:#fff;border-radius:12px;padding:22px 24px;width:100%;
+    max-width:380px;box-shadow:0 18px 50px rgba(0,0,0,.28);font-size:13px}
+  #piiOv h3{margin:0 0 4px;font-size:15px;color:#1b2436}
+  #piiOv .sub{color:#5a6577;font-size:12px;line-height:1.5;margin-bottom:14px}
+  #piiOv input{width:100%;box-sizing:border-box;padding:9px 11px;margin-bottom:9px;
+    border:1px solid #cfd6e0;border-radius:7px;font-size:13px;font-family:inherit}
+  #piiOv input:focus{outline:none;border-color:#2f6fd0;box-shadow:0 0 0 3px rgba(47,111,208,.14)}
+  #piiOv .acoes{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+  #piiOv button{padding:8px 15px;border:0;border-radius:7px;font-size:13px;cursor:pointer;
+    font-family:inherit}
+  #piiOv .sec{background:#eef1f5;color:#48505e}
+  #piiOv .pri{background:#2f6fd0;color:#fff;font-weight:600}
+  #piiOv .pri[disabled]{opacity:.55;cursor:progress}
+  /* #7a1f1f sobre #fdecea da' razao 8,6:1 -- e' mensagem de erro, tem de ser legivel */
+  #piiOv .err{color:#7a1f1f;background:#fdecea;border-radius:6px;font-size:12px;
+    line-height:1.45;padding:0;max-height:0;overflow:hidden;transition:max-height .12s}
+  #piiOv .err.on{padding:8px 10px;max-height:180px;margin-bottom:8px}
+  /* o botao com cadeado: mesma familia do .excel, tom mais grave para nao virar "outro
+     Excel qualquer" -- o que ele baixa sai da empresa com CPF dentro. */
+  .btn-cart.pii{background:#2f3b52;border-color:#2f3b52;color:#fff}
+  .btn-cart.pii:hover{background:#1f2939;border-color:#1f2939}
   </style>
 </head>
 <body>
@@ -922,6 +947,10 @@
           <span id="fpfCartResumo" style="font-size:11px;color:#888"></span>
           <button class="btn-cart excel" onclick="baixarCarteiraXlsx()"
                   title="Baixa em Excel exatamente o recorte filtrado na tela, com autofiltro, cabeçalho fixo e o vencimento colorido.">⬇ Excel</button>
+          <!-- ⭐ 02/09/2026: a mesma planilha COM CPF/nome/celular. Pede login porque o dado
+               pessoal não está neste arquivo — vem da tabela `pf_pii`, atrás de RLS. -->
+          <button class="btn-cart pii" onclick="baixarCarteiraComPii()"
+                  title="A mesma planilha, com CPF, nome do titular e celular. Pede o seu login Hapvida: o dado pessoal não está neste arquivo, vem do banco na hora.">🔒 Excel + CPF</button>
         </div>
       </div>
       <div style="color:#888;font-size:11px;margin:-4px 0 10px;line-height:1.5" id="fpfCartSub"></div>
@@ -4794,7 +4823,181 @@ function _fpfColLetra(i) {
   return s;
 }
 
-function baixarCarteiraXlsx() {
+// ═══════════ PII sob demanda: CPF / nome / celular NÃO estão no payload ═════════════════
+// ⚠️⚠️ LEIA ANTES DE "SIMPLIFICAR" ISTO PARA UMAS COLUNAS NO FUNIL_PF_DATA.
+// Este arquivo é servido em https://vendas-diaria-deploy.vercel.app/v1.html **sem
+// autenticação de servidor**: a senha da tela de entrada roda aqui no navegador, e o payload
+// viaja inteiro dentro do HTML. Quem tem o link baixa o arquivo e lê o JSON — com senha ou
+// sem ela. Pôr 9.780 CPFs no payload seria publicar 9.780 CPFs, e não haveria como despublicar
+// (o arquivo já estaria no cache/histórico de quem baixou).
+// Por isso o dado pessoal mora na tabela `pf_pii` do Supabase, atrás de RLS, e só chega aqui
+// depois de um login de verdade. Mesmo desenho do painel de Remuneração.
+// A chave abaixo é a PUBLICÁVEL (`anon`): ela é feita para ficar no navegador e sozinha não lê
+// uma linha desta tabela — quem decide é a policy `pf_pii_ler`, que exige `authenticated` +
+// concessão em `rem_acesso`. Esse portão é MEDIDO, não presumido:
+//     python oracle-reports\py\daily\supabase_pf_pii.py rls
+const PF_PII_URL  = "https://ikhihjdkxnfarvwitdcy.supabase.co";
+const PF_PII_ANON = "sb_publishable_91SmDRibhQYNRTL8VQK7Qg_Po7X5Voe";
+// access_token em MEMÓRIA. Nada de localStorage: some ao fechar a aba, que é o que se quer de
+// uma credencial que abre CPF de cliente num computador compartilhado.
+let _pfPiiTok = null, _pfPiiQuem = "", _pfPiiMapa = null;
+
+function _pfPiiJson(r) {
+  return r.text().then(function (t) {
+    let j = null;
+    try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
+    if (!r.ok) {
+      const msg = (j && (j.error_description || j.msg || j.message || j.error)) || t.slice(0, 200);
+      const err = new Error(msg || ("HTTP " + r.status));
+      err.status = r.status;
+      throw err;
+    }
+    return j;
+  });
+}
+
+function pfPiiLogin(email, senha) {
+  // Sem Authorization aqui de propósito: um token velho no header faria o endpoint de
+  // login responder sobre a sessão antiga em vez de abrir uma nova.
+  return fetch(PF_PII_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: { apikey: PF_PII_ANON, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email, password: senha })
+  }).then(_pfPiiJson).then(function (j) {
+    if (!j || !j.access_token) throw new Error("A resposta do login não trouxe sessão.");
+    _pfPiiTok = j.access_token;
+    _pfPiiQuem = email;
+    _pfPiiMapa = null;          // trocou de conta => o recorte da RLS muda
+  });
+}
+
+// Lê a `pf_pii` inteira que a SUA conta enxerga. É a RLS que recorta por gestão: o gestor
+// recebe só as linhas dele, e nem sabe que as outras existem. Paginado porque o PostgREST
+// tem teto por requisição.
+function pfPiiCarregar() {
+  if (_pfPiiMapa) return Promise.resolve(_pfPiiMapa);
+  const PAG = 1000, mapa = {};
+  function pagina(ini) {
+    return fetch(PF_PII_URL + "/rest/v1/pf_pii?select=orcamento,cpf,nome,celular&order=orcamento", {
+      headers: { apikey: PF_PII_ANON, Authorization: "Bearer " + _pfPiiTok,
+                 "Range-Unit": "items", Range: ini + "-" + (ini + PAG - 1) }
+    }).then(_pfPiiJson).then(function (arr) {
+      arr = arr || [];
+      arr.forEach(function (d) { mapa[d.orcamento] = d; });
+      if (arr.length === PAG) return pagina(ini + PAG);
+      _pfPiiMapa = mapa;
+      return mapa;
+    });
+  }
+  return pagina(0);
+}
+
+let _pfPiiResolver = null;
+function pfPiiPedirLogin() {
+  let ov = document.getElementById("piiOv");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "piiOv";
+    ov.innerHTML = '<div class="box">'
+      + "<h3>Exportar com CPF</h3>"
+      + '<div class="sub">O CPF, o nome e o celular <b>não estão neste arquivo</b> — eles vêm '
+      + "do banco, e só para quem tem acesso. Entre com o seu e-mail Hapvida.<br>"
+      + "Você vê apenas as negociações da sua gestão.</div>"
+      + '<div class="err" id="piiErr"></div>'
+      + '<input id="piiEm" type="email" placeholder="nome.sobrenome@hapvida.com.br" autocomplete="username">'
+      + '<input id="piiPw" type="password" placeholder="Senha" autocomplete="current-password">'
+      + '<div class="acoes"><button class="sec" onclick="pfPiiFechar()">Cancelar</button>'
+      + '<button class="pri" id="piiOk" onclick="pfPiiConfirmar()">Entrar e baixar</button></div>'
+      + "</div>";
+    document.body.appendChild(ov);
+    ov.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") pfPiiConfirmar();
+      if (e.key === "Escape") pfPiiFechar();
+    });
+    // clicar fora fecha; clicar DENTRO não (senão o modal some ao selecionar texto)
+    ov.addEventListener("click", function (e) { if (e.target === ov) pfPiiFechar(); });
+  }
+  document.getElementById("piiErr").classList.remove("on");
+  document.getElementById("piiPw").value = "";
+  if (_pfPiiQuem) document.getElementById("piiEm").value = _pfPiiQuem;
+  ov.classList.add("on");
+  setTimeout(function () {
+    document.getElementById(_pfPiiQuem ? "piiPw" : "piiEm").focus();
+  }, 30);
+  return new Promise(function (resolve, reject) { _pfPiiResolver = { resolve: resolve, reject: reject }; });
+}
+
+function pfPiiFechar() {
+  const ov = document.getElementById("piiOv");
+  if (ov) ov.classList.remove("on");
+  document.getElementById("piiPw").value = "";
+  if (_pfPiiResolver) { _pfPiiResolver.reject(new Error("__cancelado__")); _pfPiiResolver = null; }
+}
+
+function pfPiiErro(msg) {
+  const e = document.getElementById("piiErr");
+  e.textContent = msg;
+  e.classList.add("on");
+}
+
+function pfPiiConfirmar() {
+  const em = document.getElementById("piiEm").value.trim();
+  const pw = document.getElementById("piiPw").value;
+  if (!em || !pw) { pfPiiErro("Preencha e-mail e senha."); return; }
+  const b = document.getElementById("piiOk");
+  b.disabled = true; b.textContent = "Entrando...";
+  pfPiiLogin(em, pw).then(function () {
+    document.getElementById("piiOv").classList.remove("on");
+    document.getElementById("piiPw").value = "";
+    const r = _pfPiiResolver; _pfPiiResolver = null;
+    if (r) r.resolve();
+  }).catch(function (err) {
+    // 400/401 aqui é credencial errada; qualquer outra coisa é falha de rede/servidor e
+    // merece o texto cru — "não foi possível" esconde justamente o que ajudaria a resolver.
+    pfPiiErro((err.status === 400 || err.status === 401)
+      ? "E-mail ou senha não conferem. Sem acesso? Fale com o David."
+      : "Não deu para entrar: " + err.message);
+  }).then(function () { b.disabled = false; b.textContent = "Entrar e baixar"; });
+}
+
+// Baixa a MESMA planilha do botão ⬇ Excel, com três colunas a mais.
+function baixarCarteiraComPii() {
+  const rows = fpfCartFiltrada();
+  if (!rows.length) { alert("Nenhuma negociação no recorte atual."); return; }
+
+  function baixar() {
+    return pfPiiCarregar().then(function (mapa) {
+      // ⚠️ NUNCA exportar coluna vazia em silêncio. Quem só tem uma gestão vai receber, sim,
+      // as linhas das outras gestões que estiverem na tela — mas SEM CPF. Isso tem de ser
+      // uma decisão dele, não uma surpresa quando a planilha já estiver no e-mail.
+      const faltam = rows.filter(function (r) { return !mapa[r.orcamento]; }).length;
+      if (faltam) {
+        const ok = confirm(faltam.toLocaleString("pt-BR") + " das "
+          + rows.length.toLocaleString("pt-BR") + " negociações do recorte vão SEM CPF, nome e "
+          + "celular: elas são de uma gestão fora do seu acesso.\n\nBaixar assim mesmo?");
+        if (!ok) return;
+      }
+      baixarCarteiraXlsx(true);
+    });
+  }
+
+  (_pfPiiTok ? baixar() : pfPiiPedirLogin().then(baixar)).catch(function (err) {
+    if (err && err.message === "__cancelado__") return;
+    if (err && (err.status === 401 || err.status === 403)) {
+      // sessão expirou entre um download e outro: pedir de novo, não jogar erro na cara
+      _pfPiiTok = null; _pfPiiMapa = null;
+      pfPiiPedirLogin().then(baixar).catch(function (e2) {
+        if (e2 && e2.message !== "__cancelado__") alert("Não deu para buscar os dados pessoais.\n\n" + e2.message);
+      });
+      return;
+    }
+    alert("Não deu para buscar os dados pessoais.\n\n" + (err && err.message ? err.message : err));
+  });
+}
+
+// `comPii` só é verdadeiro quando veio de `baixarCarteiraComPii()`, isto é: depois de login
+// e com `_pfPiiMapa` já carregado. O caminho sem PII continua idêntico ao que sempre foi.
+function baixarCarteiraXlsx(comPii) {
   const rows = fpfCartFiltrada();
   if (!rows.length) { alert("Nenhuma negociação no recorte atual."); return; }
   // O Excel leva a Situação como TEXTO e, além dela, as duas peças que a formam em tipo
@@ -4804,6 +5007,12 @@ function baixarCarteiraXlsx() {
     .concat([{ k: "venceEm", t: "Vence em (dias)" }, { k: "desfecho", t: "Desfecho em" },
              { k: "_dias", t: "Dias até cair" },
              { k: "_risco", t: "Risco" }, { k: "_regua", t: "Régua (dias)" }]);
+  // as três de dado pessoal vão no FIM: assim a planilha com e sem PII tem exatamente as
+  // mesmas colunas nas mesmas letras, e uma fórmula feita em cima de uma serve na outra.
+  if (comPii) {
+    cols.push({ k: "_cpf", t: "CPF" }, { k: "_nome", t: "Nome titular" },
+              { k: "_celular", t: "Celular" });
+  }
   const NUM = { venceEm: 1, orcamento: 1, vidas: 1, idade: 1, valor: 1, _regua: 1, _dias: 1 };
   const DATA = { digitacao: 1, desfecho: 1 };
 
@@ -4826,10 +5035,18 @@ function baixarCarteiraXlsx() {
     const rg = fpfRegua(r.fase);
     const linha = ri + 2;
     sd += '<row r="' + linha + '">' + cols.map(function (c, i) {
+      // CPF/celular NÃO entram em NUM: têm de sair como TEXTO, senão o Excel come o zero à
+      // esquerda do CPF e transforma o celular em notação científica (a mesma armadilha do
+      // `SaveAs xlCSV` já registrada no repo). Como não estão no mapa NUM, caem no ramo
+      // `inlineStr` lá embaixo — que é exatamente o que se quer.
+      const pii = (comPii && _pfPiiMapa) ? (_pfPiiMapa[r.orcamento] || null) : null;
       let v = (c.k === "_risco") ? rg.risco
             : (c.k === "_regua") ? rg.dias
             : (c.k === "_dias") ? fpfDiasAteCair(r)
             : (c.k === "situacao") ? fpfSituacaoTexto(r)
+            : (c.k === "_cpf") ? (pii ? (pii.cpf || "") : "")
+            : (c.k === "_nome") ? (pii ? (pii.nome || "") : "")
+            : (c.k === "_celular") ? (pii ? (pii.celular || "") : "")
             : r[c.k];
       if (c.k === "fase") v = FPF_LABEL[v] || v;
       // cancelado não tem régua de prazo: não inventar uma na planilha
@@ -4853,7 +5070,8 @@ function baixarCarteiraXlsx() {
   const larg = { situacao: 14, venceEm: 14, desfecho: 13, fase: 16, status: 21,
                  orcamento: 12, boleto: 14, vidas: 7, vendedor: 30, gestao: 16,
                  digitacao: 12, idade: 8, filial: 24, plano: 34, valor: 12,
-                 _dias: 12, _risco: 13, _regua: 12 };
+                 _dias: 12, _risco: 13, _regua: 12,
+                 _cpf: 14, _nome: 30, _celular: 14 };
   const cs = cols.map(function (c, i) {
     return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="'
       + (larg[c.k] || 14) + '" customWidth="1"/>';
@@ -4929,7 +5147,10 @@ function baixarCarteiraXlsx() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "carteira_pf_aberto_" + fpfCartNomeRecorte() + ".xlsx";
+  // o "_com_cpf" no nome não é enfeite: é o que faz quem recebe (e quem arquiva) saber, pelo
+  // nome do arquivo, que aquilo ali tem dado pessoal dentro.
+  a.download = "carteira_pf_aberto_" + fpfCartNomeRecorte()
+    + (comPii ? "_com_cpf" : "") + ".xlsx";
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
