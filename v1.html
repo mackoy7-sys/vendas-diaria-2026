@@ -501,8 +501,9 @@
           <option value="MAIO">Maio</option>
           <option value="JUNHO">Junho</option>
           <option value="JULHO">Julho</option>
-          <option value="AGOSTO" selected>Agosto</option>
-        </select>
+          <option value="AGOSTO">Agosto</option>
+        <option value="SETEMBRO" selected>Setembro</option>
+      </select>
       </span>
       <span class="filter-label">Gestão:</span>
       <select class="filter-select" id="selGestor" onchange="setGestor(this.value)">
@@ -2545,6 +2546,234 @@ const DADOS_MESES = {
     vendasAntSupervisor: {
 
     }
+  },
+  SETEMBRO: {
+    mesLabel: "Setembro 2026",
+    mesAnteriorLabel: "Agosto",
+    diasNoMes: 30,
+    diaAtual: 30,
+    diaDados: 1,
+    leadsOrigem: [
+      { label: "Carrinho Abandonado", valor: 1104 },
+      { label: "Eugenia", valor: 407 },
+      { label: "Campanhas Marketing", valor: 365 },
+      { label: "Eugenia Cotação", valor: 341 },
+      { label: "Outros", valor: 318 },
+      { label: "Repique Comercial", valor: 316 },
+      { label: "Espontâneo", valor: 239 },
+      { label: "VPC", valor: 131 },
+      { label: "Conecta", valor: 117 },
+      { label: "Carrinho Abandonado Conecta", valor: 85 },
+      { label: "Televendas", valor: 56 },
+      { label: "Leads Frios", valor: 29 }
+    ],
+    leadsTipo: [
+      { label: "PF", valor: 1788 },
+      { label: "Outros", valor: 1084 },
+      { label: "PME", valor: 554 },
+      { label: "PPO", valor: 77 },
+      { label: "Adesão", valor: 5 }
+    ],
+    leadsConversao: [
+      { origem: "Carrinho Abandonado", leads: 1104, produtivos: 925, contratos: 43, vidas: 56 },
+      { origem: "Eugenia", leads: 407, produtivos: 341, contratos: 15, vidas: 29 },
+      { origem: "Campanhas Marketing", leads: 365, produtivos: 254, contratos: 0, vidas: 0 },
+      { origem: "Eugenia Cotação", leads: 341, produtivos: 306, contratos: 0, vidas: 0 },
+      { origem: "Outros", leads: 318, produtivos: 268, contratos: 17, vidas: 19 },
+      { origem: "Repique Comercial", leads: 316, produtivos: 271, contratos: 8, vidas: 12 },
+      { origem: "Espontâneo", leads: 239, produtivos: 171, contratos: 7, vidas: 10 },
+      { origem: "VPC", leads: 131, produtivos: 102, contratos: 3, vidas: 4 },
+      { origem: "Conecta", leads: 117, produtivos: 101, contratos: 7, vidas: 13 },
+      { origem: "Carrinho Abandonado Conecta", leads: 85, produtivos: 64, contratos: 1, vidas: 2 },
+      { origem: "Televendas", leads: 56, produtivos: 42, contratos: 1, vidas: 2 },
+      { origem: "Leads Frios", leads: 29, produtivos: 14, contratos: 2, vidas: 3 }
+    ],
+    leadsOrigemDia: {
+      dias: 1,
+      origens: [
+        { origem: "Carrinho Abandonado", dias: [1104] },
+        { origem: "Eugenia", dias: [407] },
+        { origem: "Campanhas Marketing", dias: [365] },
+        { origem: "Eugenia Cotação", dias: [341] },
+        { origem: "Outros", dias: [318] },
+        { origem: "Repique Comercial", dias: [316] },
+        { origem: "Espontâneo", dias: [239] },
+        { origem: "VPC", dias: [131] },
+        { origem: "Conecta", dias: [117] },
+        { origem: "Carrinho Abandonado Conecta", dias: [85] },
+        { origem: "Televendas", dias: [56] },
+        { origem: "Leads Frios", dias: [29] }
+      ]
+    },
+    funilAtendimento: {"dias":30,"edges":[1,2,5,15,30,60,180,720,1440],"gestoes":{"TOTAL":{"abertos":[4953,184,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"atribuidos":[4326,72,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"respondidos":[3905,54,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"histFila":[[1457,334,458,449,258,262,401,687,20,0],[14,1,6,10,5,10,9,17,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histAtend":[[2235,577,464,312,104,67,108,33,4,0],[41,10,3,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histTotal":[[519,357,625,620,317,306,462,678,21,0],[2,0,4,9,5,10,9,15,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]]},"FABIO":{"abertos":[1990,56,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"atribuidos":[1990,56,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"respondidos":[1831,46,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"histFila":[[472,131,224,261,155,141,239,348,19,0],[7,1,4,5,5,9,8,17,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histAtend":[[1002,286,209,147,57,43,68,18,1,0],[41,5,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histTotal":[[132,137,236,315,185,177,275,356,18,0],[2,0,3,4,5,9,8,15,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]]},"JOSY":{"abertos":[2217,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"atribuidos":[2217,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"respondidos":[1970,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"histFila":[[914,186,224,185,103,118,161,325,1,0],[7,0,2,5,0,1,1,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histAtend":[[1146,285,250,160,47,24,40,15,3,0],[0,5,3,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histTotal":[[344,201,368,297,132,126,186,313,3,0],[0,0,1,5,0,1,1,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]]},"ADMINISTRATIVO":{"abertos":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"atribuidos":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"respondidos":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"histFila":[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histAtend":[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histTotal":[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]]},"ACTIONLINE":{"abertos":[59,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"atribuidos":[59,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"respondidos":[46,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"histFila":[[30,11,7,2,0,3,0,6,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histAtend":[[39,4,1,2,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]],"histTotal":[[17,8,12,4,0,3,0,2,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]]}}},
+    gestores: {
+      TOTAL: {
+        label: "Total geral", meta: 12570,
+        acumulado: [233,315,336,341,370,379,393,398,398,405,
+                    409,418,418,418,418,421,421,421,421,427,
+                    427,427,427,427,438,438,438,445,445,445],
+        pf: 87, pme: 326, adesao: 32, sintro: 1, ppo: 17,
+        ppoPlanos: [{ label: "Advance 600", valor: 17 }],
+        conv: [6.6,null,null,null,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        leads: [3508,null,null,null,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null,
+                    null,null,null,null,null,null,null,null,null,null],
+        vendas_ant: 8952, projecao_fixa: 5126, ativos: 159
+      },
+      FABIO: {
+        label: "Fabio", meta: 5800,
+        acumulado: [96,152,168,168,177,186,197,202,202,209,
+                    211,217,217,217,217,220,220,220,220,226,
+                    226,226,226,226,237,237,237,244,244,244],
+        pf: 29, pme: 214, adesao: 1, sintro: 0, ppo: 12,
+        ppoPlanos: [{ label: "Advance 600", valor: 12 }],
+        conv: null, leads: null, vendas_ant: 4911, projecao_fixa: 2112, ativos: 80
+      },
+      JOSY: {
+        label: "Josy", meta: 4200,
+        acumulado: [128,154,159,164,184,184,187,187,187,187,
+                    189,192,192,192,192,192,192,192,192,192,
+                    192,192,192,192,192,192,192,192,192,192],
+        pf: 49, pme: 112, adesao: 31, sintro: 0, ppo: 5,
+        ppoPlanos: [{ label: "Advance 600", valor: 5 }],
+        conv: null, leads: null, vendas_ant: 3658, projecao_fixa: 2816, ativos: 72
+      },
+      ADMINISTRATIVO: {
+        label: "Administrativo", meta: 600,
+        acumulado: [9,9,9,9,9,9,9,9,9,9,
+                    9,9,9,9,9,9,9,9,9,9,
+                    9,9,9,9,9,9,9,9,9,9],
+        pf: 9, pme: 0, adesao: 0, sintro: 1, ppo: 0,
+        ppoPlanos: [],
+        conv: null, leads: null, vendas_ant: 383, projecao_fixa: 198, ativos: 0
+      },
+      ACTIONLINE: {
+        label: "Actionline", meta: 200,
+        acumulado: [0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,0,0],
+        pf: 0, pme: 0, adesao: 0, sintro: 0, ppo: 0,
+        ppoPlanos: [],
+        conv: null, leads: null, vendas_ant: 0, projecao_fixa: 0, ativos: 7
+      }
+    },
+    ranking: [
+      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:9,pme:0,adesao:0,meta:0,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"CAROLINE GUERKE",promotor:"ADRIANI DZIERVA",pf:0,pme:9,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"30/04/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"CAROLINE GUERKE",promotor:"KAROL BUENO",pf:0,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"CAROLINE GUERKE",promotor:"RAFAELA SANTOS",pf:0,pme:5,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"12/06/2023",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"ANTONIO NOBRE",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"15/05/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"CLEBSON ALVES",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"13/03/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"JULIANA NUNES",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"LEIA FERREIRA",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/09/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"ERIKA PAULA",promotor:"VLADIA SOARES",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"08/09/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"BRUNA SOARES",pf:1,pme:12,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"22/07/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"CAROLINE EGIDIO",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"14/10/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"LARISSA MACHADO",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"15/01/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"MARAISA FERNANDA",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"PATRICIA JORGE",pf:0,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"REBECA MOURA",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/07/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"TAISSE MACARIO",pf:1,pme:32,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/06/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"DAVI ASSUNCAO",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"EBOLY NEVES",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/09/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"KAYKY BERNARDO",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"03/11/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"LUANA ARAUJO",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"03/11/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"ROMARIO SOUZA",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/03/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"EDUARDO NAUMANN",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"25/05/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"FLAVIA ROMBACH",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"13/10/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"GIOVANNA FERREIRA",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"08/10/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"JENNIFER FARIAS",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"ANDRE BRITO",pf:0,pme:8,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"13/02/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"ANGELO RIBEIRO",pf:0,pme:15,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"06/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"DAVI MAGALHAES",pf:0,pme:5,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"EDUARDA FRANCA",pf:2,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"FRANCISCO THIAGO",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"20/10/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"KAUAN REGIS",pf:0,pme:11,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"22/03/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"VICTOR FREITAS",pf:0,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"08/09/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"ANDREIA CHAVES",pf:0,pme:8,adesao:0,meta:0,exclMvp:true,status:"ATIVO",admissao:"03/08/2026",motivoExclMvp:"ADMISSAO 03/08/2026"},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"BEATRIZ SILVA",pf:0,pme:17,adesao:0,meta:0,exclMvp:true,status:"ATIVO",admissao:"03/08/2026",motivoExclMvp:"ADMISSAO 03/08/2026"},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"CAMILA GOMES",pf:0,pme:7,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"03/04/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"FELIPE SOARES",pf:0,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"12/06/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"LARISSA BIZELI",pf:1,pme:12,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"08/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"MARCIA REGINA",pf:0,pme:2,adesao:0,meta:0,exclMvp:true,status:"DESLIGADO",admissao:"12/06/2025",motivoExclMvp:"DESLIGADO 31/08/2026"},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"MARIA MAGALHAES",pf:0,pme:11,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/09/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"RENAN OLIVEIRA",pf:0,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"03/03/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"PRISCILLA REGIS",promotor:"WENDEL ANDRADE",pf:0,pme:5,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"12/05/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"ELISA NASCIMENTO",pf:0,pme:5,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"07/07/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"FELIPE PERES",pf:0,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"15/06/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"GABRIELA MORAES",pf:0,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"11/02/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"INGRYD SILVA",pf:0,pme:10,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/09/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"JOAO DEL NERO",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"12/02/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LUIZ ROBERTO AUGUSTO",pf:1,pme:0,adesao:1,meta:0,exclMvp:false,status:"ATIVO",admissao:"24/03/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"RAIANE CARDOSO",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"07/04/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"VANESSA ANDRIOTI",pf:0,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"08/07/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"BENVE",promotor:"ANA BEATRIZ MACHUCA",pf:3,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"BENVE",promotor:"CAMILA MOREIRA",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/10/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"BENVE",promotor:"DANIELLE MUZELL",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"BENVE",promotor:"JULIA MARQUES",pf:0,pme:11,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"14/07/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"BENVE",promotor:"TAIS COLARES",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"BRUNA CAMPASSI",pf:0,pme:9,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"DELIANE GOMES",pf:0,pme:6,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"18/12/2019",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GILSON SILVEIRA",pf:0,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/07/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA BARBIERI",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA SANTANA - VENDEDOR ADM",pf:4,pme:0,adesao:0,meta:0,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"HELENA RIBEIRO",pf:0,pme:1,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"18/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ISABELLA MATTOS",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"08/01/2024",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ISABELLA SOUZA",pf:1,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"19/08/2019",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"JAQUELINE SILVA",pf:0,pme:7,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"03/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"JULIA SILVA",pf:0,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"MARIANA FELIX",pf:3,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"17/05/2023",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ROBSON SOUZA",pf:0,pme:1,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"THAINA BERCHELI",pf:1,pme:5,adesao:6,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/03/2023",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"WESLEY BACOCCINI",pf:0,pme:1,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"11/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"BEATRIZ BRAIDO",pf:1,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/06/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"FELIPE SOUZA",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"13/03/2024",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"GABRIELA REIS",pf:2,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"20/07/2020",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"KAMILA KUNER",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"05/03/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"KEILA OLIVEIRA",pf:0,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"06/03/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"LUAN RIBEIRO",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"TAIZA RIBEIRO",pf:1,pme:0,adesao:1,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/06/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"VIVIANE GUMBIO",pf:1,pme:2,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/07/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"ANA CAROLINA ANTUNES",pf:1,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"20/10/2021",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"ANDREZZA MACCHINI",pf:5,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"07/05/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"JADY QUEIROZ",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"12/03/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"KAMILA GLAYR",pf:7,pme:1,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"11/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"MIRELLA PEREIRA",pf:1,pme:4,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/06/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"MIRIAM FERREIRA",pf:1,pme:3,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"10/02/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"RAIANE LIMA",pf:0,pme:4,adesao:1,meta:0,exclMvp:false,status:"ATIVO",admissao:"04/03/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"ROGERIO STIVANELLO",pf:1,pme:8,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"27/04/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"SOFIA LUNGA",pf:1,pme:1,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"16/03/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"TATI SILVA - VENDEDOR ADM",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"THAIS SANTOS",pf:1,pme:3,adesao:0,meta:0,exclMvp:true,status:"ATIVO",admissao:"07/07/2026",motivoExclMvp:"ADMISSAO 07/07/2026"},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"THAISA ALMEIDA",pf:0,pme:1,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/07/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"LUIZ ROBERTO",promotor:"UNILDO FERREIRA",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"09/12/2024",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ALINE RIBEIRO",pf:1,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"21/10/2024",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ANA JULIA BRITO",pf:0,pme:0,adesao:2,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"BEATRIZ SILVESTRE",pf:0,pme:0,adesao:3,meta:0,exclMvp:false,status:"ATIVO",admissao:"20/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"BRUNO FERREIRA",pf:0,pme:0,adesao:3,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"GIOVANNA RAGONEZI",pf:0,pme:7,adesao:4,meta:0,exclMvp:true,status:"ATIVO",admissao:"13/07/2026",motivoExclMvp:"ADMISSAO 13/07/2026"},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"ISAQUE FERREIRA",pf:0,pme:0,adesao:4,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"NATALIA LOURENCO",pf:0,pme:7,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"20/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"RAISSA BURIN",pf:1,pme:0,adesao:1,meta:0,exclMvp:false,status:"ATIVO",admissao:"17/03/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"THIAGO ABELO",pf:1,pme:0,adesao:2,meta:0,exclMvp:false,status:"ATIVO",admissao:"18/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"THIAGO VALLADA",pf:0,pme:0,adesao:1,meta:0,exclMvp:false,status:"ATIVO",admissao:"25/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"NATANAEL ZAVANELA",promotor:"VICTOR MARTINS",pf:0,pme:4,adesao:3,meta:0,exclMvp:false,status:"ATIVO",admissao:"01/07/2026",motivoExclMvp:""}
+    ],
+    sintroRanking: [
+      {gestao:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",vidas:1,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""}
+    ],
+    ativosSupervisor: {
+      "ADMINISTRATIVO": {"ADMINISTRATIVO":0},
+      "FABIO": {"CAROLINE GUERKE":4,"ERIKA PAULA":11,"FERNANDA VIZZONI":10,"GONCALO MARTINS":11,"MICHELE FERREIRA":5,"NEFTALY LEONEL":15,"PRISCILLA REGIS":11,"REBECA ALVINO":13},
+      "JOSY": {"BENVE":6,"HUMBERTO BANQUERI":21,"JUNIO SANTOS":14,"LUIZ ROBERTO":17,"NATANAEL ZAVANELA":14}
+    },
+    vendasAntSupervisor: {
+      "ADMINISTRATIVO": {"ADMINISTRATIVO":386},
+      "FABIO": {"CAROLINE GUERKE":401,"ERIKA PAULA":656,"FERNANDA VIZZONI":635,"GONCALO MARTINS":529,"MICHELE FERREIRA":367,"NEFTALY LEONEL":1001,"PRISCILLA REGIS":497,"REBECA ALVINO":825},
+      "JOSY": {"BENVE":312,"HUMBERTO BANQUERI":1401,"JUNIO SANTOS":623,"LUIZ ROBERTO":1108,"NATANAEL ZAVANELA":570}
+    }
   }
 
 };
@@ -2616,7 +2845,7 @@ const FUNIL_PF_DATA = {"fonte": "2026_REL_PROPOSTAS_T01B2C.CSV", "ano": 2026, "r
 })();
 
 // Mês exibido por padrão ao abrir o dashboard:
-let mesAtivo = "AGOSTO";
+let mesAtivo = "SETEMBRO";
 // Aba 🩺 PPO (lente sobre o mês/gestor selecionados; toggle liga/desliga). Ver renderPpoTab().
 let ppoView = false;
 // Aba 🔻 Funil PF (orçamentos PF por status, fonte própria REL_PROPOSTAS). Ver renderFunilPf().
