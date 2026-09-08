@@ -958,23 +958,6 @@
       </div>
     </div>
 
-    <!-- Secao de dois cards (07/09/2026): a atuacao das equipes saiu do toggle da cascata e
-         virou card proprio, e a fila subiu para dividir a linha com ela. As duas respondem
-         perguntas de operacao ("quem tocou o que" / "o que falta tocar"), e a cascata acima
-         ficou so' com a cadeia. O renderFpfAdm ajusta as colunas quando um dos dois some. -->
-    <div class="fpf-at-grid" id="fpfAdmDuoSecao" data-fpf-subpanel="REC" style="grid-template-columns:1fr 1fr">
-      <div class="chart-card" id="fpfAdmEquipeCard" style="margin-bottom:0">
-        <div class="chart-title">👥 Atuação por equipe — o que cada uma tocou e no que deu</div>
-        <div style="color:#6b6b78;font-size:11px;margin:-4px 0 8px" id="fpfAdmEquipeNota"></div>
-        <div style="position:relative;height:250px;width:100%"><canvas id="chartFpfAdmEquipe"></canvas></div>
-      </div>
-      <div class="chart-card" id="fpfAdmFilaCard" style="margin-bottom:0">
-        <div class="chart-title">🎯 O que ainda dá para atacar — há quanto tempo está parado</div>
-        <div style="color:#6b6b78;font-size:11px;margin:-4px 0 8px" id="fpfAdmFilaNota"></div>
-        <div style="position:relative;height:250px;width:100%"><canvas id="chartFpfAdmFila"></canvas></div>
-      </div>
-    </div>
-
     <!-- Faixa de KPIs em VIDAS (01/09/2026). Ordem do processo, como o David pediu:
          negociado -> em aberto -> cancelado -> implantado -> conversão. O número grande é a
          VIDA; a contagem de negociações (CPFs) desce para o subtítulo. Os ids continuam os
@@ -1121,24 +1104,39 @@
       </div>
       <div id="fpfAtuacoesNota" style="font-size:11px;color:#888;margin-bottom:8px"></div>
       <div class="fpf-at-note">Uma vida recuperada foi digitada no mesmo dia ou antes da atuação e processada no mesmo dia ou depois. A data — não o horário — é a regra. O crédito analítico é da Recuperação; a origem comercial é preservada nos gráficos abaixo.</div>
-      <div class="fpf-at-grid">
-        <div class="chart-card">
-          <div class="chart-title">Em que etapa estão as vidas atuadas</div>
-          <div style="position:relative;height:255px;width:100%"><canvas id="chartFpfAtuacaoEtapas"></canvas></div>
+      <!-- ===== Tabela de atuacao por equipe (08/09/2026, opcao B aprovada no widget) =====
+           Substituiu os 3 graficos que viviam aqui (etapas / resultado por time / resultado
+           por gestor de origem): o David pediu leitura direta, e a mesma resposta cabe em
+           7 colunas. "Implantacao administrativa" recorta as implantadas cuja GESTAO DE
+           ORIGEM e' ADMINISTRATIVO -- e' a pergunta "quantas das recuperadas sao de fato do
+           estoque ADM". As DUAS conversoes dividem pelas MESMAS vidas atuadas da linha (nao
+           pelo recorte ADM), de proposito: assim "Conv. adm." le como a fatia do esforco
+           total da equipe que virou implantacao vinda do ADM, e as duas colunas comparam
+           entre si -- a coluna de vidas ADM atuadas saiu a pedido do David. A tabela mostra
+           SEMPRE as tres linhas; o seletor do cabecalho recorta os KPIs do topo e a matriz
+           de baixo, nao esta tabela. -->
+      <div class="table-card" style="margin-bottom:12px">
+        <div class="chart-title">Atuação e desfecho por equipe</div>
+        <div style="color:#888;font-size:11px;margin:-4px 0 8px" id="fpfAtuacaoEquipeNota"></div>
+        <div class="fpf-at-table-wrap">
+          <table>
+            <thead><tr>
+              <th>Equipe que atuou</th>
+              <th class="td-right" title="Vidas com atuação da equipe cujo orçamento vigente foi digitado no mês selecionado.">Atuadas</th>
+              <th class="td-right" title="Vidas atuadas que não implantaram nem foram canceladas — ainda dá para trabalhar.">Em aberto</th>
+              <th class="td-right" title="Vidas atuadas com implantação posterior à atuação (digitação ≤ atuação ≤ processamento).">Implantadas</th>
+              <th class="td-right" title="Implantadas ÷ vidas atuadas da própria linha.">Conv.</th>
+              <th class="td-right" title="Das implantadas, as que têm ADMINISTRATIVO como gestão comercial de origem.">Implantação administrativa</th>
+              <th class="td-right" title="Implantação administrativa ÷ vidas atuadas da própria linha — o mesmo denominador da coluna Conv.">Conv. adm.</th>
+            </tr></thead>
+            <tbody id="fpfAtuacaoEquipeTab"></tbody>
+          </table>
         </div>
-        <div class="chart-card">
-          <div class="chart-title">Resultado por time que atuou</div>
-          <div style="position:relative;height:255px;width:100%"><canvas id="chartFpfAtuacaoGestor"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Resultado por gestor comercial de origem</div>
-          <div style="position:relative;height:255px;width:100%"><canvas id="chartFpfAtuacaoOrigem"></canvas></div>
-        </div>
-        <div class="table-card">
-          <div class="chart-title">Qual time atuou em qual origem comercial</div>
-          <div style="color:#888;font-size:11px;margin:-4px 0 8px">Vidas atuadas; no total, cada vida entra uma vez, na primeira atuação.</div>
-          <div class="fpf-at-table-wrap"><table><thead id="fpfAtuacaoCruzamentoHead"></thead><tbody id="fpfAtuacaoCruzamentoTab"></tbody></table></div>
-        </div>
+      </div>
+      <div class="table-card">
+        <div class="chart-title">Qual time atuou em qual origem comercial</div>
+        <div style="color:#888;font-size:11px;margin:-4px 0 8px">Vidas atuadas; no total, cada vida entra uma vez, na primeira atuação.</div>
+        <div class="fpf-at-table-wrap"><table><thead id="fpfAtuacaoCruzamentoHead"></thead><tbody id="fpfAtuacaoCruzamentoTab"></tbody></table></div>
       </div>
     </div>
 
@@ -2445,18 +2443,18 @@ const DADOS_MESES = {
       { label: "PPO", valor: 1216 }
     ],
     leadsConversao: [
-      { origem: "Repique Comercial", leads: 15826, produtivos: 7480, contratos: 534, vidas: 697 },
-      { origem: "Carrinho Abandonado", leads: 20102, produtivos: 10261, contratos: 1317, vidas: 1673 },
+      { origem: "Repique Comercial", leads: 15826, produtivos: 7480, contratos: 533, vidas: 695 },
+      { origem: "Carrinho Abandonado", leads: 20102, produtivos: 10261, contratos: 1315, vidas: 1671 },
       { origem: "Conecta", leads: 7326, produtivos: 3996, contratos: 588, vidas: 764 },
-      { origem: "VPC", leads: 6136, produtivos: 1794, contratos: 178, vidas: 235 },
+      { origem: "VPC", leads: 6136, produtivos: 1794, contratos: 177, vidas: 234 },
       { origem: "Eugenia Cotação", leads: 16738, produtivos: 6198, contratos: 132, vidas: 152 },
       { origem: "Campanhas Marketing", leads: 18425, produtivos: 7596, contratos: 505, vidas: 805 },
-      { origem: "Outros", leads: 12540, produtivos: 5102, contratos: 493, vidas: 644 },
-      { origem: "Eugenia", leads: 13218, produtivos: 6728, contratos: 682, vidas: 1018 },
-      { origem: "Espontâneo", leads: 4669, produtivos: 2423, contratos: 244, vidas: 513 },
-      { origem: "Carrinho Abandonado Conecta", leads: 2986, produtivos: 1379, contratos: 180, vidas: 242 },
+      { origem: "Outros", leads: 12540, produtivos: 5102, contratos: 490, vidas: 641 },
+      { origem: "Eugenia", leads: 13218, produtivos: 6728, contratos: 681, vidas: 1016 },
+      { origem: "Espontâneo", leads: 4669, produtivos: 2423, contratos: 243, vidas: 512 },
+      { origem: "Carrinho Abandonado Conecta", leads: 2986, produtivos: 1379, contratos: 179, vidas: 241 },
       { origem: "Leads Frios", leads: 675, produtivos: 290, contratos: 61, vidas: 80 },
-      { origem: "Televendas", leads: 870, produtivos: 460, contratos: 92, vidas: 123 },
+      { origem: "Televendas", leads: 870, produtivos: 460, contratos: 91, vidas: 122 },
       { origem: "Mídia", leads: 8, produtivos: 5, contratos: 1, vidas: 1 },
       { origem: "Flamengo", leads: 5, produtivos: 3, contratos: 0, vidas: 0 },
       { origem: "Eugenia Seller", leads: 156, produtivos: 136, contratos: 57, vidas: 60 }
@@ -2485,51 +2483,51 @@ const DADOS_MESES = {
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 12570,
-        acumulado: [154,246,600,975,1333,1655,1950,2045,2155,2609,
-                    2978,3375,3677,3983,4093,4179,4551,4967,5355,5799,
-                    6122,6330,6399,6760,7202,7587,7881,8227,8371,8502,
-                    8978],
-        pf: 4740, pme: 4103, adesao: 135, sintro: 1705, ppo: 154,
+        acumulado: [154,246,600,975,1333,1655,1950,2046,2156,2610,
+                    2979,3376,3678,3984,4094,4180,4552,4968,5356,5801,
+                    6124,6332,6401,6762,7204,7595,7894,8241,8385,8518,
+                    8994],
+        pf: 4741, pme: 4118, adesao: 135, sintro: 1709, ppo: 154,
         ppoPlanos: [{ label: "Advance 600", valor: 112 }, { label: "Advance 700", valor: 23 }, { label: "Premium 900 Care", valor: 10 }, { label: "Premium 900", valor: 9 }],
         conv: [8.1,7.1,4.1,6.3,6.9,7.1,9.7,3.1,7.7,8.2,
-                    8.2,7.9,6.6,6.5,3.3,5.4,5.7,8.0,8.3,9.6,
-                    7.8,9.7,4.0,7.8,11.4,9.8,7.1,11.6,6.4,9.8,
+                    8.2,7.9,6.6,6.5,3.3,5.4,5.7,8.0,8.3,9.7,
+                    7.8,9.7,4.0,7.8,11.4,10.0,7.2,11.7,6.4,10.0,
                     15.1],
         leads: [1900,1291,8563,5965,5215,4518,3027,3073,1430,5532,
                     4519,5057,4572,4714,3318,1585,6568,5227,4702,4608,
                     4132,2134,1743,4599,3870,3929,4162,2974,2262,1336,
                     3155],
-        vendas_ant: 7845, projecao_fixa: 8978, ativos: 150
+        vendas_ant: 7845, projecao_fixa: 8994, ativos: 149
       },
       FABIO: {
         label: "Fabio", meta: 5800,
         acumulado: [82,138,311,474,657,822,970,1020,1096,1344,
                     1513,1724,1909,2089,2156,2204,2423,2642,2839,3047,
-                    3229,3370,3411,3622,3919,4140,4312,4509,4598,4684,
-                    4944],
-        pf: 1997, pme: 2889, adesao: 58, sintro: 5, ppo: 107,
+                    3229,3370,3411,3622,3919,4146,4318,4516,4605,4693,
+                    4953],
+        pf: 1997, pme: 2898, adesao: 58, sintro: 5, ppo: 107,
         ppoPlanos: [{ label: "Advance 600", valor: 84 }, { label: "Advance 700", valor: 13 }, { label: "Premium 900", valor: 5 }, { label: "Premium 900 Care", valor: 5 }],
-        conv: null, leads: null, vendas_ant: 3984, projecao_fixa: 4944, ativos: 79
+        conv: null, leads: null, vendas_ant: 3984, projecao_fixa: 4953, ativos: 78
       },
       JOSY: {
         label: "Josy", meta: 4200,
-        acumulado: [57,91,250,447,610,755,885,927,960,1154,
-                    1340,1512,1619,1729,1764,1799,1942,2128,2296,2513,
-                    2637,2697,2720,2853,2990,3138,3246,3374,3427,3465,
-                    3655],
-        pf: 2373, pme: 1208, adesao: 74, sintro: 556, ppo: 37,
+        acumulado: [57,91,250,447,610,755,885,928,961,1155,
+                    1341,1513,1620,1730,1765,1800,1943,2129,2297,2514,
+                    2638,2698,2721,2854,2991,3139,3252,3380,3433,3471,
+                    3661],
+        pf: 2373, pme: 1214, adesao: 74, sintro: 560, ppo: 37,
         ppoPlanos: [{ label: "Advance 600", valor: 22 }, { label: "Advance 700", valor: 10 }, { label: "Premium 900 Care", valor: 5 }],
-        conv: null, leads: null, vendas_ant: 3461, projecao_fixa: 3655, ativos: 65
+        conv: null, leads: null, vendas_ant: 3461, projecao_fixa: 3661, ativos: 65
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 600,
         acumulado: [15,17,39,54,66,78,95,98,99,111,
-                    125,139,149,165,173,176,186,197,220,239,
-                    256,263,268,285,293,309,323,344,346,353,
-                    379],
-        pf: 370, pme: 6, adesao: 3, sintro: 1056, ppo: 10,
+                    125,139,149,165,173,176,186,197,220,240,
+                    257,264,269,286,294,310,324,345,347,354,
+                    380],
+        pf: 371, pme: 6, adesao: 3, sintro: 1056, ppo: 10,
         ppoPlanos: [{ label: "Advance 600", valor: 6 }, { label: "Premium 900", valor: 4 }],
-        conv: null, leads: null, vendas_ant: 400, projecao_fixa: 379, ativos: 0
+        conv: null, leads: null, vendas_ant: 400, projecao_fixa: 380, ativos: 0
       },
       ACTIONLINE: {
         label: "Actionline", meta: 200,
@@ -2543,7 +2541,7 @@ const DADOS_MESES = {
       }
     },
     ranking: [
-      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:370,pme:6,adesao:3,meta:0,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""},
+      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:371,pme:6,adesao:3,meta:0,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"CAROLINE GUERKE",promotor:"ADRIANI DZIERVA",pf:17,pme:72,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"30/04/2025",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"CAROLINE GUERKE",promotor:"HERIKA ZAKARQUIM",pf:3,pme:72,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"04/09/2024",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"CAROLINE GUERKE",promotor:"KAROL BUENO",pf:0,pme:164,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
@@ -2573,7 +2571,7 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"NATALIA LEITE",pf:5,pme:0,adesao:0,meta:55,exclMvp:true,status:"DESLIGADO",admissao:"15/01/2026",motivoExclMvp:"DESLIGADO"},
       {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"PATRICIA JORGE",pf:32,pme:41,adesao:0,meta:75,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"PAULA LOURENCO",pf:26,pme:0,adesao:0,meta:55,exclMvp:false,status:"ATIVO",admissao:"02/04/2025",motivoExclMvp:""},
-      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"REBECA MOURA",pf:39,pme:64,adesao:0,meta:70,exclMvp:true,status:"ATIVO",admissao:"02/07/2026",motivoExclMvp:"ADMISSAO 02/07/2026"},
+      {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"REBECA MOURA",pf:39,pme:70,adesao:0,meta:70,exclMvp:true,status:"ATIVO",admissao:"02/07/2026",motivoExclMvp:"ADMISSAO 02/07/2026"},
       {gestao:"FABIO",supervisor:"FERNANDA VIZZONI",promotor:"TAISSE MACARIO",pf:14,pme:55,adesao:0,meta:80,exclMvp:false,status:"ATIVO",admissao:"01/06/2024",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"ALAN KELBER LEAL",pf:31,pme:0,adesao:0,meta:50,exclMvp:false,status:"ATIVO",admissao:"14/04/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"GONCALO MARTINS",promotor:"DAVI ASSUNCAO",pf:26,pme:3,adesao:0,meta:50,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
@@ -2598,7 +2596,7 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"GIOVANNA FERREIRA",pf:25,pme:74,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"08/10/2024",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"JENNIFER FARIAS",pf:52,pme:17,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"MURILO VASSAO",pf:49,pme:15,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"20/03/2026",motivoExclMvp:""},
-      {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"NATHALY VIEIRA",pf:30,pme:4,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"13/01/2025",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"MICHELE FERREIRA",promotor:"NATHALY VIEIRA",pf:30,pme:4,adesao:0,meta:70,exclMvp:true,status:"FÉRIAS",admissao:"13/01/2025",motivoExclMvp:"FÉRIAS"},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"ANDRE BRITO",pf:5,pme:94,adesao:0,meta:85,exclMvp:false,status:"ATIVO",admissao:"13/02/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"ANGELO RIBEIRO",pf:14,pme:95,adesao:0,meta:85,exclMvp:false,status:"ATIVO",admissao:"06/04/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"ARLYSON SILVA",pf:1,pme:73,adesao:0,meta:65,exclMvp:false,status:"ATIVO",admissao:"01/09/2025",motivoExclMvp:""},
@@ -2606,7 +2604,7 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"DAVI MAGALHAES",pf:2,pme:101,adesao:0,meta:85,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"EDUARDA FRANCA",pf:4,pme:35,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"09/04/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"FRANCISCO THIAGO",pf:30,pme:19,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"20/10/2025",motivoExclMvp:""},
-      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"KAUAN REGIS",pf:4,pme:91,adesao:0,meta:80,exclMvp:false,status:"ATIVO",admissao:"22/03/2024",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"KAUAN REGIS",pf:4,pme:93,adesao:0,meta:80,exclMvp:false,status:"ATIVO",admissao:"22/03/2024",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LARISSY RAMOS",pf:26,pme:18,adesao:0,meta:70,exclMvp:false,status:"ATIVO",admissao:"09/03/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LILIANE RIBEIRO",pf:4,pme:100,adesao:0,meta:85,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"NEFTALY LEONEL",promotor:"LUANA LIMA",pf:14,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
@@ -2637,7 +2635,7 @@ const DADOS_MESES = {
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"GISELE OLIVEIRA",pf:5,pme:76,adesao:0,meta:80,exclMvp:false,status:"ATIVO",admissao:"09/09/2024",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"INGRYD SILVA",pf:13,pme:90,adesao:0,meta:80,exclMvp:false,status:"ATIVO",admissao:"09/09/2024",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"JOAO DEL NERO",pf:9,pme:29,adesao:8,meta:85,exclMvp:false,status:"ATIVO",admissao:"12/02/2026",motivoExclMvp:""},
-      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LEONARDO MURAROLLI",pf:19,pme:0,adesao:2,meta:60,exclMvp:false,status:"ATIVO",admissao:"23/03/2026",motivoExclMvp:""},
+      {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LEONARDO MURAROLLI",pf:19,pme:1,adesao:2,meta:60,exclMvp:false,status:"ATIVO",admissao:"23/03/2026",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LIDIANE MALTA",pf:3,pme:21,adesao:0,meta:60,exclMvp:false,status:"DESLIGADO",admissao:"15/02/2022",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LORENA ORTEGA",pf:3,pme:49,adesao:0,meta:80,exclMvp:false,status:"ATIVO",admissao:"07/07/2025",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"REBECA ALVINO",promotor:"LUIZ ROBERTO AUGUSTO",pf:15,pme:6,adesao:15,meta:60,exclMvp:false,status:"ATIVO",admissao:"24/03/2026",motivoExclMvp:""},
@@ -2659,7 +2657,7 @@ const DADOS_MESES = {
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA BARBIERI",pf:14,pme:24,adesao:0,meta:40,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"GIOVANNA SANTANA - VENDEDOR ADM",pf:139,pme:0,adesao:0,meta:80,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"HELENA RIBEIRO",pf:45,pme:59,adesao:0,meta:65,exclMvp:false,status:"ATIVO",admissao:"18/05/2026",motivoExclMvp:""},
-      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ISABELLA MATTOS",pf:33,pme:40,adesao:0,meta:65,exclMvp:false,status:"ATIVO",admissao:"08/01/2024",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ISABELLA MATTOS",pf:33,pme:45,adesao:0,meta:65,exclMvp:false,status:"ATIVO",admissao:"08/01/2024",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"ISABELLA SOUZA",pf:41,pme:3,adesao:0,meta:50,exclMvp:false,status:"ATIVO",admissao:"19/08/2019",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"JAQUELINE SILVA",pf:32,pme:103,adesao:0,meta:100,exclMvp:false,status:"ATIVO",admissao:"03/06/2025",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"HUMBERTO BANQUERI",promotor:"JULIA SILVA",pf:48,pme:91,adesao:0,meta:100,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
@@ -2682,7 +2680,7 @@ const DADOS_MESES = {
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"JULIANE LIMA",pf:0,pme:0,adesao:0,meta:20,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"KAMILA KUNER",pf:15,pme:8,adesao:0,meta:75,exclMvp:false,status:"ATIVO",admissao:"05/03/2026",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"KEILA OLIVEIRA",pf:16,pme:8,adesao:0,meta:75,exclMvp:false,status:"ATIVO",admissao:"06/03/2026",motivoExclMvp:""},
-      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"LUAN RIBEIRO",pf:35,pme:9,adesao:2,meta:60,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
+      {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"LUAN RIBEIRO",pf:35,pme:10,adesao:2,meta:60,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"LUANA RIBEIRO",pf:13,pme:13,adesao:0,meta:58,exclMvp:false,status:"ATIVO",admissao:"01/07/2026",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"PATRICIA LIMA - VENDEDOR ADM",pf:112,pme:0,adesao:0,meta:80,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
       {gestao:"JOSY",supervisor:"JUNIO SANTOS",promotor:"TAIZA RIBEIRO",pf:35,pme:5,adesao:0,meta:53,exclMvp:false,status:"ATIVO",admissao:"01/06/2026",motivoExclMvp:""},
@@ -2726,8 +2724,8 @@ const DADOS_MESES = {
     ],
     sintroRanking: [
       {gestao:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",vidas:1056,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""},
-      {gestao:"JOSY",promotor:"PAULO ALEXANDRE",vidas:290,exclMvp:false,status:"DESLIGADO",admissao:"09/06/2026",motivoExclMvp:""},
-      {gestao:"JOSY",promotor:"THIAGO VALLADA",vidas:241,exclMvp:false,status:"ATIVO",admissao:"25/05/2026",motivoExclMvp:""},
+      {gestao:"JOSY",promotor:"PAULO ALEXANDRE",vidas:293,exclMvp:false,status:"DESLIGADO",admissao:"09/06/2026",motivoExclMvp:""},
+      {gestao:"JOSY",promotor:"THIAGO VALLADA",vidas:242,exclMvp:false,status:"ATIVO",admissao:"25/05/2026",motivoExclMvp:""},
       {gestao:"ACTIONLINE",promotor:"KAUAN PEREIRA",vidas:24,exclMvp:false,status:"ATIVO",admissao:"11/03/2026",motivoExclMvp:""},
       {gestao:"JOSY",promotor:"YGOR OLIVEIRA",vidas:17,exclMvp:false,status:"ATIVO",admissao:"04/05/2026",motivoExclMvp:""},
       {gestao:"ACTIONLINE",promotor:"FELIPE HABERSTOCK GOMES",vidas:16,exclMvp:false,status:"ATIVO",admissao:"11/06/2026",motivoExclMvp:""},
@@ -2736,20 +2734,20 @@ const DADOS_MESES = {
       {gestao:"ACTIONLINE",promotor:"TALITA NASCIMENTO",vidas:9,exclMvp:false,status:"DESLIGADO",admissao:"",motivoExclMvp:""},
       {gestao:"ACTIONLINE",promotor:"THAIS FARIAS",vidas:8,exclMvp:false,status:"DESLIGADO",admissao:"26/05/2026",motivoExclMvp:""},
       {gestao:"ACTIONLINE",promotor:"MICHELE JESUS",vidas:4,exclMvp:false,status:"ADMINISTRATIVO",admissao:"08/02/2024",motivoExclMvp:""},
+      {gestao:"JOSY",promotor:"BRUNO FERREIRA",vidas:2,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
       {gestao:"JOSY",promotor:"ANA JULIA BRITO",vidas:2,exclMvp:false,status:"DESLIGADO",admissao:"01/04/2026",motivoExclMvp:""},
       {gestao:"ACTIONLINE",promotor:"ELAINE MELO",vidas:2,exclMvp:false,status:"DESLIGADO",admissao:"26/05/2026",motivoExclMvp:""},
-      {gestao:"FABIO",promotor:"RITA DE CASSIA SAMPAIO",vidas:2,exclMvp:false,status:"ATIVO",admissao:"20/06/2025",motivoExclMvp:""},
-      {gestao:"JOSY",promotor:"BRUNO FERREIRA",vidas:2,exclMvp:false,status:"ATIVO",admissao:"02/06/2025",motivoExclMvp:""},
       {gestao:"JOSY",promotor:"ISAQUE FERREIRA",vidas:2,exclMvp:false,status:"ATIVO",admissao:"01/04/2026",motivoExclMvp:""},
+      {gestao:"FABIO",promotor:"RITA DE CASSIA SAMPAIO",vidas:2,exclMvp:false,status:"ATIVO",admissao:"20/06/2025",motivoExclMvp:""},
       {gestao:"FABIO",promotor:"GESSICA NOGUEIRA",vidas:1,exclMvp:false,status:"DESLIGADO",admissao:"16/03/2026",motivoExclMvp:""},
-      {gestao:"JOSY",promotor:"DANIELLE DE JESUS",vidas:1,exclMvp:true,status:"DESLIGADO",admissao:"18/05/2026",motivoExclMvp:"DESLIGADO"},
-      {gestao:"JOSY",promotor:"BEATRIZ SILVESTRE",vidas:1,exclMvp:false,status:"ATIVO",admissao:"20/05/2026",motivoExclMvp:""},
       {gestao:"FABIO",promotor:"ISABELLE RIBEIRO",vidas:1,exclMvp:false,status:"ATIVO",admissao:"03/06/2024",motivoExclMvp:""},
-      {gestao:"FABIO",promotor:"SAMILA FERREIRA",vidas:1,exclMvp:false,status:"DESLIGADO",admissao:"17/06/2019",motivoExclMvp:""}
+      {gestao:"JOSY",promotor:"DANIELLE DE JESUS",vidas:1,exclMvp:true,status:"DESLIGADO",admissao:"18/05/2026",motivoExclMvp:"DESLIGADO"},
+      {gestao:"FABIO",promotor:"SAMILA FERREIRA",vidas:1,exclMvp:false,status:"DESLIGADO",admissao:"17/06/2019",motivoExclMvp:""},
+      {gestao:"JOSY",promotor:"BEATRIZ SILVESTRE",vidas:1,exclMvp:false,status:"ATIVO",admissao:"20/05/2026",motivoExclMvp:""}
     ],
     ativosSupervisor: {
       "ADMINISTRATIVO": {"ADMINISTRATIVO":0},
-      "FABIO": {"CAROLINE GUERKE":4,"ERIKA PAULA":11,"FERNANDA VIZZONI":10,"GONCALO MARTINS":11,"MICHELE FERREIRA":6,"NEFTALY LEONEL":14,"PRISCILLA REGIS":11,"REBECA ALVINO":12},
+      "FABIO": {"CAROLINE GUERKE":4,"ERIKA PAULA":11,"FERNANDA VIZZONI":10,"GONCALO MARTINS":11,"MICHELE FERREIRA":5,"NEFTALY LEONEL":14,"PRISCILLA REGIS":11,"REBECA ALVINO":12},
       "JOSY": {"BENVE":6,"HUMBERTO BANQUERI":18,"JUNIO SANTOS":13,"LUIZ ROBERTO":16,"NATANAEL ZAVANELA":12}
     },
     vendasAntSupervisor: {
@@ -6151,13 +6149,6 @@ const FPF_ADM_CORES = { impl: "#1D9E75", aberto: "#d9822b", canc: "#c0392b" };
 // Barão do comparativo mensal. Par validado (ΔE 41,7 normal / 38,0 protan): o roxo é a cor
 // da Recuperação em toda a sub-aba, então ele fica com "com atuação".
 const FPF_ADM_MES_CORES = { sem: "#eda100", com: "#6c4ed8" };
-// Rampa ORDINAL da fila: clara = orçamento fresco, escura = parado há mais tempo. É a MESMA
-// rampa validada com scripts/validate_palette.js --ordinal (L monotônica, ΔL >= 0,06, ponta
-// clara 2,17:1 sobre o fundo); só a ORDEM virou, porque em 07/09/2026 as faixas passaram de
-// "quanto falta para vencer" (índice 0 = já atrasado) para "há quantos dias está parado"
-// (índice 0 = digitado hoje). A paleta categórica de 4 status reprovou no validador (amarelo
-// fora da banda de lightness, ΔE 13,6 contra o laranja) -- não trocar sem rodar o validador.
-const FPF_ADM_FILA_CORES = ["#e79b84", "#d9704f", "#c0392b", "#9e2a1c"];
 // O agregado vive dentro de `atuacoes` (mesmo bloco que o resto da Recuperação), não na
 // raiz do mês -- ele é calculado pelo pf_atuacoes.py junto com os outros recortes.
 function fpfAdmDados(mes) {
@@ -6256,20 +6247,13 @@ function renderFpfAdmMeses() {
 
 function renderFpfAdm() {
   const card = document.getElementById("fpfAdmCard");
-  const cardFila = document.getElementById("fpfAdmFilaCard");
-  const cardEquipe = document.getElementById("fpfAdmEquipeCard");
-  const duo = document.getElementById("fpfAdmDuoSecao");
   if (!card) return;
   destroyChart("fpfAdmConv");
   renderFpfAdmMeses();
-  destroyChart("fpfAdmFila");
-  destroyChart("fpfAdmEquipe");
   const r = fpfAdmDados(mesAtivo);
   const tem = !!(r && r.total && r.total.vidas > 0);
   card.dataset.fpfDisponivel = tem ? "1" : "0";
-  [card, duo].forEach(function (el) {
-    if (el) el.classList.toggle("fpf-oculto", !tem);
-  });
+  card.classList.toggle("fpf-oculto", !tem);
   if (!tem) { syncFpfSubTabs(); return; }
 
   const D = FUNIL_PF_DATA;
@@ -6412,123 +6396,6 @@ function renderFpfAdm() {
           ticks: { font: { size: 10 }, precision: 0 } } } }
   });
 
-  // ---- fila do que atacar
-  const fila = r.fila || [];
-  const filaVidas = fila.reduce(function (s, f) { return s + (f.vidas || 0); }, 0);
-  if (cardFila) cardFila.classList.toggle("fpf-oculto", filaVidas === 0);
-  const canvasFila = document.getElementById("chartFpfAdmFila");
-  if (canvasFila && filaVidas) charts["fpfAdmFila"] = new Chart(canvasFila, {
-    type: "bar",
-    data: { labels: fila.map(function (f) { return f.faixa; }), datasets: [
-      { label: "Vidas", data: fila.map(function (f) { return f.vidas || 0; }),
-        backgroundColor: fila.map(function (f, i) { return FPF_ADM_FILA_CORES[i] || "#78859a"; }),
-        borderRadius: 3,
-        datalabels: { anchor: "end", align: "right", clip: false, clamp: true, color: "#334155",
-          font: { size: 11, weight: "700" },
-          formatter: function (v, ctx) {
-            const c = fila[ctx.dataIndex].casos || 0;
-            return v > 0 ? fmt(v) + " vidas (" + fmt(c) + " neg.)" : ""; } } }
-    ] },
-    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
-      // Folga do rotulo a' direita: em meia largura (07/09/2026) o texto mais largo de
-      // setembro mede 104px, e um mes de 4 digitos passa de 120. Como o datalabel usa
-      // clamp:true, estourar nao corta -- empurra o texto por cima da barra.
-      layout: { padding: { right: 128 } },
-      plugins: { legend: { display: false }, datalabels: {},
-        tooltip: { callbacks: { label: function (ctx) {
-          return " " + fmt(ctx.raw) + " vidas em " + fmt(fila[ctx.dataIndex].casos || 0) + " negocia\u00e7\u00f5es"; } } } },
-      scales: { x: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 } },
-        y: { ticks: { font: { size: 11 } } } } }
-  });
-  // Denominador do MES (`filaAberto`), o mesmo numero do 1o KPI da faixa: a fila e' um
-  // recorte do estoque em aberto daquele mes, e as duas leituras tem de fechar na tela.
-  // Nao usar `nt.vidas` (nao tocado INCLUINDO ja' fechado): daria percentual pequeno demais.
-  // Ressalva que depende do mes: no CORRENTE nenhum orcamento conseguiu envelhecer ainda,
-  // num mes FECHADO nada de novo entrou. A assimetria e' oposta nos dois casos, entao a
-  // frase unica descreveria o grafico errado na metade das vezes.
-  const mesesOrd = fpfAdmMesesOrdenados();
-  const ehCorrente = mesesOrd.length && mesesOrd[mesesOrd.length - 1].chave === mesAtivo;
-  const filaRessalva = ehCorrente
-    ? "o m\u00eas mal come\u00e7ou, ent\u00e3o as faixas longas ainda est\u00e3o vazias e enchem "
-      + "conforme ele anda"
-    : "o m\u00eas j\u00e1 fechou, ent\u00e3o nada entra nas faixas curtas";
-  const filaCasos = fila.reduce(function (s, f) { return s + (f.casos || 0); }, 0);
-  const abertoMes = (r.filaAberto || {}).vidas || 0;
-  const pctFila = abertoMes ? 100 * filaVidas / abertoMes : 0;
-  set("fpfAdmFilaNota", filaVidas
-    ? "<b>" + fmt(filaVidas) + " vidas</b> em " + fmt(filaCasos) + " or\u00e7amentos seguem em "
-      + "aberto sem nenhuma atua\u00e7\u00e3o \u2014 " + fmtDec(pctFila, 1) + "% das "
-      + fmt(abertoMes) + " vidas ADM em aberto de " + _fpfEsc(rotulo) + ". Idade em dias "
-      + "corridos desde a <b>digita\u00e7\u00e3o</b>, medida contra "
-      + _fpfEsc((r.ref || "").split("-").reverse().join("/")) + ", a data mais recente do "
-      + "relat\u00f3rio \u2014 " + filaRessalva + "."
-    : "Nenhuma vida ADM em aberto e sem atua\u00e7\u00e3o em " + _fpfEsc(rotulo) + " \u2014 a coorte j\u00e1 fechou.");
-
-  // ---- atuacao por equipe (07/09/2026, opcao A aprovada no widget)
-  // Comprimento = vidas que a equipe tocou; a composicao diz o desfecho. As DUAS coisas na
-  // mesma figura de proposito: so' a taxa condenaria a Actionline, que entrou em setembro e
-  // tem quase tudo ainda em aberto. Cor da FASE, a mesma da cascata -- cor segue a entidade.
-  const EQ_ROT = { josy: "Josy", actionline: "Actionline", ambos: "As duas" };
-  const eqs = ["josy", "actionline", "ambos"]
-    .map(function (k) { return { rot: EQ_ROT[k], d: (r.porEquipe || {})[k] || {} }; })
-    .filter(function (e) { return (e.d.vidas || 0) > 0; });
-  if (cardEquipe) cardEquipe.classList.toggle("fpf-oculto", eqs.length === 0);
-  // Se um dos dois cards nao tem dado, o outro ocupa a linha inteira em vez de deixar buraco.
-  if (duo) duo.style.gridTemplateColumns = (eqs.length && filaVidas) ? "1fr 1fr" : "1fr";
-  const maxEq = eqs.length ? Math.max.apply(null, eqs.map(function (e) { return e.d.vidas || 0; })) : 0;
-  const canvasEq = document.getElementById("chartFpfAdmEquipe");
-  if (canvasEq && eqs.length) charts["fpfAdmEquipe"] = new Chart(canvasEq, {
-    type: "bar",
-    data: {
-      labels: eqs.map(function (e) {
-        const cv = e.d.vidas ? 100 * (e.d.vidasImplantadas || 0) / e.d.vidas : 0;
-        return [e.rot, fmt(e.d.vidas) + " vidas \u00b7 " + fmtDec(cv, 1) + "% implantadas"];
-      }),
-      datasets: [
-        { rot: "Implantadas", campo: "vidasImplantadas", cor: FPF_ADM_CORES.impl, txt: "#04241c" },
-        { rot: "Em aberto", campo: "vidasAbertas", cor: FPF_ADM_CORES.aberto, txt: "#412402" },
-        { rot: "Canceladas", campo: "vidasCanceladas", cor: FPF_ADM_CORES.canc, txt: "#ffffff" }
-      ].map(function (s) {
-        return { label: s.rot, data: eqs.map(function (e) { return e.d[s.campo] || 0; }),
-          backgroundColor: s.cor, borderRadius: 3, borderWidth: { right: 2 }, borderColor: "#fff",
-          datalabels: { anchor: "center", align: "center", color: s.txt,
-            font: { size: 10, weight: "700" },
-            // Segmento estreito nao recebe rotulo: o numero exato fica no tooltip.
-            display: function (ctx) { return maxEq > 0 && (ctx.dataset.data[ctx.dataIndex] || 0) / maxEq > 0.08; },
-            formatter: function (v) { return fmt(v); } } };
-      })
-    },
-    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom", labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } },
-        datalabels: {},
-        tooltip: { callbacks: { label: function (ctx) {
-          const e = eqs[ctx.dataIndex];
-          const p = e.d.vidas ? 100 * ctx.raw / e.d.vidas : 0;
-          return " " + ctx.dataset.label + ": " + fmt(ctx.raw) + " vidas ("
-            + fmtDec(p, 1) + "% do que tocou)"; } } } },
-      scales: {
-        x: { stacked: true, beginAtZero: true,
-          title: { display: true, text: "vidas tocadas", font: { size: 10 } },
-          ticks: { font: { size: 10 }, precision: 0 } },
-        y: { stacked: true, ticks: { font: { size: 11 } } } } }
-  });
-  // Carteira ainda majoritariamente em aberto = conversao provisoria. Sem este aviso, os
-  // 12% da Actionline contra os 83% da Josy leem como desempenho, e sao maturacao.
-  const eqAlerta = eqs.filter(function (e) {
-    return (e.d.vidas || 0) >= 10 && (e.d.vidasAbertas || 0) / e.d.vidas >= 0.5;
-  });
-  set("fpfAdmEquipeNota",
-    "Comprimento = vidas que a equipe tocou em " + _fpfEsc(rotulo) + "; a cor diz o desfecho. "
-    + "Atua\u00e7\u00e3o contada sobre o CPF em qualquer data."
-    + (eqAlerta.length
-      ? " <b>\u26a0\ufe0f " + eqAlerta.map(function (e) {
-          return _fpfEsc(e.rot) + " tem " + fmtDec(100 * e.d.vidasAbertas / e.d.vidas, 0)
-            + "% do que tocou ainda em aberto";
-        }).join(" e ") + "</b> \u2014 a convers\u00e3o dessa carteira \u00e9 provis\u00f3ria e ainda "
-        + "n\u00e3o compara com a das outras."
-      : ""));
-
   syncFpfSubTabs();
 }
 
@@ -6569,52 +6436,55 @@ function renderFpfAtuacoes() {
   set("fpfAtImplSub", fmt(total.implantados || 0) + " orçamentos recuperados");
   set("fpfAtTaxa", fmtDec(taxa, 1) + "%");
 
-  destroyChart("fpfAtuacaoEtapas");
-  destroyChart("fpfAtuacaoGestor");
-  destroyChart("fpfAtuacaoOrigem");
-  const etapas = equipe.etapas || [];
-  const etapasCanvas = document.getElementById("chartFpfAtuacaoEtapas");
-  if (etapasCanvas) charts["fpfAtuacaoEtapas"] = new Chart(etapasCanvas, {
-    type:"bar", data:{ labels:etapas.map(r => r.etapa), datasets:[
-      {label:"Vidas", data:etapas.map(r => r.vidas || 0),
-       backgroundColor:etapas.map(r => FPF_CORES[r.etapa] || "#78859a"), borderRadius:4,
-       datalabels:{anchor:"end",align:"right",color:"#334155",clip:false,clamp:true,font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}}
-    ] },
-    options:{ indexAxis:"y", responsive:true, maintainAspectRatio:false,
-      layout:{padding:{right:24}},
-      plugins:{legend:{display:false},datalabels:{},tooltip:{callbacks:{label:ctx=>" " + fmt(ctx.raw) + " vidas"}}},
-      scales:{x:{beginAtZero:true,ticks:{font:{size:10},precision:0}},y:{ticks:{font:{size:10}}}} }
-  });
-  const gestorCanvas = document.getElementById("chartFpfAtuacaoGestor");
-  if (gestorCanvas) charts["fpfAtuacaoGestor"] = new Chart(gestorCanvas, {
-    type:"bar", data:{ labels:gestores.map(r => r.gestor), datasets:[
-      {label:"Vidas atuadas", data:gestores.map(r => r.vidas || 0), backgroundColor:"#6c4ed8", borderRadius:4,
-       datalabels:{anchor:"end",align:"top",color:"#5138ae",clip:false,font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}},
-      {label:"Vidas em aberto", data:gestores.map(r => r.vidasAbertas || 0), backgroundColor:"#d9822b", borderRadius:4,
-       datalabels:{anchor:"end",align:"top",color:"#a75a16",clip:false,font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}},
-      {label:"Implantadas após atuação", data:gestores.map(r => r.vidasVendidas || 0), backgroundColor:"#1c8a64", borderRadius:4,
-       datalabels:{anchor:"end",align:"top",color:"#147052",clip:false,font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}}
-    ] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      layout:{padding:{top:16}},
-      plugins:{legend:{labels:{font:{size:10}}},datalabels:{},tooltip:{callbacks:{label:ctx=>" " + ctx.dataset.label + ": " + fmt(ctx.raw) + " vidas"}}},
-      scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{font:{size:10},precision:0}}} }
-  });
-  const origem = equipe.porGestaoOriginal || [];
-  const origemCanvas = document.getElementById("chartFpfAtuacaoOrigem");
-  if (origemCanvas) charts["fpfAtuacaoOrigem"] = new Chart(origemCanvas, {
-    type:"bar", data:{ labels:origem.map(r => r.gestorOriginal), datasets:[
-      {label:"Em aberto", data:origem.map(r => r.vidasAbertas || 0), backgroundColor:"#d9822b", borderRadius:3,
-       datalabels:{anchor:"center",align:"center",color:"#fff",font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}},
-      {label:"Recuperadas", data:origem.map(r => r.vidasVendidas || 0), backgroundColor:"#1c8a64", borderRadius:3,
-       datalabels:{anchor:"center",align:"center",color:"#fff",font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}},
-      {label:"Outros desfechos", data:origem.map(r => Math.max(0, (r.vidas || 0) - (r.vidasAbertas || 0) - (r.vidasVendidas || 0))), backgroundColor:"#9aa4b2", borderRadius:3,
-       datalabels:{anchor:"center",align:"center",color:"#fff",font:{size:10,weight:"700"},formatter:v=>v>0?fmt(v):""}}
-    ] },
-    options:{ indexAxis:"y", responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{labels:{font:{size:10}}},datalabels:{},tooltip:{callbacks:{label:ctx=>" " + ctx.dataset.label + ": " + fmt(ctx.raw) + " vidas"}}},
-      scales:{x:{stacked:true,beginAtZero:true,ticks:{font:{size:10},precision:0}},y:{stacked:true,ticks:{font:{size:10}}}} }
-  });
+  // ---- tabela de atuacao e desfecho por equipe (08/09/2026, opcao B aprovada no widget)
+  // Trocou os 3 graficos que viviam aqui. Linhas = equipe que ATUOU (nao a gestao de origem),
+  // sempre as tres, independentemente do seletor do cabecalho -- ele continua recortando os
+  // KPIs do topo e a matriz de baixo. "Implantacao administrativa" = das implantadas, as que
+  // nasceram no estoque ADMINISTRATIVO; sai de porGestaoOriginal, a MESMA fonte que o grafico
+  // "Resultado por gestor comercial de origem" usava.
+  // As duas conversoes tem o MESMO denominador (vidas atuadas da linha) de proposito: e' o
+  // que faz "Conv. adm." ser lida como a fatia do esforco total da equipe, e as duas colunas
+  // se compararem. Dividir a segunda pelas vidas ADM atuadas responderia outra pergunta e
+  // faria as colunas nao conversarem.
+  const tabEq = document.getElementById("fpfAtuacaoEquipeTab");
+  if (tabEq) {
+    const admDe = function (bloco) {
+      const linha = (bloco.porGestaoOriginal || []).filter(function (x) {
+        return x.gestorOriginal === "ADMINISTRATIVO";
+      })[0];
+      return linha ? (linha.vidasVendidas || 0) : 0;
+    };
+    const linhas = [
+      { rot: "Actionline", chave: "ACTIONLINE", forte: false },
+      { rot: "Josy", chave: "JOSY", forte: false },
+      { rot: "Total", chave: "TOTAL", forte: true }
+    ].map(function (l) {
+      const bloco = (a.porEquipe || {})[l.chave] || {};
+      const t = bloco.total || {};
+      const at = t.vidas || 0, im = t.vidasImplantadas || 0, adm = admDe(bloco);
+      return { rot: l.rot, forte: l.forte, at: at, ab: t.vidasAbertas || 0, im: im, adm: adm,
+               conv: at ? 100 * im / at : 0, convAdm: at ? 100 * adm / at : 0 };
+    // Equipe sem nenhuma atuacao no mes some da tabela; o Total fica sempre, para a leitura
+    // nao mudar de forma quando so' uma das duas trabalhou.
+    }).filter(function (l) { return l.at > 0 || l.forte; });
+    tabEq.innerHTML = linhas.map(function (l) {
+      const ab = l.forte ? "<b>" : "", fe = l.forte ? "</b>" : "";
+      const cel = function (txt) { return "<td class=\"td-right\">" + ab + txt + fe + "</td>"; };
+      return "<tr" + (l.forte ? " style=\"border-top:1px solid #d3d1c7\"" : "") + ">"
+        + "<td>" + ab + _fpfEsc(l.rot) + fe + "</td>"
+        + cel(fmt(l.at)) + cel(fmt(l.ab)) + cel(fmt(l.im)) + cel(fmtDec(l.conv, 1) + "%")
+        + cel(fmt(l.adm)) + cel(fmtDec(l.convAdm, 1) + "%")
+        + "</tr>";
+    }).join("");
+  }
+  const notaEq = document.getElementById("fpfAtuacaoEquipeNota");
+  if (notaEq) notaEq.innerHTML = "Vidas com DIGITAÇÃO em " + fpfMesLabel()
+    + ". <b>Implantadas</b> segue a régua da recuperação — digitação ≤ atuação ≤ "
+    + "processamento, sempre por data — e por isso <i>atuadas</i> não é a soma de "
+    + "<i>em aberto</i> com <i>implantadas</i>: sobram as canceladas e as que já estavam "
+    + "implantadas antes da atuação. As duas conversões dividem pelas mesmas vidas "
+    + "atuadas da linha. O seletor acima recorta os KPIs e a matriz abaixo, não esta tabela.";
+
   const matriz = equipe.porGestorOrigem || [];
   const head = document.getElementById("fpfAtuacaoCruzamentoHead");
   const tab = document.getElementById("fpfAtuacaoCruzamentoTab");
