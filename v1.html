@@ -523,7 +523,6 @@
   <div class="view-tabs" id="viewTabs">
       <button class="view-tab active" data-view="CONS" onclick="setView('CONS')">Consolidado</button>
       <button class="view-tab" data-view="PPO" onclick="setView('PPO')">NotreDame Saúde</button>
-      <button class="view-tab" data-view="TRI" onclick="setView('TRI')">2º Trimestre</button>
       <button class="view-tab" data-view="COMP" onclick="setView('COMP')">Comparar meses</button>
       <button class="view-tab" data-view="PROD" onclick="setView('PROD')">📆 Produtividade</button>
       <button class="view-tab" data-view="LEADS" onclick="setView('LEADS')">📈 Leads</button>
@@ -543,6 +542,12 @@
         <option value="SETEMBRO" selected>Setembro</option>
       </select>
       </span>
+      <span class="filter-label">Trimestre:</span>
+      <select class="filter-select" id="selTri" onchange="this.value ? setView('TRI', this.value) : setView('CONS')">
+        <option value="" selected>— selecionar —</option>
+        <option value="TRIMESTRE">2º Trimestre</option>
+        <option value="TRIMESTRE3">3º Trimestre</option>
+      </select>
       <span class="filter-label">Gestão:</span>
       <select class="filter-select" id="selGestor" onchange="setGestor(this.value)">
         <option value="TOTAL" selected>Total geral</option>
@@ -599,17 +604,17 @@
   <div id="triPanel" style="display:none;">
     <div class="chart-grid-2">
       <div class="chart-card">
-        <div class="chart-title">🎯 Meta vs Realizado — 2º Trimestre (por gestor)</div>
+        <div class="chart-title" id="triTitMeta">🎯 Meta vs Realizado — 2º Trimestre (por gestor)</div>
         <canvas id="chartTriMeta"></canvas>
       </div>
       <div class="chart-card">
-        <div class="chart-title">📅 Vendas por Mês — Abril / Maio / Junho</div>
+        <div class="chart-title" id="triTitMes">📅 Vendas por Mês — Abril / Maio / Junho</div>
         <canvas id="chartTriMes"></canvas>
       </div>
       <!-- PPO do trimestre: as secoes .normal-view (onde vive o card mensal) sao ESCONDIDAS na visao
            trimestre/comparativo, por isso o grafico precisa de um card proprio aqui dentro. -->
       <div class="chart-card" id="secPpoPlanoTri">
-        <div class="chart-title">🩺 Vidas PPO por Plano — 2º Trimestre</div>
+        <div class="chart-title" id="triTitPpo">🩺 Vidas PPO por Plano — 2º Trimestre</div>
         <canvas id="chartPpoPlanoTri"></canvas>
       </div>
     </div>
@@ -619,9 +624,9 @@
         <thead>
           <tr>
             <th>Gestor</th>
-            <th class="td-right">Abril</th>
-            <th class="td-right">Maio</th>
-            <th class="td-right">Junho</th>
+            <th class="td-right" id="triThM1">Abril</th>
+            <th class="td-right" id="triThM2">Maio</th>
+            <th class="td-right" id="triThM3">Junho</th>
             <th class="td-right">Realizado Trim.</th>
             <th class="td-right">Meta Trim.</th>
             <th class="td-right">% Meta</th>
@@ -3167,17 +3172,33 @@ const FUNIL_PME_DATA = {"fonte": "stats_export_gndi_2391.csv", "fontePasta": "Se
 // === FIM FUNIL_PME_DATA ===
 
 (function montaTrimestre(){
-  const meses = ["ABRIL","MAIO","JUNHO"];
   const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
   const labels = { TOTAL:"Total geral", FABIO:"Fabio", JOSY:"Josy", ADMINISTRATIVO:"Administrativo", ACTIONLINE:"Actionline" };
-
+  // Trimestres disponíveis — o seletor "Trimestre:" do cabeçalho lê estas chaves.
+  const TRI_DEFS = [
+    { key:"TRIMESTRE",  nome:"2º Trimestre", meses:["ABRIL","MAIO","JUNHO"],      antLabel:"1º Trim." },
+    { key:"TRIMESTRE3", nome:"3º Trimestre", meses:["JULHO","AGOSTO","SETEMBRO"], antLabel:"2º Trim." }
+  ];
+  for (const def of TRI_DEFS) {
+  const meses = def.meses.filter(m => DADOS_MESES[m]);
+  if (!meses.length) continue;
+  const nomes = meses.map(m => (DADOS_MESES[m].mesLabel||m).split(" ")[0]);
+  // fechado = o calendário já passou do último mês do tri (diaAtual dos dados marca cheio mesmo em mês parcial)
+  const MESN = {janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  const _hj = new Date();
+  const _lastIdx = MESN[(nomes[nomes.length-1]||"").toLowerCase()];
+  const fechado = meses.length === def.meses.length && _lastIdx !== undefined &&
+    (_hj.getFullYear() > 2026 || (_hj.getFullYear() === 2026 && _hj.getMonth() > _lastIdx));
   const tri = {
-    mesLabel: "2º Trimestre 2026 (Abr+Mai+Jun)",
-    mesAnteriorLabel: "1º Trim.",
+    mesLabel: def.nome + " 2026 (" + nomes.map(n => n.slice(0,3)).join("+") + ")",
+    mesAnteriorLabel: def.antLabel,
     diasNoMes: meses.reduce((s,m) => s + DADOS_MESES[m].diaAtual, 0),
     diaAtual: meses.length, // 1 ponto por mês no eixo
     isTrimestre: true,
     mesesInclusos: meses,
+    mesesNomes: nomes,
+    triNome: def.nome,
+    fechado: fechado,
     gestores: {}
   };
 
@@ -3217,7 +3238,8 @@ const FUNIL_PME_DATA = {"fonte": "stats_export_gndi_2391.csv", "fontePasta": "Se
       projecao_fixa: soma            // realizado = projeção (trimestre fechado)
     };
   }
-  DADOS_MESES.TRIMESTRE = tri;
+  DADOS_MESES[def.key] = tri;
+  }
 })();
 
 // Mês exibido por padrão ao abrir o dashboard:
@@ -3280,6 +3302,8 @@ function syncTabs() {
   const mg = document.getElementById("mesGroup");
   if (mg) mg.style.display =
     (v === "CONS" || v === "PPO" || v === "FPME" || v === "FPF") ? "inline-flex" : "none";
+  const st = document.getElementById("selTri");
+  if (st) st.value = (v === "TRI") ? triAtivo : "";
 }
 function syncMesBtns() {
   // Reflete o mês/gestor ativos nos dropdowns do header.
@@ -3290,14 +3314,17 @@ function syncMesBtns() {
 }
 
 // ── TROCA DE VISÃO (abas) ──
+let triAtivo = "TRIMESTRE"; // trimestre selecionado no header
 function setView(v) {
   if (v === "TRI") {
     ppoView = false; fpfView = false; fpmeView = false;
-    mesAtivo = "TRIMESTRE";
-    CONFIG = DADOS_MESES["TRIMESTRE"];
+    if (arguments.length > 1 && arguments[1]) triAtivo = arguments[1];
+    if (!DADOS_MESES[triAtivo]) triAtivo = "TRIMESTRE";
+    mesAtivo = "TRIMESTRE"; // sentinela p/ os checks de "estou na visão trimestre"
+    CONFIG = DADOS_MESES[triAtivo];
     diaIni = 1;
     diaFim = CONFIG.diaAtual || CONFIG.diasNoMes || 1;
-    document.getElementById("mesLabel").textContent = CONFIG.mesLabel || "2º Trimestre";
+    document.getElementById("mesLabel").textContent = CONFIG.mesLabel || CONFIG.triNome || "Trimestre";
   } else if (v === "COMP") {
     ppoView = false; fpfView = false; fpmeView = false;
     mesAtivo = "COMPARATIVO";
@@ -3423,10 +3450,11 @@ function renderKPIs() {
     const meta = g.meta;
     const pctMeta = (real / meta) * 100;
     const saldo = real - meta;
-    const mediaMes = real / 3;
+    const mesesComVenda = (g.porMes||[]).filter(v=>v>0).length || 1;
+    const mediaMes = real / mesesComVenda;
 
-    document.getElementById("diaAtualLabel").textContent = "Abr+Mai+Jun";
-    document.getElementById("filtroLabel").textContent = "Trimestre completo";
+    document.getElementById("diaAtualLabel").textContent = (CONFIG.mesesNomes||["Abr","Mai","Jun"]).map(n=>n.slice(0,3)).join("+");
+    document.getElementById("filtroLabel").textContent = CONFIG.fechado ? "Trimestre completo" : "Trimestre em curso";
 
     document.getElementById("kVendas").textContent = fmt(real);
     document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>`;
@@ -3440,12 +3468,15 @@ function renderKPIs() {
 
     document.getElementById("kMediaLabel").textContent = "Média / dia";
     document.getElementById("kMedia").textContent = fmtDec(mediaMes, 0);
-    document.getElementById("kMediaSub").textContent = "vendas/mês (3 meses)";
+    document.getElementById("kMediaSub").textContent = "vendas/mês (" + mesesComVenda + (mesesComVenda>1?" meses)":" mês)");
 
-    document.getElementById("kAbr").textContent = fmt(g.porMes[2]);
-    document.getElementById("kAbrSub").textContent = "vendas em Junho";
+    const _nomesTri = CONFIG.mesesNomes || ["Abril","Maio","Junho"];
+    let _ult = (g.porMes||[]).length - 1;
+    while (_ult > 0 && !g.porMes[_ult]) _ult--;
+    document.getElementById("kAbr").textContent = fmt(g.porMes[_ult]||0);
+    document.getElementById("kAbrSub").textContent = "vendas em " + (_nomesTri[_ult]||"—");
     const labAbr = document.getElementById("kAbrLabel");
-    if (labAbr) labAbr.textContent = "Último mês (Jun)";
+    if (labAbr) labAbr.textContent = "Último mês (" + (_nomesTri[_ult]||"—").slice(0,3) + ")";
     document.getElementById("kAbr").style.color = "#6c4ed8";
 
     document.getElementById("kConv").textContent = "—";
@@ -7775,8 +7806,14 @@ function renderAll() {
 
 // ── RENDER TRIMESTRE ──
 function renderTrimestre() {
-  const meses = ["Abril","Maio","Junho"];
+  const meses = CONFIG.mesesNomes || ["Abril","Maio","Junho"];
   const gestores = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE","TOTAL"];
+  const triNome = CONFIG.triNome || "Trimestre";
+  const _tit = (id,txt) => { const e=document.getElementById(id); if(e) e.textContent=txt; };
+  _tit("triTitMeta", "🎯 Meta vs Realizado — " + triNome + " (por gestor)");
+  _tit("triTitMes",  "📅 Vendas por Mês — " + meses.join(" / "));
+  _tit("triTitPpo",  "🩺 Vidas PPO por Plano — " + triNome);
+  ["triThM1","triThM2","triThM3"].forEach((id,i)=>{ const e=document.getElementById(id); if(e) e.textContent=meses[i]||"—"; });
 
   // Gráfico 1: Meta vs Realizado por gestor (barras agrupadas)
   destroyChart("triMeta");
@@ -7835,9 +7872,9 @@ function renderTrimestre() {
     if (k === "TOTAL") tr.style.fontWeight = "700";
     tr.innerHTML = `
       <td>${gg.label}</td>
-      <td class="td-right num">${fmt(gg.porMes[0])}</td>
-      <td class="td-right num">${fmt(gg.porMes[1])}</td>
-      <td class="td-right num">${fmt(gg.porMes[2])}</td>
+      <td class="td-right num">${fmt(gg.porMes[0]||0)}</td>
+      <td class="td-right num">${fmt(gg.porMes[1]||0)}</td>
+      <td class="td-right num">${fmt(gg.porMes[2]||0)}</td>
       <td class="td-right num">${fmt(realizado)}</td>
       <td class="td-right num">${fmt(gg.meta)}</td>
       <td class="td-right"><span class="badge ${bc}">${pctMeta}%</span></td>
@@ -8161,7 +8198,7 @@ function checkLogin(){
       return;
     }
     painel.style.display='none';
-    _sv(v);
+    _sv.apply(null, arguments);
   };
 })();
 </script>
@@ -8192,7 +8229,7 @@ function checkLogin(){
       return;
     }
     painel.style.display='none';
-    _sv(v);
+    _sv.apply(null, arguments);
   };
 })();
 </script>
