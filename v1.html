@@ -861,6 +861,23 @@
           <div style="color:#888;font-size:12px;margin:-4px 0 8px">· fila exclusiva NotreDame Saúde = Session Team <code>PPO</code> · PME PPO = Session Team <code>PME | PPO</code></div>
           <div style="position:relative;height:340px;width:100%"><canvas id="chartPpoLeadsFila"></canvas></div>
         </div>
+        <!-- Origem: mesmo recorte do gráfico acima (Session Team PPO + PME | PPO). As vidas são
+             vinculadas ao lead por telefone; o payload chega agregado, sem PII. -->
+        <div class="table-card" id="ppoOrigemSection" style="margin-top:18px;display:none">
+          <div class="chart-title">📈 Conversão por Origem (mês)</div>
+          <div style="font-size:12px;color:#6b6b78;margin:-5px 0 10px">Filas NotreDame Saúde (<code>PPO</code>) e PME PPO (<code>PME | PPO</code>) · vidas vinculadas ao lead por telefone</div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Origem</th><th class="td-right">Leads</th><th class="td-right">Produtivos</th><th class="td-right">% Prod.</th><th class="td-right">Vidas</th><th class="td-right">Conv. Vidas</th></tr></thead>
+              <tbody id="ppoOrigemBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-card" id="ppoOrigemDiaSection" style="margin-top:18px;display:none">
+          <div class="chart-title">📥 Entrada de Leads por Origem por Dia (mês)</div>
+          <div style="font-size:12px;color:#6b6b78;margin:-5px 0 10px">Filas NotreDame Saúde (<code>PPO</code>) e PME PPO (<code>PME | PPO</code>)</div>
+          <div style="overflow-x:auto"><table style="min-width:760px"><thead id="ppoOrigemDiaHead"></thead><tbody id="ppoOrigemDiaBody"></tbody></table></div>
+        </div>
         <div class="chart-grid-2" style="align-items:start;margin-top:18px">
           <div class="chart-card">
             <div class="chart-title">📅 Conversão Anual (vidas ÷ leads)</div>
@@ -4622,6 +4639,9 @@ function _baixarArquivo(url) {
 // ── ABA 🩺 PPO ── espelho do consolidado, 100% vidas PPO (datalake). Fonte = const PPO_DATA.
 // mesAtivo = mês real (período); gestorAtivo = filtro de gestor. A evolução anual ignora o mês.
 // ============================================================================================
+// Prévia aprovada de setembro/26: mantém os dois quadros visíveis até a próxima geração completa.
+// Nas rodadas seguintes, o campo `origem` de PPO_DATA produzido pelo backend prevalece sobre este fallback.
+const PPO_ORIGEM_PREVIEW = {SETEMBRO:{"origens":[{"origem":"CAMPANHAS MARKETING","leads":20,"produtivos":10,"vidas":0},{"origem":"CARRINHO ABANDONADO","leads":18,"produtivos":10,"vidas":0},{"origem":"ESPONTÂNEO","leads":146,"produtivos":63,"vidas":0},{"origem":"EUGENIA","leads":9,"produtivos":5,"vidas":0},{"origem":"EUGENIA COTAÇÃO","leads":7,"produtivos":5,"vidas":0},{"origem":"EUGENIA SELLER","leads":1,"produtivos":1,"vidas":0},{"origem":"LEADS FRIOS","leads":1,"produtivos":0,"vidas":0},{"origem":"OUTROS","leads":812,"produtivos":429,"vidas":0},{"origem":"REPIQUE COMERCIAL","leads":5,"produtivos":3,"vidas":0},{"origem":"TELEVENDAS","leads":1,"produtivos":1,"vidas":0}],"origemDia":[{"origem":"CAMPANHAS MARKETING","dias":[1,5,3,2,0,0,0,4,3,2]},{"origem":"CARRINHO ABANDONADO","dias":[2,2,3,2,1,0,0,0,4,4]},{"origem":"ESPONTÂNEO","dias":[16,23,16,12,1,1,4,24,30,19]},{"origem":"EUGENIA","dias":[2,3,0,1,0,0,0,1,1,1]},{"origem":"EUGENIA COTAÇÃO","dias":[1,1,0,2,0,0,0,1,2,0]},{"origem":"EUGENIA SELLER","dias":[0,0,0,0,0,0,0,1,0,0]},{"origem":"LEADS FRIOS","dias":[0,0,0,0,0,0,0,0,1,0]},{"origem":"OUTROS","dias":[80,103,77,75,29,12,40,96,164,136]},{"origem":"REPIQUE COMERCIAL","dias":[1,0,0,0,0,0,0,1,2,1]},{"origem":"TELEVENDAS","dias":[0,0,0,1,0,0,0,0,0,0]}]}};
 const PPO_MES_CURTO = {JANEIRO:"Jan",FEVEREIRO:"Fev",MARCO:"Mar",ABRIL:"Abr",MAIO:"Mai",JUNHO:"Jun",
   JULHO:"Jul",AGOSTO:"Ago",SETEMBRO:"Set",OUTUBRO:"Out",NOVEMBRO:"Nov",DEZEMBRO:"Dez"};
 const PPO_CORES = ["#6c4ed8","#185FA5","#1D9E75","#D85A30","#E67E22","#5499C7","#48C9B0","#A569BD"];
@@ -5014,8 +5034,56 @@ function renderPpoLeads(md) {
   renderPpoConvAnual();
   renderPpoLeadsFilaChart(md);
   syncPpoFilaBtns();
+  renderPpoOrigem(md);
+  renderPpoOrigemDia(md);
   renderPpoTagsChart(md);
   syncPpoTagBtns();
+}
+
+// Origem dos leads que chegaram nas filas PPO ou PME | PPO. O backend aplica a mesma cascata de
+// origem do consolidado e vincula cada vida ao primeiro lead do telefone no mês/mês anterior.
+function ppoHtml(s) { return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;"); }
+function renderPpoOrigem(md) {
+  const sec = document.getElementById("ppoOrigemSection");
+  const origem = md && md.origem ? md.origem : (PPO_ORIGEM_PREVIEW[mesAtivo] || null);
+  const linhas = origem && Array.isArray(origem.origens) ? origem.origens : [];
+  if (!sec) return;
+  sec.style.display = linhas.length ? "" : "none";
+  if (!linhas.length) return;
+  const body = document.getElementById("ppoOrigemBody");
+  const ord = [...linhas].sort((a,b) => (b.leads || 0) - (a.leads || 0));
+  let tLeads = 0, tProd = 0, tVidas = 0;
+  body.innerHTML = ord.map(d => {
+    const leads = d.leads || 0, prod = d.produtivos || 0, vidas = d.vidas || 0;
+    tLeads += leads; tProd += prod; tVidas += vidas;
+    const pctProd = leads ? prod / leads * 100 : 0;
+    const conv = leads ? vidas / leads * 100 : 0;
+    const faixa = conv >= 8 ? "green" : conv >= 5 ? "yellow" : "red";
+    return `<tr><td>${ppoHtml(d.origem)}</td><td class="td-right num">${fmt(leads)}</td><td class="td-right num">${fmt(prod)}</td><td class="td-right">${fmtDec(pctProd)}%</td><td class="td-right num">${fmt(vidas)}</td><td class="td-right"><span class="badge ${faixa}">${fmtDec(conv)}%</span></td></tr>`;
+  }).join("");
+  const pctProd = tLeads ? tProd / tLeads * 100 : 0;
+  const conv = tLeads ? tVidas / tLeads * 100 : 0;
+  body.innerHTML += `<tr style="font-weight:700;border-top:2px solid #6c4ed8"><td>Total Geral</td><td class="td-right num">${fmt(tLeads)}</td><td class="td-right num">${fmt(tProd)}</td><td class="td-right">${fmtDec(pctProd)}%</td><td class="td-right num">${fmt(tVidas)}</td><td class="td-right">${fmtDec(conv)}%</td></tr>`;
+}
+function renderPpoOrigemDia(md) {
+  const sec = document.getElementById("ppoOrigemDiaSection");
+  const origem = md && md.origem ? md.origem : (PPO_ORIGEM_PREVIEW[mesAtivo] || null);
+  const linhas = origem && Array.isArray(origem.origemDia) ? origem.origemDia : [];
+  if (!sec) return;
+  sec.style.display = linhas.length ? "" : "none";
+  if (!linhas.length) return;
+  const nDias = Math.max(0, ...linhas.map(o => (o.dias || []).length));
+  const head = document.getElementById("ppoOrigemDiaHead");
+  head.innerHTML = `<tr><th style="position:sticky;left:0;background:#6c4ed8;color:#fff;z-index:2">Origem</th>${Array.from({length:nDias}, (_,i) => `<th class="td-right">${i+1}</th>`).join("")}<th class="td-right" style="background:#5138aa;color:#fff">Total</th><th class="td-right" style="background:#5138aa;color:#fff">% do Total</th></tr>`;
+  const ord = linhas.map(o => ({...o, total:(o.dias || []).reduce((a,v) => a + (v || 0), 0)})).sort((a,b) => b.total - a.total);
+  const totalGeral = ord.reduce((a,o) => a + o.total, 0), porDia = new Array(nDias).fill(0);
+  const body = document.getElementById("ppoOrigemDiaBody");
+  body.innerHTML = ord.map(o => {
+    let row = `<tr><td style="position:sticky;left:0;background:#fff;font-weight:600">${ppoHtml(o.origem)}</td>`;
+    for (let i=0; i<nDias; i++) { const v = (o.dias || [])[i] || 0; porDia[i] += v; row += `<td class="td-right">${v ? fmt(v) : "–"}</td>`; }
+    return row + `<td class="td-right num" style="font-weight:700;background:#f3efff">${fmt(o.total)}</td><td class="td-right" style="font-weight:700;background:#f3efff">${fmtDec(totalGeral ? o.total / totalGeral * 100 : 0)}%</td></tr>`;
+  }).join("");
+  body.innerHTML += `<tr style="font-weight:700;border-top:2px solid #6c4ed8"><td style="position:sticky;left:0;background:#f3efff">Total Geral</td>${porDia.map(v => `<td class="td-right" style="background:#f3efff">${fmt(v)}</td>`).join("")}<td class="td-right" style="background:#6c4ed8;color:#fff">${fmt(totalGeral)}</td><td class="td-right" style="background:#6c4ed8;color:#fff">${totalGeral ? "100,0" : "0,0"}%</td></tr>`;
 }
 
 // Leads PPO por Fila — barras simples (sem linha), com rótulo de dados, toggle Total/Exclusivo
