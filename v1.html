@@ -454,6 +454,17 @@
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
       .fpme-oper-grid { grid-template-columns:1fr; }
     }
+  /* Header em LINHA ÚNICA (12/09): compacta abas+filtros p/ caberem lado a lado.
+     Abaixo de 1150px volta a quebrar (mobile/tablet precisam do wrap). */
+  @media (min-width: 1150px) {
+    .header-row { flex-wrap: nowrap; }
+    .view-tabs { flex-wrap: nowrap; }
+    .view-tab { padding: 7px 9px 9px; font-size: 12.5px; white-space: nowrap; }
+    .header-row .filters { flex-wrap: nowrap; gap: 6px; }
+    .filter-label { font-size: 10.5px; white-space: nowrap; }
+    .filter-select { padding: 4px 6px; font-size: 11.5px; }
+    .btn-extrair { padding: 4px 9px; font-size: 11.5px; white-space: nowrap; }
+  }
   /* Login overlay */
   #login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
   #login-overlay.hidden{display:none}
@@ -8097,8 +8108,16 @@ function renderComparativo() {
     ...(K >= 3 ? [{ base: P - 1, label: `Var. ${curto(ms[P])} vs ${curto(ms[P - 1])}` }] : [])
   ];
   if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + comparativos.map(c => `<th class="td-right">${c.label}</th>`).join("");
+  // SINTRO no comparativo (12/09): valores de MÊS COMPLETO, os mesmos dos KPIs do Consolidado
+  // ("Vendas SINTRO" = g.sintro; "Total Digital + SINTRO" = digital do mês + sintro). Meses sem o
+  // campo (Abr/Mai) mostram "—". Rótulo "(mês)" distingue do recorte 1–N das demais linhas.
+  const sintroMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.sintro === undefined ? null : (g.sintro || 0); });
+  const digMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; let v = 0; for (const x of (g.acumulado||[])) if (x != null) v = x; return v; });
+  const totComSintro = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + sintroMes[i]);
   const linhas = [
     { lab: "Realizado (" + labelG + ")", vals: real, f: fmt, inv: false },
+    { lab: "Vendas SINTRO (mês)", vals: sintroMes, f: v => v == null ? "—" : fmt(v), inv: false },
+    { lab: "Total Digital + SINTRO (mês)", vals: totComSintro, f: v => v == null ? "—" : fmt(v), inv: false },
     { lab: "Média / dia", vals: med, f: v => fmtDec(v, 0), inv: false },
     { lab: "PF", vals: prod.map(p => p.pf), f: fmt, inv: false },
     { lab: "PME", vals: prod.map(p => p.pme), f: fmt, inv: false },
@@ -8110,7 +8129,9 @@ function renderComparativo() {
   document.getElementById("tabelaComp").innerHTML = linhas.map(r => {
     const cels = r.vals.map(v => `<td class="td-right num">${r.f(v)}</td>`).join("");
     const vars = comparativos.map(c => {
-      const d = delta(r.vals[c.base], r.vals[P]), good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
+      const d = delta(r.vals[c.base], r.vals[P]);
+      if (r.vals[c.base] == null || r.vals[P] == null || !isFinite(d)) return `<td class="td-right">—</td>`;
+      const good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
       return `<td class="td-right"><span class="badge ${good ? "green" : "red"}">${sign}${fmtDec(d)}%</span></td>`;
     }).join("");
     return `<tr><td>${r.lab}</td>${cels}${vars}</tr>`;
