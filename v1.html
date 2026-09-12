@@ -580,7 +580,7 @@
   <!-- KPIs -->
   <div class="kpi-row" id="mainKpis">
     <div class="kpi-card" id="kpi1">
-      <div class="kpi-label">Vendas Digital Realizadas</div>
+      <div class="kpi-label" id="kVendasLabel">Vendas Digital Realizadas</div>
       <div class="kpi-value" id="kVendas">—</div>
       <div class="kpi-sub" id="kVendasSub"></div>
     </div>
@@ -3464,18 +3464,23 @@ function renderKPIs() {
 
   // ── Modo TRIMESTRE ──
   if (CONFIG.isTrimestre) {
-    const real = g.projecao_fixa;        // realizado = soma dos meses
+    const real = g.projecao_fixa;        // realizado digital = soma dos meses
+    const temSintroK = (g.sintro !== undefined);
+    const sintroT = temSintroK ? g.sintro : 0;
+    const realTot = real + sintroT;      // card 1 contempla as vidas do SINTRO (pedido 12/09)
     const meta = g.meta;
-    const pctMeta = (real / meta) * 100;
-    const saldo = real - meta;
+    const pctMeta = (realTot / meta) * 100;
+    const saldo = realTot - meta;
     const mesesComVenda = (g.porMes||[]).filter(v=>v>0).length || 1;
-    const mediaMes = real / mesesComVenda;
+    const mediaMes = realTot / mesesComVenda;
 
     document.getElementById("diaAtualLabel").textContent = (CONFIG.mesesNomes||["Abr","Mai","Jun"]).map(n=>n.slice(0,3)).join("+");
     document.getElementById("filtroLabel").textContent = CONFIG.fechado ? "Trimestre completo" : "Trimestre em curso";
 
-    document.getElementById("kVendas").textContent = fmt(real);
-    document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>`;
+    { const _kvl = document.getElementById("kVendasLabel");
+      if (_kvl) _kvl.textContent = temSintroK ? "Vendas Realizadas (Digital + SINTRO)" : "Vendas Digital Realizadas"; }
+    document.getElementById("kVendas").textContent = fmt(realTot);
+    document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>` + (temSintroK ? `<br>digital ${fmt(real)} + SINTRO ${fmt(sintroT)}` : "");
 
     document.getElementById("kMetaLabel").textContent = "% da Meta";
     document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
@@ -3491,17 +3496,17 @@ function renderKPIs() {
     const _nomesTri = CONFIG.mesesNomes || ["Abril","Maio","Junho"];
     let _ult = (g.porMes||[]).length - 1;
     while (_ult > 0 && !g.porMes[_ult]) _ult--;
-    document.getElementById("kAbr").textContent = fmt(g.porMes[_ult]||0);
-    document.getElementById("kAbrSub").textContent = "vendas em " + (_nomesTri[_ult]||"—");
+    document.getElementById("kAbr").textContent = fmt((g.porMes[_ult]||0) + ((g.sintroPorMes||[])[_ult]||0));
+    document.getElementById("kAbrSub").textContent = "vendas em " + (_nomesTri[_ult]||"—") + (temSintroK ? " (digital + SINTRO)" : "");
     const labAbr = document.getElementById("kAbrLabel");
     if (labAbr) labAbr.textContent = "Último mês (" + (_nomesTri[_ult]||"—").slice(0,3) + ")";
     document.getElementById("kAbr").style.color = "#6c4ed8";
 
     const _kcl = document.getElementById("kConvLabel");
-    if (g.sintro !== undefined) {
-      if (_kcl) _kcl.textContent = "Total Digital + SINTRO";
-      document.getElementById("kConv").textContent = fmt(real + g.sintro);
-      document.getElementById("kConvSub").textContent = `digital (${fmt(real)}) + SINTRO (${fmt(g.sintro)})`;
+    if (temSintroK) {
+      if (_kcl) _kcl.textContent = "Vendas SINTRO";
+      document.getElementById("kConv").textContent = fmt(sintroT);
+      document.getElementById("kConvSub").textContent = "vendas da campanha (fora do digital)";
     } else {
       if (_kcl) _kcl.textContent = "Conv. Média";
       document.getElementById("kConv").textContent = "—";
@@ -3510,7 +3515,8 @@ function renderKPIs() {
     return;
   }
 
-  { const _kcl = document.getElementById("kConvLabel"); if (_kcl) _kcl.textContent = "Conv. Média"; }
+  { const _kcl = document.getElementById("kConvLabel"); if (_kcl) _kcl.textContent = "Conv. Média";
+    const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "Vendas Digital Realizadas"; }
   const real = vendas(gestorAtivo, diaIni, diaFim);
   const dias = diasComVenda(gestorAtivo, 1, CONFIG.diasNoMes) || 1;
   const meta = g.meta;                    // pode ser null (meta do gestor ainda nao decidida no mes)
