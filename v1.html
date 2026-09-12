@@ -590,7 +590,7 @@
       <div class="kpi-sub" id="kMetaSub"></div>
     </div>
     <div class="kpi-card laranja" id="kpi3">
-      <div class="kpi-label">Projeção mensal</div>
+      <div class="kpi-label" id="kProjLabel">Projeção mensal</div>
       <div class="kpi-value" id="kProj">—</div>
       <div class="kpi-sub" id="kProjSub"></div>
     </div>
@@ -3477,46 +3477,40 @@ function renderKPIs() {
     document.getElementById("diaAtualLabel").textContent = (CONFIG.mesesNomes||["Abr","Mai","Jun"]).map(n=>n.slice(0,3)).join("+");
     document.getElementById("filtroLabel").textContent = CONFIG.fechado ? "Trimestre completo" : "Trimestre em curso";
 
-    { const _kvl = document.getElementById("kVendasLabel");
-      if (_kvl) _kvl.textContent = temSintroK ? "Vendas Realizadas (Digital + SINTRO)" : "Vendas Digital Realizadas"; }
+    // ── Cards simplificados do trimestre (pedido 12/09): 4 cards ──
+    const falta = meta - realTot;
+    { const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "Vendas até o momento"; }
     document.getElementById("kVendas").textContent = fmt(realTot);
-    document.getElementById("kVendasSub").innerHTML = `de ${fmt(meta)} meta &nbsp;<span class="badge ${pctMeta>=100?'green':pctMeta>=90?'yellow':'red'}">${fmtDec(pctMeta)}%</span>` + (temSintroK ? `<br>digital ${fmt(real)} + SINTRO ${fmt(sintroT)}` : "");
+    document.getElementById("kVendasSub").innerHTML = temSintroK ? `digital ${fmt(real)} + SINTRO ${fmt(sintroT)}` : "realizado do trimestre";
 
-    document.getElementById("kMetaLabel").textContent = "% da Meta";
+    document.getElementById("kMetaLabel").textContent = "% Meta Atingida";
     document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
-    document.getElementById("kMetaSub").innerHTML = `Meta trimestral acumulada`;
+    document.getElementById("kMetaSub").innerHTML = `${fmt(realTot)} de ${fmt(meta)}`;
 
-    document.getElementById("kProj").textContent = (saldo>=0?'+':'') + fmt(saldo);
-    document.getElementById("kProjSub").innerHTML = saldo>=0 ? "acima da meta" : "abaixo da meta";
+    { const _kpl = document.getElementById("kProjLabel"); if (_kpl) _kpl.textContent = "Valor da Meta"; }
+    document.getElementById("kProj").textContent = fmt(meta);
+    document.getElementById("kProjSub").innerHTML = "meta do " + (CONFIG.triNome || "trimestre").toLowerCase() + " (" + (CONFIG.mesesNomes||[]).map(n=>n.slice(0,3)).join("+") + ")";
 
-    document.getElementById("kMediaLabel").textContent = "Média / dia";
-    document.getElementById("kMedia").textContent = fmtDec(mediaMes, 0);
-    document.getElementById("kMediaSub").textContent = "vendas/mês (" + mesesComVenda + (mesesComVenda>1?" meses)":" mês)");
-
-    const _nomesTri = CONFIG.mesesNomes || ["Abril","Maio","Junho"];
-    let _ult = (g.porMes||[]).length - 1;
-    while (_ult > 0 && !g.porMes[_ult]) _ult--;
-    document.getElementById("kAbr").textContent = fmt((g.porMes[_ult]||0) + ((g.sintroPorMes||[])[_ult]||0));
-    document.getElementById("kAbrSub").textContent = "vendas em " + (_nomesTri[_ult]||"—") + (temSintroK ? " (digital + SINTRO)" : "");
-    const labAbr = document.getElementById("kAbrLabel");
-    if (labAbr) labAbr.textContent = "Último mês (" + (_nomesTri[_ult]||"—").slice(0,3) + ")";
-    document.getElementById("kAbr").style.color = "#6c4ed8";
-
-    const _kcl = document.getElementById("kConvLabel");
-    if (temSintroK) {
-      if (_kcl) _kcl.textContent = "Vendas SINTRO";
-      document.getElementById("kConv").textContent = fmt(sintroT);
-      document.getElementById("kConvSub").textContent = "vendas da campanha (fora do digital)";
+    document.getElementById("kMediaLabel").textContent = "Quanto Falta p/ a Meta";
+    if (falta > 0) {
+      document.getElementById("kMedia").textContent = fmt(falta);
+      document.getElementById("kMediaSub").textContent = "vendas para atingir a meta";
     } else {
-      if (_kcl) _kcl.textContent = "Conv. Média";
-      document.getElementById("kConv").textContent = "—";
-      document.getElementById("kConvSub").textContent = "n/d no trimestre";
+      document.getElementById("kMedia").textContent = "Meta batida";
+      document.getElementById("kMediaSub").textContent = "+" + fmt(-falta) + " acima da meta";
     }
+
+    // a visão trimestre usa só 4 cards — esconde "Último mês" e "Vendas SINTRO"
+    { const _c5 = document.getElementById("kAbr").closest(".kpi-card"); if (_c5) _c5.style.display = "none";
+      const _c6 = document.getElementById("kConv").closest(".kpi-card"); if (_c6) _c6.style.display = "none"; }
     return;
   }
 
   { const _kcl = document.getElementById("kConvLabel"); if (_kcl) _kcl.textContent = "Conv. Média";
-    const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "Vendas Digital Realizadas"; }
+    const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "Vendas Digital Realizadas";
+    const _kpl = document.getElementById("kProjLabel"); if (_kpl) _kpl.textContent = "Projeção mensal";
+    const _c5 = document.getElementById("kAbr").closest(".kpi-card"); if (_c5) _c5.style.display = "";
+    const _c6 = document.getElementById("kConv").closest(".kpi-card"); if (_c6) _c6.style.display = ""; }
   const real = vendas(gestorAtivo, diaIni, diaFim);
   const dias = diasComVenda(gestorAtivo, 1, CONFIG.diasNoMes) || 1;
   const meta = g.meta;                    // pode ser null (meta do gestor ainda nao decidida no mes)
