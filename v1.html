@@ -537,6 +537,8 @@
       <button class="view-tab" data-view="COMP" onclick="setView('COMP')">Comparar meses</button>
       <button class="view-tab" data-view="PROD" onclick="setView('PROD')">📆 Produtividade</button>
       <button class="view-tab" data-view="LEADS" onclick="setView('LEADS')">📈 Leads</button>
+      <button class="view-tab" data-view="VD2026" onclick="setView('VD2026')">📊 Vendas 2026</button>
+      <button class="view-tab" data-view="CANCRET" onclick="setView('CANCRET')">🔄 Canc. &amp; Retenção</button>
       <button class="view-tab" data-view="FPF" onclick="setView('FPF')">Funil PF</button>
       <button class="view-tab" data-view="FPME" onclick="setView('FPME')">Funil PME</button>
     </div>
@@ -8364,5 +8366,42 @@ box-shadow:0 3px 12px #0004}</style>
 var d=s.as_of?String(s.as_of).split('-').reverse().join('/'):'data desconhecida';
 e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
 .catch(function(){})})();</script>
+
+<!-- ABAS VENDAS DIGITAL (Ano 2026 + Cancelamento & Retenção) — iframes de vendas-digital-2025-2026.vercel.app
+     (deep links ?view=2026 / ?view=canc), patch 14/09/2026. O dash de origem é a fonte única: atualizou lá, refletiu aqui.
+     Auto-contido: se a regeneração automática do dashboard remover este bloco, reaplicar. -->
+<script>
+(function(){
+  function mkPanel(id,title){
+    var p=document.createElement('div');
+    p.id=id;
+    p.style.cssText='display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#eef1f5';
+    p.innerHTML='<iframe style="width:100%;height:100%;border:0" title="'+title+'"></iframe>';
+    document.body.appendChild(p);
+    return p;
+  }
+  var p26=mkPanel('vd2026Panel','Vendas Digital — Ano 2026');
+  var pcc=mkPanel('cancPanel','Cancelamento & Retenção — Vendas Digital');
+  var VIEWS={VD2026:[p26,'https://vendas-digital-2025-2026.vercel.app/?view=2026'],CANCRET:[pcc,'https://vendas-digital-2025-2026.vercel.app/?view=canc']};
+  function pos(p){var nb=document.getElementById('navBar');if(!nb)return;var r=nb.getBoundingClientRect();p.style.top=Math.max(0,r.bottom)+'px';}
+  window.addEventListener('resize',function(){pos(p26);pos(pcc);});
+  window.addEventListener('scroll',function(){[p26,pcc].forEach(function(p){if(p.style.display==='block')pos(p);});});
+  var _sv=window.setView;
+  window.setView=function(v){
+    if(VIEWS[v]){
+      var p=VIEWS[v][0], f=p.querySelector('iframe');
+      if(!f.src)f.src=VIEWS[v][1];
+      [p26,pcc].forEach(function(x){x.style.display=(x===p)?'block':'none';});
+      ['funilPfPanel','funilPmePanel','prodPanel','leadsPanel'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
+      pos(p);
+      document.querySelectorAll('.view-tab').forEach(function(b){b.classList.toggle('active',b.dataset.view===v);});
+      var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      return;
+    }
+    p26.style.display='none';pcc.style.display='none';
+    _sv.apply(null, arguments);
+  };
+})();
+</script>
 </body>
 </html>
