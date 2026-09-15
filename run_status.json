@@ -1,10 +1,13 @@
 {
   "schema_version": 1,
-  "run_id": "daily-20260914T184132",
+  "run_id": "daily-20260915T111323",
   "component": "vendas_diaria",
   "status": "UPDATED",
   "source": "datalake",
-  "as_of": "2026-09-14",
-  "generated_at": "2026-09-14T18:51:04-03:00",
-  "warnings": []
+  "as_of": "2026-09-15",
+  "generated_at": "2026-09-15T11:41:37-03:00",
+  "warnings": [
+    "Base oficial hospedada aguarda ativacao; numeros validados no espelho local.",
+    "Atribuicao PF em conflito permanece ADMINISTRATIVO ate conferencia."
+  ]
 }
