@@ -1522,21 +1522,23 @@
 
   <div class="table-card normal-view" id="conversaoSection">
     <div class="chart-title">📈 Conversão por Origem (mês)</div>
-    <table>
-      <thead>
-        <tr>
+    <div style="font-size:12px;color:#6b6b78;margin:-5px 0 10px">Classificação pela Avaliação Comercial · Fechado incluído em SQL</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
           <th>Origem</th>
-          <th class="td-right">Leads Totais</th>
-          <th class="td-right">Leads Produtivos</th>
-          <th class="td-right">% Produtivos</th>
-          <th class="td-right">Contratos</th>
+          <th class="td-right">Total</th>
+          <th class="td-right">MQL</th>
+          <th class="td-right">Improdutivo</th>
+          <th class="td-right">SQL</th>
+          <th class="td-right">% SQL</th>
           <th class="td-right">Vidas</th>
-          <th class="td-right">Conv. Contratos</th>
-          <th class="td-right">Conv. Vidas</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaConversao"></tbody>
-    </table>
+          <th class="td-right">Conversão</th>
+          <th class="td-right">Conv. SQL</th>
+        </tr></thead>
+        <tbody id="tabelaConversao"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ROW 3d: Entrada de Leads por Origem por Dia -->
@@ -2889,6 +2891,23 @@ const DADOS_MESES = {
       { origem: "Eugenia Seller", leads: 835, produtivos: 740, contratos: 141, vidas: 155 },
       { origem: "Eugenia Search", leads: 346, produtivos: 225, contratos: 12, vidas: 14 }
     ],
+    classificacaoComercial: [
+      { origem: "Carrinho Abandonado", total: 11746, mql: 4190, improdutivo: 3161, sql: 4395, vidas: 695 },
+      { origem: "Campanhas Marketing", total: 9016, mql: 4091, improdutivo: 2835, sql: 2090, vidas: 313 },
+      { origem: "Eugenia Cotação", total: 7317, mql: 2648, improdutivo: 3087, sql: 1582, vidas: 98 },
+      { origem: "Outros", total: 7305, mql: 2690, improdutivo: 2332, sql: 2283, vidas: 315 },
+      { origem: "Repique Comercial", total: 5564, mql: 1943, improdutivo: 1843, sql: 1778, vidas: 191 },
+      { origem: "Carrinho Abandonado Conecta", total: 4821, mql: 2211, improdutivo: 1430, sql: 1180, vidas: 219 },
+      { origem: "Eugenia", total: 3945, mql: 1698, improdutivo: 910, sql: 1337, vidas: 358 },
+      { origem: "VPC", total: 2752, mql: 1060, improdutivo: 1051, sql: 641, vidas: 108 },
+      { origem: "Espontâneo", total: 2436, mql: 1035, improdutivo: 576, sql: 825, vidas: 174 },
+      { origem: "Conecta", total: 1000, mql: 447, improdutivo: 234, sql: 319, vidas: 86 },
+      { origem: "Eugenia Seller", total: 835, mql: 584, improdutivo: 51, sql: 200, vidas: 155 },
+      { origem: "Televendas", total: 435, mql: 212, improdutivo: 51, sql: 172, vidas: 52 },
+      { origem: "Eugenia Search", total: 346, mql: 116, improdutivo: 73, sql: 157, vidas: 14 },
+      { origem: "Leads Frios", total: 293, mql: 84, improdutivo: 160, sql: 49, vidas: 7 },
+      { origem: "Mídia", total: 2, mql: 2, improdutivo: 0, sql: 0, vidas: 0 }
+    ],
     leadsOrigemDia: {
       dias: 14,
       origens: [
@@ -4134,52 +4153,53 @@ function renderLeadsTipo() {
 // ── TABELA: CONVERSÃO POR ORIGEM ──
 function renderConversao() {
   const sec = document.getElementById("conversaoSection");
-  const dados = CONFIG.leadsConversao;
+  const dados = CONFIG.classificacaoComercial;
   const exibir = Array.isArray(dados) && dados.length && gestorAtivo === "TOTAL";
   sec.style.display = exibir ? "" : "none";
   if (!exibir) return;
 
   const tbody = document.getElementById("tabelaConversao");
   tbody.innerHTML = "";
-  let tLeads=0, tProd=0, tContr=0, tVidas=0;
+  let tLeads=0, tMql=0, tImprodutivo=0, tSql=0, tVidas=0;
 
   // ordena por leads totais (maior primeiro)
-  const ordenado = [...dados].sort((a,b) => b.leads - a.leads);
+  const ordenado = [...dados].sort((a,b) => b.total - a.total);
   for (const d of ordenado) {
-    tLeads += d.leads; tProd += d.produtivos; tContr += d.contratos; tVidas += d.vidas;
-    const pctProd = d.leads>0 ? (d.produtivos/d.leads*100) : 0;
-    const convContr = d.leads>0 ? (d.contratos/d.leads*100) : 0;
-    const convVidas = d.leads>0 ? (d.vidas/d.leads*100) : 0;
-    const bcV = convVidas>=8 ? "green" : convVidas>=5 ? "yellow" : "red";
+    tLeads += d.total; tMql += d.mql; tImprodutivo += d.improdutivo; tSql += d.sql; tVidas += d.vidas;
+    const pctSql = d.total>0 ? (d.sql/d.total*100) : 0;
+    const convVidas = d.total>0 ? (d.vidas/d.total*100) : 0;
+    const convSql = d.sql>0 ? (d.vidas/d.sql*100) : 0;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${d.origem}</td>
-      <td class="td-right num">${fmt(d.leads)}</td>
-      <td class="td-right num">${fmt(d.produtivos)}</td>
-      <td class="td-right">${fmtDec(pctProd)}%</td>
-      <td class="td-right num">${fmt(d.contratos)}</td>
+      <td class="td-right num">${fmt(d.total)}</td>
+      <td class="td-right num">${fmt(d.mql)}</td>
+      <td class="td-right num">${fmt(d.improdutivo)}</td>
+      <td class="td-right num">${fmt(d.sql)}</td>
+      <td class="td-right">${fmtDec(pctSql)}%</td>
       <td class="td-right num">${fmt(d.vidas)}</td>
-      <td class="td-right">${fmtDec(convContr)}%</td>
-      <td class="td-right"><span class="badge ${bcV}">${fmtDec(convVidas)}%</span></td>
+      <td class="td-right">${fmtDec(convVidas)}%</td>
+      <td class="td-right">${fmtDec(convSql)}%</td>
     `;
     tbody.appendChild(tr);
   }
   // linha de total
-  const pctProdT = tLeads>0 ? (tProd/tLeads*100) : 0;
-  const convContrT = tLeads>0 ? (tContr/tLeads*100) : 0;
+  const pctSqlT = tLeads>0 ? (tSql/tLeads*100) : 0;
   const convVidasT = tLeads>0 ? (tVidas/tLeads*100) : 0;
+  const convSqlT = tSql>0 ? (tVidas/tSql*100) : 0;
   const trT = document.createElement("tr");
   trT.style.fontWeight = "700";
   trT.style.borderTop = "2px solid #185FA5";
   trT.innerHTML = `
     <td>Total Geral</td>
     <td class="td-right num">${fmt(tLeads)}</td>
-    <td class="td-right num">${fmt(tProd)}</td>
-    <td class="td-right">${fmtDec(pctProdT)}%</td>
-    <td class="td-right num">${fmt(tContr)}</td>
+    <td class="td-right num">${fmt(tMql)}</td>
+    <td class="td-right num">${fmt(tImprodutivo)}</td>
+    <td class="td-right num">${fmt(tSql)}</td>
+    <td class="td-right">${fmtDec(pctSqlT)}%</td>
     <td class="td-right num">${fmt(tVidas)}</td>
-    <td class="td-right">${fmtDec(convContrT)}%</td>
     <td class="td-right">${fmtDec(convVidasT)}%</td>
+    <td class="td-right">${fmtDec(convSqlT)}%</td>
   `;
   tbody.appendChild(trT);
 }
