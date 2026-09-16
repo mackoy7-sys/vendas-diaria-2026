@@ -300,6 +300,10 @@
     tbody tr:last-child td { border-bottom: none; font-weight: 700; background: #f8f9fb; }
     tbody tr:hover { background: #f8f9fb; }
     .td-right { text-align: right; }
+    #conversaoSection th.sortable { cursor: pointer; user-select: none; }
+    #conversaoSection th.sortable:hover,
+    #conversaoSection th.sortable.active { color: #185FA5; }
+    #conversaoSection .sort-arrow { display: inline-block; margin-left: 4px; font-size: 10px; }
     /* --- Carteira em aberto (fila de trabalho da aba Funil PF) --- */
     .fpf-cart-filtros { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
     .fpf-cart-filtros select, .fpf-cart-filtros input {
@@ -1526,15 +1530,15 @@
     <div style="overflow-x:auto">
       <table>
         <thead><tr>
-          <th>Origem</th>
-          <th class="td-right">Total</th>
-          <th class="td-right">MQL</th>
-          <th class="td-right">Improdutivo</th>
-          <th class="td-right">SQL</th>
-          <th class="td-right">% SQL</th>
-          <th class="td-right">Vidas</th>
-          <th class="td-right">Conversão</th>
-          <th class="td-right">Conv. SQL</th>
+          <th class="sortable" data-conversao-sort="origem" onclick="sortConversao('origem')">Origem</th>
+          <th class="td-right sortable active" data-conversao-sort="total" onclick="sortConversao('total')">Total <span class="sort-arrow">▼</span></th>
+          <th class="td-right sortable" data-conversao-sort="mql" onclick="sortConversao('mql')">MQL</th>
+          <th class="td-right sortable" data-conversao-sort="improdutivo" onclick="sortConversao('improdutivo')">Improdutivo</th>
+          <th class="td-right sortable" data-conversao-sort="sql" onclick="sortConversao('sql')">SQL</th>
+          <th class="td-right sortable" data-conversao-sort="pctSql" onclick="sortConversao('pctSql')">% SQL</th>
+          <th class="td-right sortable" data-conversao-sort="vidas" onclick="sortConversao('vidas')">Vidas</th>
+          <th class="td-right sortable" data-conversao-sort="convVidas" onclick="sortConversao('convVidas')">Conversão</th>
+          <th class="td-right sortable" data-conversao-sort="convSql" onclick="sortConversao('convSql')">Conv. SQL</th>
         </tr></thead>
         <tbody id="tabelaConversao"></tbody>
       </table>
@@ -4151,6 +4155,39 @@ function renderLeadsTipo() {
 }
 
 // ── TABELA: CONVERSÃO POR ORIGEM ──
+let conversaoSort = { key: "total", dir: "desc" };
+
+function sortConversao(key) {
+  if (conversaoSort.key === key) {
+    conversaoSort.dir = conversaoSort.dir === "asc" ? "desc" : "asc";
+  } else {
+    conversaoSort = { key, dir: key === "origem" ? "asc" : "desc" };
+  }
+  renderConversao();
+}
+
+function valorConversao(d, key) {
+  if (key === "pctSql") return d.total > 0 ? d.sql / d.total : -1;
+  if (key === "convVidas") return d.total > 0 ? d.vidas / d.total : -1;
+  if (key === "convSql") return d.sql > 0 ? d.vidas / d.sql : -1;
+  return d[key];
+}
+
+function atualizaCabecalhoConversao() {
+  document.querySelectorAll("#conversaoSection [data-conversao-sort]").forEach(th => {
+    const ativo = th.dataset.conversaoSort === conversaoSort.key;
+    th.classList.toggle("active", ativo);
+    const seta = th.querySelector(".sort-arrow");
+    if (seta) seta.remove();
+    if (ativo) {
+      const indicador = document.createElement("span");
+      indicador.className = "sort-arrow";
+      indicador.textContent = conversaoSort.dir === "asc" ? "▲" : "▼";
+      th.appendChild(indicador);
+    }
+  });
+}
+
 function renderConversao() {
   const sec = document.getElementById("conversaoSection");
   const dados = CONFIG.classificacaoComercial;
@@ -4162,8 +4199,15 @@ function renderConversao() {
   tbody.innerHTML = "";
   let tLeads=0, tMql=0, tImprodutivo=0, tSql=0, tVidas=0;
 
-  // ordena por leads totais (maior primeiro)
-  const ordenado = [...dados].sort((a,b) => b.total - a.total);
+  const ordenado = [...dados].sort((a, b) => {
+    const av = valorConversao(a, conversaoSort.key);
+    const bv = valorConversao(b, conversaoSort.key);
+    const ordem = conversaoSort.key === "origem"
+      ? String(av).localeCompare(String(bv), "pt-BR")
+      : av - bv;
+    return conversaoSort.dir === "asc" ? ordem : -ordem;
+  });
+  atualizaCabecalhoConversao();
   for (const d of ordenado) {
     tLeads += d.total; tMql += d.mql; tImprodutivo += d.improdutivo; tSql += d.sql; tVidas += d.vidas;
     const pctSql = d.total>0 ? (d.sql/d.total*100) : 0;
