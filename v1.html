@@ -587,24 +587,29 @@
   <!-- KPIs -->
   <div class="kpi-row" id="mainKpis">
     <div class="kpi-card" id="kpi1">
-      <div class="kpi-label" id="kVendasLabel">Vendas Digital Realizadas</div>
+      <div class="kpi-label" id="kVendasLabel">HapON Interno</div>
       <div class="kpi-value" id="kVendas">—</div>
       <div class="kpi-sub" id="kVendasSub"></div>
     </div>
     <div class="kpi-card verde" id="kpi2">
-      <div class="kpi-label" id="kMetaLabel">Vendas SINTRO</div>
+      <div class="kpi-label" id="kMetaLabel">HapON Corretoras</div>
       <div class="kpi-value" id="kMeta">—</div>
       <div class="kpi-sub" id="kMetaSub"></div>
+    </div>
+    <div class="kpi-card" id="kpiSintro" style="border-left-color:#00a3a3">
+      <div class="kpi-label" id="kSintroLabel">SINTRO</div>
+      <div class="kpi-value" id="kSintro">—</div>
+      <div class="kpi-sub" id="kSintroSub"></div>
+    </div>
+    <div class="kpi-card cinza" id="kpi4">
+      <div class="kpi-label" id="kMediaLabel">Total</div>
+      <div class="kpi-value" id="kMedia">—</div>
+      <div class="kpi-sub" id="kMediaSub"></div>
     </div>
     <div class="kpi-card laranja" id="kpi3">
       <div class="kpi-label" id="kProjLabel">Projeção mensal</div>
       <div class="kpi-value" id="kProj">—</div>
       <div class="kpi-sub" id="kProjSub"></div>
-    </div>
-    <div class="kpi-card cinza" id="kpi4">
-      <div class="kpi-label" id="kMediaLabel">Média / dia</div>
-      <div class="kpi-value" id="kMedia">—</div>
-      <div class="kpi-sub" id="kMediaSub"></div>
     </div>
     <div class="kpi-card" style="border-left-color:#9b59b6">
       <div class="kpi-label" id="kAbrLabel">Var. vs mês anterior</div>
@@ -2936,25 +2941,25 @@ const DADOS_MESES = {
     gestores: {
       TOTAL: {
         label: "Total geral", meta: 12725,
-        acumulado: [387,681,966,1292,1432,1542,1649,2004,2442,2916,
-                    3283,3423,3535,3843,4163,4256,4283,4315,4358,4427,
-                    4427,4433,4436,4463,4485,4487,4492,4499,4500,4500],
+        acumulado: [387,681,966,1292,1431,1541,1645,1999,2436,2906,
+                    3273,3413,3525,3831,4149,4242,4269,4301,4344,4413,
+                    4413,4419,4422,4449,4471,4473,4478,4485,4486,4486],
         volumeDia: { pf: [206,194,186,240,37,33,52,305,286,274,
                     255,34,25,260,179,2,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0], pme: [138,100,99,86,103,77,55,50,152,167,
-                    112,106,87,48,141,91,27,32,43,34,
+                    0,0,0,0,0,0,0,0,0,0], pme: [138,100,99,86,102,77,52,49,151,163,
+                    112,106,87,46,139,91,27,32,43,34,
                     0,6,3,27,22,2,5,7,1,0], adesao: [43,0,0,0,0,0,0,0,0,33,
                     0,0,0,0,0,0,0,0,0,35,
                     0,0,0,0,0,0,0,0,0,0] },
-        pf: 2568, pme: 1821, adesao: 111, sintro: 2, ppo: 57,
+        pf: 2568, pme: 1807, adesao: 111, sintro: 2, hapon: 57, haponPf: 35, haponPme: 22, haponAdesao: 0, ppo: 57,
         ppoPlanos: [{ label: "Advance 600", valor: 33 }, { label: "Advance 700", valor: 14 }, { label: "Premium 900", valor: 6 }, { label: "Premium 900 Care", valor: 4 }],
-        conv: [7.8,4.5,6.0,8.2,8.1,6.9,3.2,6.2,8.6,9.9,
+        conv: [7.8,4.5,6.0,8.2,8.1,6.9,3.2,6.2,8.6,9.8,
                     7.3,6.0,5.4,4.6,6.4,null,null,null,null,null,
                     null,null,null,null,null,null,null,null,null,null],
         leads: [4941,6573,4717,3974,1718,1601,3293,5727,5093,4809,
                     5020,2341,2082,6707,5005,null,null,null,null,null,
                     null,null,null,null,null,null,null,null,null,null],
-        vendas_ant: 8958, projecao_fixa: 7811, ativos: 151
+        vendas_ant: 8951, projecao_fixa: 7783, ativos: 151
       },
       FABIO: {
         label: "Fabio", meta: 5870,
@@ -2968,7 +2973,7 @@ const DADOS_MESES = {
                     0,6,3,25,19,2,5,7,0,0], adesao: [12,0,0,0,0,0,0,0,0,5,
                     0,0,0,0,0,0,0,0,0,1,
                     0,0,0,0,0,0,0,0,0,0] },
-        pf: 1131, pme: 1075, adesao: 18, sintro: 0, ppo: 28,
+        pf: 1131, pme: 1075, adesao: 18, sintro: 0, hapon: 0, haponPf: 0, haponPme: 0, haponAdesao: 0, ppo: 28,
         ppoPlanos: [{ label: "Advance 600", valor: 21 }, { label: "Advance 700", valor: 3 }, { label: "Premium 900 Care", valor: 2 }, { label: "Premium 900", valor: 2 }],
         conv: null, leads: null, vendas_ant: 4975, projecao_fixa: 3802, ativos: 78
       },
@@ -2984,25 +2989,25 @@ const DADOS_MESES = {
                     0,0,0,2,3,0,0,0,1,0], adesao: [31,0,0,0,0,0,0,0,0,27,
                     0,0,0,0,0,0,0,0,0,31,
                     0,0,0,0,0,0,0,0,0,0] },
-        pf: 1178, pme: 730, adesao: 89, sintro: 2, ppo: 29,
+        pf: 1178, pme: 730, adesao: 89, sintro: 2, hapon: 0, haponPf: 0, haponPme: 0, haponAdesao: 0, ppo: 29,
         ppoPlanos: [{ label: "Advance 600", valor: 12 }, { label: "Advance 700", valor: 11 }, { label: "Premium 900", valor: 4 }, { label: "Premium 900 Care", valor: 2 }],
         conv: null, leads: null, vendas_ant: 3592, projecao_fixa: 3431, ativos: 67
       },
       ADMINISTRATIVO: {
         label: "Administrativo", meta: 600,
-        acumulado: [14,24,36,56,70,78,89,126,161,187,
-                    214,215,218,237,274,274,274,274,276,279,
-                    279,279,279,279,279,279,279,279,279,279],
+        acumulado: [14,24,36,56,69,77,85,121,155,177,
+                    204,205,208,225,260,260,260,260,262,265,
+                    265,265,265,265,265,265,265,265,265,265],
         volumeDia: { pf: [14,10,12,20,13,8,8,36,34,21,
                     27,1,3,17,35,0,0,0,0,0,
-                    0,0,0,0,0,0,0,0,0,0], pme: [0,0,0,0,1,0,3,1,1,4,
-                    0,0,0,2,2,0,0,0,2,0,
+                    0,0,0,0,0,0,0,0,0,0], pme: [0,0,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,0,2,0,
                     0,0,0,0,0,0,0,0,0,0], adesao: [0,0,0,0,0,0,0,0,0,1,
                     0,0,0,0,0,0,0,0,0,3,
                     0,0,0,0,0,0,0,0,0,0] },
-        pf: 259, pme: 16, adesao: 4, sintro: 0, ppo: 0,
+        pf: 259, pme: 2, adesao: 4, sintro: 0, hapon: 0, haponPf: 0, haponPme: 0, haponAdesao: 0, ppo: 0,
         ppoPlanos: [],
-        conv: null, leads: null, vendas_ant: 384, projecao_fixa: 578, ativos: 0
+        conv: null, leads: null, vendas_ant: 384, projecao_fixa: 550, ativos: 0
       },
       ACTIONLINE: {
         label: "Actionline", meta: 200,
@@ -3016,13 +3021,13 @@ const DADOS_MESES = {
                     0,0,0,0,0,0,0,0,0,0], adesao: [0,0,0,0,0,0,0,0,0,0,
                     0,0,0,0,0,0,0,0,0,0,
                     0,0,0,0,0,0,0,0,0,0] },
-        pf: 0, pme: 0, adesao: 0, sintro: 0, ppo: 0,
+        pf: 0, pme: 0, adesao: 0, sintro: 0, hapon: 0, haponPf: 0, haponPme: 0, haponAdesao: 0, ppo: 0,
         ppoPlanos: [],
         conv: null, leads: null, vendas_ant: 0, projecao_fixa: 0, ativos: 6
       }
     },
     ranking: [
-      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:259,pme:16,adesao:4,meta:0,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""},
+      {gestao:"ADMINISTRATIVO",supervisor:"ADMINISTRATIVO",promotor:"ADMINISTRATIVO",pf:259,pme:2,adesao:4,meta:0,exclMvp:false,status:"ADMINISTRATIVO",admissao:"01/01/2000",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"ACTIONLINE",promotor:"ALANA DOS SANTOS",pf:9,pme:0,adesao:0,meta:0,exclMvp:true,status:"ATIVO",admissao:"26/07/2026",motivoExclMvp:"ADMISSAO 26/07/2026"},
       {gestao:"FABIO",supervisor:"ACTIONLINE",promotor:"BARBARA MELO",pf:23,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"05/02/2025",motivoExclMvp:""},
       {gestao:"FABIO",supervisor:"ACTIONLINE",promotor:"FELIPE HABERSTOCK GOMES",pf:66,pme:0,adesao:0,meta:0,exclMvp:false,status:"ATIVO",admissao:"11/06/2026",motivoExclMvp:""},
@@ -3196,6 +3201,11 @@ const DADOS_MESES = {
     sintroRanking: [
       {gestao:"JOSY",promotor:"THIAGO VALLADA",vidas:2,exclMvp:false,status:"ATIVO",admissao:"25/05/2026",motivoExclMvp:""}
     ],
+    haponRanking: [
+      {gestao:"SEM GESTAO",promotor:"RICIBERTA ARAUJO OLIVEIRA",vidas:31,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
+      {gestao:"SEM GESTAO",promotor:"ALVARO VARELA",vidas:14,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
+      {gestao:"SEM GESTAO",promotor:"RICIBERTA ARAUJO OLIVEIRA AFONSO",vidas:12,exclMvp:false,status:"",admissao:"",motivoExclMvp:""}
+    ],
     ativosSupervisor: {
       "ADMINISTRATIVO": {"ADMINISTRATIVO":0},
       "FABIO": {"ACTIONLINE":0,"CAROLINE GUERKE":3,"ERIKA PAULA":11,"FERNANDA VIZZONI":10,"GONCALO MARTINS":11,"MICHELE COSTA":0,"MICHELE FERREIRA":6,"NEFTALY LEONEL":14,"PRISCILLA REGIS":11,"REBECA ALVINO":12},
@@ -3281,6 +3291,11 @@ const FUNIL_PME_DATA = {"fonte": "stats_export_gndi_2391.csv", "fontePasta": "Se
     const sintroPorMes = meses.map(m => DADOS_MESES[m].gestores[k].sintro || 0);
     const sintroTri = sintroPorMes.reduce((a,b) => a+b, 0);
     const temSintroTri = meses.some(m => DADOS_MESES[m].gestores[k].sintro !== undefined);
+    const haponPorMes = meses.map(m => DADOS_MESES[m].gestores[k].hapon || 0);
+    const haponTri = haponPorMes.reduce((a,b) => a+b, 0);
+    const haponPfTri = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].haponPf || 0), 0);
+    const haponPmeTri = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].haponPme || 0), 0);
+    const haponAdesaoTri = meses.reduce((s,m) => s + (DADOS_MESES[m].gestores[k].haponAdesao || 0), 0);
 
     tri.gestores[k] = {
       label: labels[k],
@@ -3291,6 +3306,11 @@ const FUNIL_PME_DATA = {"fonte": "stats_export_gndi_2391.csv", "fontePasta": "Se
       pf, pme, adesao: ade,
       sintro: temSintroTri ? sintroTri : undefined,
       sintroPorMes,
+      hapon: haponTri,
+      haponPf: haponPfTri,
+      haponPme: haponPmeTri,
+      haponAdesao: haponAdesaoTri,
+      haponPorMes,
       ppo, ppoPlanos,
       conv: null, leads: null,
       vendas_ant: 0,
@@ -3512,7 +3532,8 @@ function renderKPIs() {
     const real = g.projecao_fixa;        // realizado digital = soma dos meses
     const temSintroK = (g.sintro !== undefined);
     const sintroT = temSintroK ? g.sintro : 0;
-    const realTot = real + sintroT;      // card 1 contempla as vidas do SINTRO (pedido 12/09)
+    const haponT = g.hapon || 0;
+    const realTot = real + sintroT + haponT;
     const meta = g.meta;
     const pctMeta = (realTot / meta) * 100;
     const saldo = realTot - meta;
@@ -3526,7 +3547,9 @@ function renderKPIs() {
     const falta = meta - realTot;
     { const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "Vendas até o momento"; }
     document.getElementById("kVendas").textContent = fmt(realTot);
-    document.getElementById("kVendasSub").innerHTML = temSintroK ? `digital ${fmt(real)} + SINTRO ${fmt(sintroT)}` : "realizado do trimestre";
+    document.getElementById("kVendasSub").innerHTML = temSintroK
+      ? `interno ${fmt(real)} + corretoras ${fmt(haponT)} + SINTRO ${fmt(sintroT)}`
+      : "realizado do trimestre";
 
     document.getElementById("kMetaLabel").textContent = "% Meta Atingida";
     document.getElementById("kMeta").textContent = fmtDec(pctMeta) + "%";
@@ -3545,15 +3568,17 @@ function renderKPIs() {
       document.getElementById("kMediaSub").textContent = "+" + fmt(-falta) + " acima da meta";
     }
 
-    // a visão trimestre usa só 4 cards — esconde "Último mês" e "Vendas SINTRO"
-    { const _c5 = document.getElementById("kAbr").closest(".kpi-card"); if (_c5) _c5.style.display = "none";
+    // a visão trimestre usa só 4 cards.
+    { const _cs = document.getElementById("kpiSintro"); if (_cs) _cs.style.display = "none";
+      const _c5 = document.getElementById("kAbr").closest(".kpi-card"); if (_c5) _c5.style.display = "none";
       const _c6 = document.getElementById("kConv").closest(".kpi-card"); if (_c6) _c6.style.display = "none"; }
     return;
   }
 
   { const _kcl = document.getElementById("kConvLabel"); if (_kcl) _kcl.textContent = "Conv. Média";
-    const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "Vendas Digital Realizadas";
+    const _kvl = document.getElementById("kVendasLabel"); if (_kvl) _kvl.textContent = "HapON Interno";
     const _kpl = document.getElementById("kProjLabel"); if (_kpl) _kpl.textContent = "Projeção mensal";
+    const _cs = document.getElementById("kpiSintro"); if (_cs) _cs.style.display = "";
     const _c5 = document.getElementById("kAbr").closest(".kpi-card"); if (_c5) _c5.style.display = "";
     const _c6 = document.getElementById("kConv").closest(".kpi-card"); if (_c6) _c6.style.display = ""; }
   const real = vendas(gestorAtivo, diaIni, diaFim);
@@ -3570,37 +3595,32 @@ function renderKPIs() {
   document.getElementById("filtroLabel").textContent = `${diaIni} até ${diaFim}`;
 
   document.getElementById("kVendas").textContent = fmt(real);
-  document.getElementById("kVendasSub").innerHTML = meta
-    ? `de ${fmt(meta)} meta &nbsp;<span class="badge ${badgeClass(pctMeta,ref)}">${fmtDec(pctMeta)}%</span>`
-    : `meta do gestor ainda não definida`;
+  document.getElementById("kVendasSub").textContent = "time de vendas próprio";
 
-  // Layout de KPIs por mes (regra David 09/07/2026): meses COM campanha SINTRO (Jun/Jul em diante -
-  // trazem o campo g.sintro) trocam '% da Meta' -> 'Vendas SINTRO' e 'Média / dia' -> 'Total Digital +
-  // SINTRO'. Meses anteriores (Abr/Mai, SEM o campo) mantem os cards originais.
-  const temSintro = (g.sintro !== undefined);
   const sintroV = g.sintro || 0;
-  if (temSintro) {
-    document.getElementById("kMetaLabel").textContent = "Vendas SINTRO";
-    document.getElementById("kMeta").textContent = fmt(sintroV);
-    document.getElementById("kMetaSub").innerHTML = "vendas da campanha (fora do digital)";
-  } else {
-    document.getElementById("kMetaLabel").textContent = "% da Meta";
-    document.getElementById("kMeta").textContent = meta ? fmtDec(pctMeta) + "%" : "—";
-    document.getElementById("kMetaSub").innerHTML = meta ? `Ref. proporcional: ${fmtDec(ref)}%` : "Meta pendente";
-  }
+  const haponV = g.hapon || 0;
+  const haponPf = g.haponPf || 0;
+  const haponPme = g.haponPme || 0;
+  const haponAdesao = g.haponAdesao || 0;
+
+  document.getElementById("kMetaLabel").textContent = "HapON Corretoras";
+  document.getElementById("kMeta").textContent = fmt(haponV);
+  document.getElementById("kMetaSub").innerHTML = `PF (${fmt(haponPf)}) + PME (${fmt(haponPme)})${haponAdesao ? ` + Adesão (${fmt(haponAdesao)})` : ''}`;
+
+  document.getElementById("kSintroLabel").textContent = "SINTRO";
+  document.getElementById("kSintro").textContent = fmt(sintroV);
+  document.getElementById("kSintroSub").textContent = "campanha separada do HapON";
 
   document.getElementById("kProj").textContent = fmt(proj);
   document.getElementById("kProjSub").innerHTML = meta ? `${fmtDec(pctProj)}% da meta` : "meta pendente";
 
-  if (temSintro) {
-    document.getElementById("kMediaLabel").textContent = "Total Digital + SINTRO";
-    document.getElementById("kMedia").textContent = fmt(real + sintroV);
-    document.getElementById("kMediaSub").textContent = `digital (${fmt(real)}) + SINTRO (${fmt(sintroV)})`;
-  } else {
-    document.getElementById("kMediaLabel").textContent = "Média / dia";
-    document.getElementById("kMedia").textContent = fmtDec(media, 0);
-    document.getElementById("kMediaSub").textContent = `vendas/dia (${dias} dias c/ venda)`;
-  }
+  const totalV = real + haponV + sintroV;
+  const pctTotal = meta ? (totalV / meta) * 100 : null;
+  document.getElementById("kMediaLabel").textContent = "Total";
+  document.getElementById("kMedia").textContent = fmt(totalV);
+  document.getElementById("kMediaSub").innerHTML = meta
+    ? `de ${fmt(meta)} meta &nbsp;<span class="badge ${badgeClass(pctTotal,ref)}">${fmtDec(pctTotal)}%</span>`
+    : "meta do gestor ainda não definida";
 
   const varSign = varAbr >= 0 ? "+" : "";
   document.getElementById("kAbr").textContent = varSign + fmtDec(varAbr) + "%";
@@ -4584,11 +4604,9 @@ function rtExpandAll(open) {
   document.querySelectorAll('[id^="rti_"]').forEach(ic => ic.innerHTML = open ? "&#9660;" : "&#9654;");
 }
 
-// ── Seção "Projetos" (campanhas à parte — hoje só SINTRO) — David 11/08/2026 ──
-// Fonte = CONFIG.sintroRanking [{gestao, promotor, vidas}] (SINTRO por gestão→promotor, do
-// RANKING TIPO='SINTRO'). Drill-down no mesmo esquema do Ranking Consolidado: Projeto → Gestão →
-// Promotor. Some quando o mês não tem SINTRO (ex.: agosto). Colunas = Nome | Vidas (SINTRO só tem
-// vidas, todas contabilizadas como Adesão fora do digital).
+// ── Seção "Projetos" (campanhas à parte: SINTRO e HapON) ──
+// Fontes = CONFIG.sintroRanking / CONFIG.haponRanking [{gestao, promotor, vidas}]. Drill-down no
+// mesmo esquema do Ranking Consolidado: Projeto → Gestão → Promotor.
 function projRowHtml(cls, label, badge, vidas, mvp, vend, indent, chevronId, mvpTitle) {
   const pad = 6 + indent * 20;
   const chev = chevronId
@@ -4619,55 +4637,57 @@ function renderProjetos() {
   const card = document.getElementById("projetosCard");
   const tbody = document.getElementById("projetos");
   tbody.innerHTML = "";
-  const sr = (CONFIG.sintroRanking || []).filter(r => r.vidas > 0);
-  if (!sr.length) { card.style.display = "none"; return; }
+  const projetos = [
+    { id: "sintro", label: "SINTRO", rows: (CONFIG.sintroRanking || []).filter(r => r.vidas > 0) },
+    { id: "hapon", label: "HapON", rows: (CONFIG.haponRanking || []).filter(r => r.vidas > 0) }
+  ].filter(p => p.rows.length);
+  if (!projetos.length) { card.style.display = "none"; return; }
   card.style.display = "";
   const ORDER = { FABIO: 0, JOSY: 1, ADMINISTRATIVO: 2, ACTIONLINE: 3 };
   const LBL = { FABIO: "Fabio", JOSY: "Josy", ADMINISTRATIVO: "Administrativo", ACTIONLINE: "Actionline" };
-  const byG = {};
-  sr.forEach(r => { const G = (r.gestao || "").toUpperCase(); (byG[G] = byG[G] || []).push(r); });
-  const gs = Object.keys(byG).sort((a, b) => (ORDER[a] ?? 9) - (ORDER[b] ?? 9));
-  const total = sr.reduce((a, r) => a + r.vidas, 0);
-  // MVP/Vendedores: mesma convenção do Ranking -- ADMINISTRATIVO é linha sintética (MVP_SEM_POP) e
-  // fica "—"; férias/desligado/admissão recente saem do numerador e denominador (David 24/08/2026,
-  // ver contaVendedores/vidasExcluidasMvp acima). Nível PROJETO usa os vendedores distintos das
-  // gestões reais (fora ADMINISTRATIVO).
-  const projRowsPop = sr.filter(r => !MVP_SEM_POP.includes((r.gestao || "").toUpperCase()));
-  const vendTot = projVendedores(projRowsPop);
-  const vidasExclTot = projVidasExcluidas(projRowsPop);
-  const excluidosTot = projContaExcluidos(projRowsPop);
-  const mvpNumTot = total - vidasExclTot;
-  const mvpTot = vendTot > 0 ? mvpNumTot / vendTot : null;
-  const mvpTitleTot = vendTot > 0
-    ? ` title="${fmt(mvpNumTot)} vidas / ${fmt(vendTot)} vendedores${excluidosTot > 0 ? ` (${fmt(vidasExclTot)} vidas de ${fmt(excluidosTot)} promotor(es) em férias/desligado/admissão recente saíram da conta)` : ''}"`
-    : '';
-  tbody.insertAdjacentHTML("beforeend",
-    projRowHtml("", "SINTRO", "", total, mvpTot, vendTot, 0, "prji_sintro", mvpTitleTot)
-      .replace("<tr class=", `<tr style="cursor:pointer" onclick="projToggle('sintro')" class=`));
-  gs.forEach((G, gi) => {
-    const gid = "sintro_g" + gi;
-    const rows = byG[G].slice().sort((a, b) => b.vidas - a.vidas);
-    const gtot = rows.reduce((a, r) => a + r.vidas, 0);
-    const semPop = MVP_SEM_POP.includes(G);
-    const vend = semPop ? null : projVendedores(rows);
-    const vidasExclG = semPop ? 0 : projVidasExcluidas(rows);
-    const excluidosG = semPop ? 0 : projContaExcluidos(rows);
-    const mvp = (vend && vend > 0) ? (gtot - vidasExclG) / vend : null;
-    const mvpTitleG = (vend && vend > 0)
-      ? ` title="${fmt(gtot - vidasExclG)} vidas / ${fmt(vend)} vendedores${excluidosG > 0 ? ` (${fmt(vidasExclG)} vidas de ${fmt(excluidosG)} promotor(es) em férias/desligado/admissão recente saíram da conta)` : ''}"`
+  projetos.forEach(proj => {
+    const byG = {};
+    proj.rows.forEach(r => { const G = (r.gestao || "").toUpperCase(); (byG[G] = byG[G] || []).push(r); });
+    const gs = Object.keys(byG).sort((a, b) => (ORDER[a] ?? 9) - (ORDER[b] ?? 9));
+    const total = proj.rows.reduce((a, r) => a + r.vidas, 0);
+    const projRowsPop = proj.rows.filter(r => !MVP_SEM_POP.includes((r.gestao || "").toUpperCase()));
+    const vendTot = projVendedores(projRowsPop);
+    const vidasExclTot = projVidasExcluidas(projRowsPop);
+    const excluidosTot = projContaExcluidos(projRowsPop);
+    const mvpNumTot = total - vidasExclTot;
+    const mvpTot = vendTot > 0 ? mvpNumTot / vendTot : null;
+    const mvpTitleTot = vendTot > 0
+      ? ` title="${fmt(mvpNumTot)} vidas / ${fmt(vendTot)} vendedores${excluidosTot > 0 ? ` (${fmt(vidasExclTot)} vidas de ${fmt(excluidosTot)} promotor(es) em férias/desligado/admissão recente saíram da conta)` : ''}"`
       : '';
     tbody.insertAdjacentHTML("beforeend",
-      projRowHtml("prj_det prj_sintro", LBL[G] || G, "", gtot, mvp, vend, 1, "prji_" + gid, mvpTitleG)
-        .replace("<tr class=", `<tr data-g="${gid}" style="cursor:pointer;display:none" onclick="event.stopPropagation();projToggle(this.dataset.g)" class=`));
-    rows.forEach(r => {
+      projRowHtml("", proj.label, "", total, mvpTot, vendTot, 0, "prji_" + proj.id, mvpTitleTot)
+        .replace("<tr class=", `<tr style="cursor:pointer" onclick="projToggle('${proj.id}')" class=`));
+    gs.forEach((G, gi) => {
+      const gid = proj.id + "_g" + gi;
+      const rows = byG[G].slice().sort((a, b) => b.vidas - a.vidas);
+      const gtot = rows.reduce((a, r) => a + r.vidas, 0);
+      const semPop = MVP_SEM_POP.includes(G);
+      const vend = semPop ? null : projVendedores(rows);
+      const vidasExclG = semPop ? 0 : projVidasExcluidas(rows);
+      const excluidosG = semPop ? 0 : projContaExcluidos(rows);
+      const mvp = (vend && vend > 0) ? (gtot - vidasExclG) / vend : null;
+      const mvpTitleG = (vend && vend > 0)
+        ? ` title="${fmt(gtot - vidasExclG)} vidas / ${fmt(vend)} vendedores${excluidosG > 0 ? ` (${fmt(vidasExclG)} vidas de ${fmt(excluidosG)} promotor(es) em férias/desligado/admissão recente saíram da conta)` : ''}"`
+        : '';
       tbody.insertAdjacentHTML("beforeend",
-        projRowHtml("prj_det " + gid, r.promotor, badgePromotor(r), r.vidas, null, null, 2, "")
-          .replace("<tr class=", `<tr style="display:none" class=`));
+        projRowHtml("prj_det prj_" + proj.id, LBL[G] || G, "", gtot, mvp, vend, 1, "prji_" + gid, mvpTitleG)
+          .replace("<tr class=", `<tr data-g="${gid}" style="cursor:pointer;display:none" onclick="event.stopPropagation();projToggle(this.dataset.g)" class=`));
+      rows.forEach(r => {
+        tbody.insertAdjacentHTML("beforeend",
+          projRowHtml("prj_det " + gid, r.promotor, badgePromotor(r), r.vidas, null, null, 2, "")
+            .replace("<tr class=", `<tr style="display:none" class=`));
+      });
     });
   });
 }
 function projToggle(id) {
-  const det = Array.from(document.querySelectorAll("tr.prj_det." + (id === "sintro" ? "prj_sintro" : id)));
+  const raiz = !id.includes("_g");
+  const det = Array.from(document.querySelectorAll("tr.prj_det." + (raiz ? "prj_" + id : id)));
   if (!det.length) return;
   const ic = document.getElementById("prji_" + id);
   const opening = det[0].style.display === "none";
@@ -4676,9 +4696,9 @@ function projToggle(id) {
   if (!opening) {
     // fechando: colapsa os netos (promotores de cada gestão deste projeto)
     document.querySelectorAll("tr.prj_det").forEach(r => {
-      r.classList.forEach(c => { if (c.startsWith(id + "_") || (id === "sintro" && c.startsWith("sintro_"))) r.style.display = "none"; });
+      r.classList.forEach(c => { if (c.startsWith(id + "_")) r.style.display = "none"; });
     });
-    document.querySelectorAll('[id^="prji_sintro_"]').forEach(ic2 => ic2.innerHTML = "&#9654;");
+    document.querySelectorAll(`[id^="prji_${id}_"]`).forEach(ic2 => ic2.innerHTML = "&#9654;");
   }
 }
 function projExpandAll(open) {
@@ -8272,14 +8292,16 @@ function renderComparativo() {
     ...(K >= 3 ? [{ base: P - 1, label: `Var. ${curto(ms[P])} vs ${curto(ms[P - 1])}` }] : [])
   ];
   if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + comparativos.map(c => `<th class="td-right">${c.label}</th>`).join("");
-  // SINTRO no comparativo (12/09): valores de MÊS COMPLETO, os mesmos dos KPIs do Consolidado.
+  // Projetos no comparativo: valores de MÊS COMPLETO, os mesmos dos KPIs do Consolidado.
   const sintroMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.sintro === undefined ? null : (g.sintro || 0); });
+  const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.hapon || 0; });
   const digMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; let v = 0; for (const x of (g.acumulado||[])) if (x != null) v = x; return v; });
-  const totComSintro = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + sintroMes[i]);
+  const totalMes = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + haponMes[i] + sintroMes[i]);
   const linhas = [
-    { lab: "Realizado (" + labelG + ")", vals: real, f: fmt, inv: false },
-    { lab: "Vendas SINTRO (mês)", vals: sintroMes, f: v => v == null ? "—" : fmt(v), inv: false },
-    { lab: "Total Digital + SINTRO (mês)", vals: totComSintro, f: v => v == null ? "—" : fmt(v), inv: false },
+    { lab: "HapON Interno (" + labelG + ")", vals: real, f: fmt, inv: false },
+    { lab: "HapON Corretoras (mês)", vals: haponMes, f: fmt, inv: false },
+    { lab: "SINTRO (mês)", vals: sintroMes, f: v => v == null ? "—" : fmt(v), inv: false },
+    { lab: "Total (mês)", vals: totalMes, f: v => v == null ? "—" : fmt(v), inv: false },
     { lab: "Média / dia", vals: med, f: v => fmtDec(v, 0), inv: false },
     { lab: "PF", vals: prod.map(p => p.pf), f: fmt, inv: false },
     { lab: "PME", vals: prod.map(p => p.pme), f: fmt, inv: false },
