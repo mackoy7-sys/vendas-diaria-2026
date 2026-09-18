@@ -92,7 +92,27 @@
     .view-tab.active[data-view="TRI"]  { border-bottom-color: #8b7cf0; }
     .view-tab.active[data-view="COMP"] { border-bottom-color: #2bbd8a; }
     .view-tab.active[data-view="PPO"]  { border-bottom-color: #8b7cf0; }
-    .view-tab.active[data-view="FPF"]  { border-bottom-color: #D85A30; }
+    .view-tab.active[data-view="ORC"]  { border-bottom-color: #D85A30; }
+
+    /* ── aba "Orçamentos": PF e PME viraram UM dropdown (18/09/2026) ──
+       A casca é só apresentação: o estado continua sendo fpfView/fpmeView e currentView()
+       continua devolvendo FPF/FPME. Trocar isso obrigaria a mexer em renderAll, nos painéis
+       e nos bolt-ons (Produtividade/Leads/Vendas 2026/Canc.), que casam por data-view. */
+    .view-drop { position: relative; display: inline-flex; flex: 0 0 auto; }
+    .view-drop-caret { font-size: 9.5px; margin-left: 6px; opacity: .75; }
+    .view-drop-menu { position: absolute; top: 100%; left: 0; z-index: 120; display: none;
+      min-width: 262px; background: #fff; border-radius: 8px; padding: 6px; margin-top: 3px;
+      box-shadow: 0 8px 26px rgba(0,0,0,.26); }
+    .view-drop-menu.aberto { display: block; }
+    .view-drop-menu button { display: block; width: 100%; text-align: left; background: transparent;
+      border: none; border-radius: 6px; cursor: pointer; padding: 8px 10px;
+      border-left: 3px solid transparent; }
+    .view-drop-menu button:hover { background: #f1f4f9; }
+    .view-drop-menu button.ativo { background: #eaf1fb; border-left-color: #D85A30; }
+    .view-drop-menu b { display: block; font-size: 13px; font-weight: 700; color: #1a1a2e; }
+    .view-drop-menu em { display: block; font-size: 11px; font-style: normal; color: #6b6b78;
+      margin-top: 1px; line-height: 1.35; }
+    #orcSel { font-weight: 500; opacity: .9; }
 
     /* FILTROS */
     .filters {
@@ -408,51 +428,51 @@
     @media (max-width:720px) { .fpf-at-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .fpf-at-grid { grid-template-columns:1fr; } }
 
-    /* ---- aba Funil PME (reusa .fpf-funil-* e .fpf-cart-* do Funil PF) ---- */
-    .fpme-pri { display:inline-block; padding:2px 7px; border-radius:10px; font-weight:700; font-size:10px; }
-    /* ⚠️ estas 3 classes TEM de casar com as chaves de FPME_SIT no JS (venc/trav/vig).
-       Na 1a versao o CSS dizia .fila e o JS pedia .venc: o badge Vencida -- o caso mais grave
-       da fila -- saia sem fundo nenhum. Mexeu numa, confira a outra. */
-    .fpme-pri.venc { background:#fde8e4; color:#8c2315; }   /* vigencia ja vencida */
-    .fpme-pri.trav { background:#fef3cd; color:#7a5000; }   /* travada, ainda no prazo */
-    .fpme-pri.vig  { background:#e7f1ff; color:#1f4d80; }   /* so assinada */
-    /* linha de PIPELINE na tabela de perdas: nao e' perda, nao pode ser lida como perda */
-    .fpme-pipe td { background:#f2f7fd; color:#33526e; }
-    /* #888 sobre branco da 3,54 -- abaixo dos 4,5 do AA. #6b6b78 da 5,18. */
-    .fpme-nota { color:#6b6b78; font-size:11px; margin:-4px 0 8px; }
-    /* barra 100% do estado atual: com 91% implantado, barras proporcionais lado a lado
-       apagariam os outros tres -- entao o estado vai numa faixa unica empilhada + tiles. */
-    .fpme-stack { display:flex; height:26px; border-radius:6px; overflow:hidden; margin:2px 0 12px;
-      box-shadow:0 1px 2px rgba(0,0,0,.10); }
-    .fpme-stack div { display:flex; align-items:center; justify-content:center; color:#fff;
-      font-size:10px; font-weight:700; min-width:0; overflow:hidden; white-space:nowrap; }
-    .fpme-resumo { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:10px; }
-    .fpme-resumo span { font-size:11px; color:#33526e; background:#f2f7fd; border-radius:5px;
-      padding:4px 9px; }
-    /* ⚠️ o CSS global do dashboard pinta `tbody tr:last-child` como linha de TOTAL (negrito +
-       fundo cinza). Nenhuma tabela desta aba tem linha de total, entao a ultima linha aparecia
-       como somatorio do que esta acima -- em "De quem depende" isso e' leitura errada, nao
-       enfeite. Desfaz so dentro do painel PME. */
-    #funilPmePanel tbody tr:last-child td { font-weight:400; background:transparent; }
-    #funilPmePanel tbody tr:last-child:hover td { background:#f8f9fb; }
-    /* barras "de quem e a acao": reusam .fpf-funil-* do PF mas com o ROTULO FORA da barra --
-       os nomes aqui sao longos e truncavam nas barras curtas, apagando a identidade de quem
-       precisa agir. Dentro da barra ficam so' os numeros. */
-    .fpme-faixa-titulo { font-size:13px; font-weight:700; color:#1a1a2e; margin:6px 0 10px;
-      padding-left:10px; border-left:4px solid #B3261E; }
-    .fpme-resumo span.alerta { color:#8c2315; background:#fde8e4; font-weight:600; }
+    /* ---- aba Funil PME — REESCRITA em 18/09/2026 (opção B: cascata + composição) ----
+       Saiu TUDO o que a versão anterior usava (partição de estado, fila por dono da ação,
+       badges de prioridade, carteira/Excel). O que sobrou aqui é só o que a nova aba desenha.
+       Histórico visual: v1_pub_backup_1809_pre_fpme.html. */
     .fpme-fonte { border-left:3px solid #2A7A46; background:#edf8f1; border-radius:5px;
       color:#315b40; font-size:11px; line-height:1.45; margin:0 0 12px; padding:8px 10px; }
     .fpme-fonte.aviso { border-left-color:#b8800f; background:#fdf6e8; color:#6b5312; }
     .fpme-fonte.erro { border-left-color:#B3261E; background:#fde8e4; color:#76271d; }
-    .fpme-oper-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap);
-      margin-bottom:var(--gap); }
-    .fpme-oper-grid .kpi-card { margin:0; min-height:92px; }
-    .fpme-meses-wrap { overflow-x:auto; }
-    #fpmeMesesCard table { min-width:780px; }
-
-
-
+    /* #888 sobre branco dá 3,54 — abaixo dos 4,5 do AA. #6b6b78 dá 5,18. */
+    .fpme-nota { color:#6b6b78; font-size:11px; margin:-4px 0 10px; line-height:1.5; }
+    .fpme-casc-wrap { overflow-x:auto; }
+    .fpme-casc-wrap svg { display:block; min-width:900px; width:100%; height:auto; }
+    /* barra 100% de composição (porte). Segmentos colados com 2px de respiro: sem o gap, faixa
+       pequena encosta na vizinha e some. */
+    .fpme-stack { display:flex; gap:2px; height:22px; border-radius:5px; overflow:hidden;
+      margin:2px 0 10px; }
+    .fpme-stack div { display:flex; align-items:center; justify-content:center; color:#fff;
+      font-size:10px; font-weight:700; min-width:0; overflow:hidden; white-space:nowrap; }
+    /* barra horizontal de ranking simples (UF). O rótulo fica FORA da barra: sigla curta some
+       dentro de barra curta. */
+    .fpme-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .fpme-bar-lbl { flex:0 0 74px; font-size:12px; color:#1a1a2e; }
+    .fpme-bar-trilho { flex:1; height:12px; background:#f1f1f5; border-radius:3px; min-width:0; }
+    .fpme-bar-fill { display:block; height:12px; border-radius:3px; background:#2A5E8C; }
+    .fpme-bar-val { flex:0 0 96px; text-align:right; font-size:12px; color:#1a1a2e;
+      font-variant-numeric:tabular-nums; }
+    .fpme-bar-val span { color:#6b6b78; font-size:11px; }
+    /* matriz canal × semana. Heatmap sequencial de UM tom (azul): a intensidade é magnitude,
+       não categoria — cor categórica aqui faria a semana parecer um tipo de coisa diferente. */
+    .fpme-mtx { display:grid; gap:3px; font-variant-numeric:tabular-nums; }
+    .fpme-mtx .h { font-size:11px; color:#6b6b78; text-align:center; align-self:end; padding-bottom:2px; }
+    .fpme-mtx .r { font-size:12px; color:#1a1a2e; align-self:center; }
+    .fpme-mtx .c { font-size:12px; text-align:center; padding:9px 0; border-radius:4px; }
+    .fpme-canal-card { border:1px solid #e8e8ef; border-radius:6px; padding:10px 12px; }
+    .fpme-canal-card h4 { margin:0 0 2px; font-size:13px; color:#1a1a2e; }
+    .fpme-canal-card .sub { font-size:11px; color:#6b6b78; margin-bottom:8px; }
+    .fpme-chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .fpme-chips span { font-size:11px; color:#33526e; background:#f2f7fd; border-radius:5px;
+      padding:3px 8px; }
+    /* ⚠️ o CSS global do dashboard pinta `tbody tr:last-child` como linha de TOTAL (negrito +
+       fundo cinza). As tabelas desta aba não têm linha de total — a última linha apareceria
+       como somatório do que está acima. Desfaz só dentro do painel PME. */
+    #funilPmePanel tbody tr:last-child td { font-weight:400; background:transparent; }
+    #funilPmePanel tbody tr:last-child:hover td { background:#f8f9fb; }
+    #funilPmePanel tbody tr.fpme-linha-forte td { font-weight:700; }
     @media(max-width: 900px) {
       .chart-grid-2, .chart-grid-3, .leads-grid { grid-template-columns: 1fr; }
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
@@ -543,8 +563,17 @@
       <button class="view-tab" data-view="LEADS" onclick="setView('LEADS')">📈 Leads</button>
       <button class="view-tab" data-view="VD2026" onclick="setView('VD2026')">📊 Vendas 2026</button>
       <button class="view-tab" data-view="CANCRET" onclick="setView('CANCRET')">🔄 Canc. &amp; Retenção</button>
-      <button class="view-tab" data-view="FPF" onclick="setView('FPF')">Funil PF</button>
-      <button class="view-tab" data-view="FPME" onclick="setView('FPME')">Funil PME</button>
+      <div class="view-drop" id="orcDrop">
+        <button class="view-tab" data-view="ORC" id="orcTrigger" aria-haspopup="menu"
+                aria-expanded="false" aria-controls="orcMenu" onclick="toggleOrcMenu(event)"
+        >Orçamentos<span id="orcSel"></span><span class="view-drop-caret" aria-hidden="true">&#9662;</span></button>
+        <div class="view-drop-menu" id="orcMenu" role="menu" aria-labelledby="orcTrigger">
+          <button role="menuitem" data-orc="FPF" onclick="escolheOrc('FPF')">
+            <b>PF</b><em>Orçamentos de pessoa física, por status</em></button>
+          <button role="menuitem" data-orc="FPME" onclick="escolheOrc('FPME')">
+            <b>PME</b><em>Propostas PJ das nossas concessionárias</em></button>
+        </div>
+      </div>
     </div>
 
     <div class="filters">
@@ -566,6 +595,7 @@
         <option value="TRIMESTRE3">3º Trimestre</option>
         <option value="TRIMESTRE4">4º Trimestre</option>
       </select>
+      <span id="gestorGroup" style="display:inline-flex;align-items:center;gap:8px">
       <span class="filter-label">Gestão:</span>
       <select class="filter-select" id="selGestor" onchange="setGestor(this.value)">
         <option value="TOTAL" selected>Total geral</option>
@@ -574,6 +604,7 @@
         <option value="ADMINISTRATIVO">Administrativo</option>
         <option value="ACTIONLINE">Actionline</option>
       </select>
+      </span>
       <span class="filter-sep"></span>
       <button class="btn-extrair" id="btnExtrair" onclick="exportarBase()"
               title="Baixa a base de vendas do mês corrente (1 linha por vida, sem telefone/CPF) com o Session ID do lead quando a vida está vinculada a uma conversa do GUP">⬇ Base de vendas.csv</button>
@@ -1116,11 +1147,16 @@
          regua dos KPIs do topo da aba (vidas implantadas / vidas negociadas, "implantada"
          somando Implantado + Implantado c/ Erro), so' que ao longo dos meses em vez de um so'.
          ACOMPANHA os seletores de Gestao e de grao (Por CPF / Bruto) -- e' o mesmo recorte dos
-         KPIs -- mas NAO o seletor de Mes, que aqui viraria uma linha so'. Preenchido pelo
+         KPIs. Por padrão compara o mesmo intervalo já disponível no mês ativo; o toggle
+         preserva a leitura do mês inteiro quando ela for necessária. Preenchido pelo
          renderFpfMesesOrc(), que roda antes do gate de recorte do renderFunilPf(). -->
     <div class="fpf-at-section" id="fpfOrcMesesCard" data-fpf-subpanel="ORC">
       <div class="fpf-at-head">
         <div class="chart-title">📅 Mês a mês — negociado e desfecho</div>
+        <div class="ppo-toggle" aria-label="Período do comparativo mensal">
+          <button class="ppo-tg-btn active" data-fpfperiodo="atual" onclick="setFpfPeriodoComp('atual')">Período atual</button>
+          <button class="ppo-tg-btn" data-fpfperiodo="todo" onclick="setFpfPeriodoComp('todo')">Todo o período</button>
+        </div>
       </div>
       <div class="fpf-at-note aviso" id="fpfOrcMesesNota"></div>
       <div class="table-card" style="margin-bottom:0">
@@ -1338,193 +1374,101 @@
   </div>
 
   <!-- ROW 3c: Tabela de Conversão por Origem -->
-  <!-- PAINEL FUNIL PME (visível só na aba Funil PME). Fonte PRÓPRIA: stats_export_gndi_*.csv
-       da pasta do dia (const FUNIL_PME_DATA, gerado por funil_pme.py).
-       ⚠️ Reescrito em 01/09/2026: o funil cumulativo (Assinada→…→Em vigor) SAIU a pedido do
-       David — 95% das vidas já estão implantadas, então eram quatro barras iguais e um toco, e
-       não comunicava decisão. No lugar entrou a PARTIÇÃO do estado atual + a fila de trabalho
-       por DONO DA AÇÃO. Não reconcilia com o card 'pme' do Consolidado (recorte por data de
-       assinatura × data da venda, e só NDI). -->
+  <!-- PAINEL FUNIL PME (visível só na aba Funil PME). Fonte PRÓPRIA: export de propostas do
+       portal NDI (const FUNIL_PME_DATA, gerado por funil_pme.py) — não passa pela tabela única
+       de vendas nem pelo levantamento manual.
+       ⭐ REESCRITO em 18/09/2026 a pedido do David ("visualmente eu não gostei"): a aba inteira
+       virou a opção B — CASCATA + COMPOSIÇÃO. Saiu a partição de estado, a fila por dono da
+       ação, as faixas de idade, o ranking e a carteira/Excel (tudo em
+       v1_pub_backup_1809_pre_fpme.html).
+       ⭐ E o UNIVERSO mudou junto: a aba agora mostra só O QUE É NOSSO (corretora nas listas de
+       pme_concessionarias.py) — 1.145 das 11.360 propostas de agosto. Dentro desse recorte 97,6%
+       das vidas já estão implantadas, então funil de conversão era uma barra inteira e dois
+       tocos; o que decide é PARA ONDE foram as vidas e DE QUE são feitas.
+       ⭐⭐ 2ª RODADA de 18/09: o status de cada empresa deixou de sair só do portal. A regra é
+       "a nossa BASE PME manda; o portal só desempata quem a base não conhece" — ele atrasa e
+       sempre para o mesmo lado (236 vidas já implantadas apareciam como análise em setembro).
+       O grão virou a EMPRESA, não a proposta. Os degraus passaram a responder as três coisas
+       que não podem mentir: quanto foi assinado, o que NÃO foi finalizado, e o que foi/será
+       implantado. Detalhe da regra em funil_pme.py. -->
+  <!-- (continuação do comentário acima)
+       Não reconcilia com o card 'pme' do Consolidado (recorte por data de assinatura × data da
+       venda, e só NDI). -->
   <div id="funilPmePanel" style="display:none;">
     <div class="fpme-fonte" id="fpmeFonteAviso"></div>
-    <div class="fpf-subtabs" role="tablist" aria-label="Visões do Funil PME">
-      <button class="fpf-subtab active" data-fpmesub="RESULT" role="tab"
-              onclick="setFpmeSubView('RESULT')">Propostas e resultado</button>
-      <button class="fpf-subtab" data-fpmesub="TABELA" role="tab"
-              onclick="setFpmeSubView('TABELA')">Tabela de propostas</button>
-    </div>
 
-    <div class="kpi-row" id="fpmeKpis" data-fpme-subpanel="RESULT">
-      <div class="kpi-card" style="border-left-color:#D85A30">
-        <div class="kpi-label">Vidas propostas</div>
-        <div class="kpi-value" id="fpmeKProp">—</div>
-        <div class="kpi-sub" id="fpmeKPropSub"></div>
+    <div class="kpi-row" id="fpmeKpis">
+      <div class="kpi-card" style="border-left-color:#2A5E8C">
+        <div class="kpi-label">Vidas assinadas</div>
+        <div class="kpi-value" id="fpmeKVidas">—</div>
+        <div class="kpi-sub" id="fpmeKVidasSub"></div>
+      </div>
+      <div class="kpi-card verde">
+        <div class="kpi-label">Implantadas no mês</div>
+        <div class="kpi-value" id="fpmeKVigor">—</div>
+        <div class="kpi-sub" id="fpmeKVigorSub"></div>
+      </div>
+      <div class="kpi-card" style="border-left-color:#3C74A8">
+        <div class="kpi-label" id="fpmeKFutLabel">Entra no mês seguinte</div>
+        <div class="kpi-value" id="fpmeKFut">—</div>
+        <div class="kpi-sub" id="fpmeKFutSub"></div>
+      </div>
+      <div class="kpi-card" style="border-left-color:#8A97A5">
+        <div class="kpi-label">Na fila</div>
+        <div class="kpi-value" id="fpmeKFila">—</div>
+        <div class="kpi-sub" id="fpmeKFilaSub"></div>
       </div>
       <div class="kpi-card" style="border-left-color:#B8800F">
-        <div class="kpi-label">Em aberto</div>
-        <div class="kpi-value" id="fpmeKAberto">—</div>
-        <div class="kpi-sub" id="fpmeKAbertoSub"></div>
-      </div>
-      <div class="kpi-card" style="border-left-color:#8C4F45">
-        <div class="kpi-label">Canceladas</div>
-        <div class="kpi-value" id="fpmeKPerd">—</div>
-        <div class="kpi-sub" id="fpmeKPerdSub"></div>
-      </div>
-      <div class="kpi-card verde">
-        <div class="kpi-label">Implantadas</div>
-        <div class="kpi-value" id="fpmeKImp">—</div>
-        <div class="kpi-sub" id="fpmeKImpSub"></div>
-      </div>
-      <div class="kpi-card verde">
-        <div class="kpi-label">Conversão</div>
-        <div class="kpi-value" id="fpmeKConv">—</div>
-        <div class="kpi-sub" id="fpmeKConvSub"></div>
+        <div class="kpi-label">Travadas</div>
+        <div class="kpi-value" id="fpmeKTrav">—</div>
+        <div class="kpi-sub" id="fpmeKTravSub"></div>
       </div>
     </div>
 
-    <!-- LINHA A — o MÊS selecionado. Tudo aqui obedece ao seletor de Mês. -->
-    <div class="chart-grid-2" data-fpme-subpanel="RESULT">
-      <div class="table-card" style="margin-bottom:0">
-        <div class="chart-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span>📊 Em que pé está o que foi assinado <span id="fpmeEstadoMes" style="font-weight:400;color:#6b6b78"></span></span>
-          <button class="ppo-tg-btn active" id="fpmeEstadoToggleBtn" onclick="toggleFpmeEstadoDetalhe()">▾ Detalhe</button>
-        </div>
-        <div class="fpme-nota" id="fpmeEstadoNota"></div>
-        <div id="fpmeEstadoBarra" class="fpme-stack"></div>
-        <table>
-          <thead><tr><th>Estado <span style="font-weight:400;color:#6b6b78">· status do portal dentro</span></th>
-            <th class="td-right">Vidas</th><th class="td-right">Propostas</th><th class="td-right">%</th></tr></thead>
-          <tbody id="fpmeEstadoTab"></tbody>
-        </table>
-      </div>
-      <div class="table-card" style="margin-bottom:0">
-        <div class="chart-title">📅 O que falta implantar <span id="fpmeFaltaMes" style="font-weight:400;color:#6b6b78"></span></div>
-        <div class="fpme-nota" id="fpmeFaltaNota"></div>
-        <div id="fpmeFaltaResumo" class="fpme-resumo"></div>
-        <table>
-          <thead><tr><th>De quem depende</th><th class="td-right">Propostas</th><th class="td-right">Vidas</th></tr></thead>
-          <tbody id="fpmeFaltaTab"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="chart-grid-2" data-fpme-subpanel="RESULT">
-      <div class="table-card" style="margin-bottom:0">
-        <div class="chart-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span>🎯 Onde estão as vidas paradas — e de quem é a ação</span>
-          <button class="ppo-tg-btn active" id="fpmeDonoToggleBtn" onclick="toggleFpmeDonoDetalhe()">▾ Detalhe</button>
-        </div>
-        <div class="fpme-nota" id="fpmeDonoNota"></div>
-        <table>
-          <thead><tr><th>De quem depende <span style="font-weight:400;color:#6b6b78">· status do portal dentro</span></th>
-            <th class="td-right">Vidas</th><th class="td-right">Prop.</th>
-            <th class="td-right" title="A vigência já começou e a vida não entrou na base.">Vencidas</th>
-            <th class="td-right">Parada há</th></tr></thead>
-          <tbody id="fpmeDonoTab"></tbody>
-        </table>
-      </div>
-      <div class="table-card" style="margin-bottom:0">
-        <div class="chart-title">⏳ Há quanto tempo estão paradas</div>
-        <div class="fpme-nota">Não existe prazo que mate uma proposta PME sozinha — diferente do PF,
-          onde tudo cai em D+26. Aqui o que trava fica travado, então a cauda é o problema.</div>
-        <table>
-          <thead><tr><th>Idade</th><th class="td-right">Propostas</th><th class="td-right">Vidas</th>
-            <th class="td-right" title="Destas, quantas já passaram da data de vigência.">Já vencidas</th></tr></thead>
-          <tbody id="fpmeFaixaTab"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="table-card" data-fpme-subpanel="RESULT">
-      <div class="ppo-card-head">
-        <div class="chart-title" style="margin-bottom:0" id="fpmeRankTit">🏆 Ranking</div>
-        <div class="ppo-toggle">
-          <button class="ppo-tg-btn active" data-fpmerank="porGestao" onclick="setFpmeRank('porGestao')">Gestão</button>
-          <button class="ppo-tg-btn" data-fpmerank="porSupervisao" onclick="setFpmeRank('porSupervisao')">Supervisão</button>
-          <button class="ppo-tg-btn" data-fpmerank="porVendedor" onclick="setFpmeRank('porVendedor')">Vendedor</button>
-          <button class="ppo-tg-btn" data-fpmerank="porTipo" onclick="setFpmeRank('porTipo')">Tipo</button>
-        </div>
-      </div>
-      <div class="fpme-nota" id="fpmeRankNota"></div>
+    <div class="table-card">
+      <div class="chart-title">🪜 Da assinatura ao que foi implantado
+        <span id="fpmeCascMes" style="font-weight:400;color:#6b6b78"></span></div>
+      <div class="fpme-nota" id="fpmeCascNota"></div>
+      <div class="fpme-casc-wrap" id="fpmeCascWrap"></div>
       <table>
-        <thead><tr><th id="fpmeRankCab">Gestão</th><th class="td-right">Vidas propostas</th>
-          <th class="td-right">Em aberto</th><th class="td-right">Canceladas</th>
-          <th class="td-right">Implantadas</th><th class="td-right">Conv.</th></tr></thead>
-        <tbody id="fpmeRankTab"></tbody>
+        <thead><tr><th>Degrau</th><th class="td-right">Vidas</th><th class="td-right">Empresas</th>
+          <th class="td-right">% das assinadas</th><th>O que é</th></tr></thead>
+        <tbody id="fpmeCascTab"></tbody>
       </table>
+      <!-- A lista de trabalho: o degrau "em aberto" só serve para agir se disser ONDE está. -->
+      <div class="fpme-nota" id="fpmeAbertoNota" style="margin-top:12px"></div>
+      <div class="fpme-chips" id="fpmeAbertoChips"></div>
     </div>
 
-    <div class="table-card" id="fpmeMesesCard" data-fpme-subpanel="RESULT">
-      <div class="chart-title">📆 Mês a mês — propostas e desfecho</div>
-      <div class="fpme-nota" id="fpmeMesesNota"></div>
-      <div class="fpme-meses-wrap">
+    <div class="chart-grid-2">
+      <div class="table-card" style="margin-bottom:0">
+        <div class="chart-title">🏢 De que tamanho é a empresa</div>
+        <div class="fpme-nota">O eixo é <b>vidas</b>, não empresas: a ponta de 10+ é poucas
+          empresas e muitas vidas — contar empresa esconderia exatamente quem move o mês.
+          O universo é o <b>assinado no mês</b>, uma linha por empresa.</div>
+        <div id="fpmePorteBarra" class="fpme-stack"></div>
         <table>
-          <thead><tr><th>Mês da assinatura</th><th class="td-right">Vidas propostas</th>
-            <th class="td-right">Em aberto</th><th class="td-right">Canceladas</th>
-            <th class="td-right">Implantadas</th><th class="td-right">Conv.</th></tr></thead>
-          <tbody id="fpmeMesesTab"></tbody>
+          <thead><tr><th>Porte</th><th class="td-right">Empresas</th><th class="td-right">Vidas</th>
+            <th class="td-right">% das vidas</th></tr></thead>
+          <tbody id="fpmePorteTab"></tbody>
         </table>
+      </div>
+      <div class="table-card" style="margin-bottom:0">
+        <div class="chart-title">📍 Onde estão as vidas</div>
+        <div class="fpme-nota" id="fpmeUfNota"></div>
+        <div id="fpmeUfBarras"></div>
       </div>
     </div>
 
-    <!-- CARTEIRA PME: a fila de trabalho, ACUMULADA (todos os meses).
-         ⚠️ Não segue o seletor de Mês de propósito: não há guilhotina no PME, e o corte mensal
-         escondia os 44 casos com mais de 90 dias — que são o trabalho. Sem CPF/CNPJ e sem dado
-         de beneficiário; a alça é o Nº da proposta no portal. -->
-    <div class="table-card" id="fpmeCarteira" data-fpme-subpanel="TABELA">
-      <div class="ppo-card-head">
-        <div class="chart-title" style="margin-bottom:0">📋 Propostas acionáveis — travadas ou recém-assinadas</div>
-        <button class="btn-cart excel" onclick="baixarCarteiraPmeXlsx()">⬇ Excel</button>
-      </div>
-      <div class="fpme-nota" id="fpmeCartNota"></div>
-      <div class="fpf-cart-filtros">
-        <span class="fpf-cart-lbl">Gestão</span>
-        <div class="fpf-ms" id="fpmeMs_gestao">
-          <button class="fpf-ms-btn" onclick="fpmeMsToggle('gestao')">Todas</button>
-          <div class="fpf-ms-pop"></div>
-        </div>
-        <span class="fpf-cart-lbl">Supervisão</span>
-        <div class="fpf-ms" id="fpmeMs_supervisor">
-          <button class="fpf-ms-btn" onclick="fpmeMsToggle('supervisor')">Todas</button>
-          <div class="fpf-ms-pop"></div>
-        </div>
-        <span class="fpf-cart-lbl">De quem depende</span>
-        <div class="fpf-ms" id="fpmeMs_dono">
-          <button class="fpf-ms-btn" onclick="fpmeMsToggle('dono')">Todos</button>
-          <div class="fpf-ms-pop"></div>
-        </div>
-        <span class="fpf-cart-lbl">Situação</span>
-        <div class="fpf-ms" id="fpmeMs_situacao">
-          <button class="fpf-ms-btn" onclick="fpmeMsToggle('situacao')">Todas</button>
-          <div class="fpf-ms-pop"></div>
-        </div>
-        <input id="fpmeCartBusca" placeholder="contratante, proposta ou vendedor"
-               oninput="setFpmeCartFiltro('q', this.value)">
-        <button class="btn-cart" onclick="fpmeCartLimpa()">Limpar</button>
-        <span style="flex:1"></span>
-        <span class="fpf-cart-lbl" id="fpmeCartCount"></span>
-      </div>
-      <div class="fpf-cart-wrap">
-        <table>
-          <thead><tr>
-            <th onclick="setFpmeCartSort('prioridade')">Situação</th>
-            <th onclick="setFpmeCartSort('dono')">De quem depende</th>
-            <th onclick="setFpmeCartSort('proposta')">Proposta</th>
-            <th onclick="setFpmeCartSort('contratante')">Contratante</th>
-            <th onclick="setFpmeCartSort('uf')">UF</th>
-            <th class="td-right" onclick="setFpmeCartSort('vidas')">Vidas</th>
-            <th class="td-right" onclick="setFpmeCartSort('valor')">Valor</th>
-            <th onclick="setFpmeCartSort('vigencia')">Vigência</th>
-            <th class="td-right" onclick="setFpmeCartSort('diasVig')">Desde a vigência</th>
-            <th class="td-right" onclick="setFpmeCartSort('idade')">Idade</th>
-            <th onclick="setFpmeCartSort('vendedor')">Vendedor</th>
-            <th onclick="setFpmeCartSort('supervisor')">Supervisão</th>
-            <th onclick="setFpmeCartSort('gestao')">Gestão</th>
-          </tr></thead>
-          <tbody id="fpmeCartTab"></tbody>
-        </table>
-      </div>
-      <div class="fpme-nota" style="margin-top:8px" id="fpmeCartRodape"></div>
+    <div class="table-card">
+      <div class="chart-title">🤝 Time interno × corretora parceira
+        <span id="fpmeCanalMes" style="font-weight:400;color:#6b6b78"></span></div>
+      <div class="fpme-nota">Semana pelo <b>dia do mês</b> (1-7, 8-14, …), não semana ISO — mês
+        comparado com mês não pode começar no meio de uma barra. A intensidade é o volume de
+        vidas da própria linha. Conta <b>assinatura</b>, uma linha por empresa — é produção do
+        vendedor, não implantação.</div>
+      <div class="fpme-mtx" id="fpmeCanalMtx"></div>
+      <div class="chart-grid-2" style="margin-top:14px" id="fpmeCanalCards"></div>
     </div>
   </div>
   <!-- /PAINEL FUNIL PME -->
@@ -3330,6 +3274,8 @@ let fpfView = false;
 let fpmeView = false;
 // Grão exibido na aba Funil PF: "caso" (1 CPF = 1 negociação) ou "bruto" (1 orçamento = 1 linha).
 let fpfGrao = "caso";
+// Comparativo mensal: mesmo intervalo já fechado no mês ativo (padrão) ou mês inteiro.
+let fpfPeriodoComp = "atual";
 
 // CONFIG = espelho do mês ativo (não editar manualmente — use DADOS_MESES)
 let CONFIG = DADOS_MESES[mesAtivo];
@@ -3364,6 +3310,48 @@ function ultimoMesReal() {
   return r[r.length - 1];
 }
 
+// ── Aba "Orçamentos" — PF e PME num dropdown só (18/09/2026) ──
+// ⚠️ É CASCA, não estado novo: `fpfView`/`fpmeView` e `currentView()` continuam iguais. A aba
+//    ativa no header é "ORC", mas a visão real segue sendo FPF ou FPME — é isso que mantém
+//    renderAll(), os painéis e os bolt-ons funcionando sem tocar em nada deles.
+const ORC_VIEWS = { FPF: "PF", FPME: "PME" };
+
+function fecharOrcMenu() {
+  const m = document.getElementById("orcMenu");
+  if (m) m.classList.remove("aberto");
+  const t = document.getElementById("orcTrigger");
+  if (t) t.setAttribute("aria-expanded", "false");
+}
+function toggleOrcMenu(ev) {
+  if (ev) ev.stopPropagation();          // senão o listener de fora fecharia no mesmo clique
+  const m = document.getElementById("orcMenu");
+  if (!m) return;
+  const abrir = !m.classList.contains("aberto");
+  m.classList.toggle("aberto", abrir);
+  const t = document.getElementById("orcTrigger");
+  if (t) t.setAttribute("aria-expanded", abrir ? "true" : "false");
+}
+function escolheOrc(v) {
+  fecharOrcMenu();
+  setView(v);
+}
+document.addEventListener("click", function (e) {
+  const d = document.getElementById("orcDrop");
+  if (d && !d.contains(e.target)) fecharOrcMenu();
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" || e.key === "Esc") fecharOrcMenu();
+});
+// Reflete no gatilho qual ramo está aberto. ⚠️ O sufixo só aparece quando a aba está ATIVA:
+// "Orçamentos · PF" com outra aba na tela faria parecer que há um filtro ligado.
+function syncOrcTab(v) {
+  const sel = document.getElementById("orcSel");
+  if (sel) sel.textContent = ORC_VIEWS[v] ? " · " + ORC_VIEWS[v] : "";
+  document.querySelectorAll("#orcMenu [data-orc]").forEach(function (b) {
+    b.classList.toggle("ativo", b.dataset.orc === v);
+  });
+}
+
 // ── VISÃO ATUAL (deriva do estado) ──
 function currentView() {
   if (mesAtivo === "COMPARATIVO") return "COMP";
@@ -3375,12 +3363,20 @@ function currentView() {
 }
 function syncTabs() {
   const v = currentView();
+  // FPF e FPME não têm botão próprio: os dois acendem o gatilho "ORC" do dropdown.
+  const vTab = ORC_VIEWS[v] ? "ORC" : v;
   document.querySelectorAll(".view-tab").forEach(b =>
-    b.classList.toggle("active", b.dataset.view === v));
+    b.classList.toggle("active", b.dataset.view === vTab));
+  syncOrcTab(v);
   // Mês é filtro válido em toda visão que tem um bloco por mês (CONS/PPO/FPME/FPF).
   const mg = document.getElementById("mesGroup");
   if (mg) mg.style.display =
     (v === "CONS" || v === "PPO" || v === "FPME" || v === "FPF") ? "inline-flex" : "none";
+  // ⚠️ Gestão some na aba Funil PME: lá o recorte é o portal NDI inteiro do que é nosso, e
+  // a supervisão vem vazia em 83% das linhas -- um filtro que quase sempre devolve o total
+  // faria o usuário achar que filtrou.
+  const gg = document.getElementById("gestorGroup");
+  if (gg) gg.style.display = (v === "FPME") ? "none" : "inline-flex";
   const st = document.getElementById("selTri");
   if (st) st.value = (v === "TRI") ? triAtivo : "";
 }
@@ -6312,6 +6308,13 @@ function setFpfGrao(g) {
     b.classList.toggle("active", b.dataset.fpfgrao === g));
   renderFunilPf();
 }
+
+function setFpfPeriodoComp(periodo) {
+  fpfPeriodoComp = periodo;
+  document.querySelectorAll("[data-fpfperiodo]").forEach(b =>
+    b.classList.toggle("active", b.dataset.fpfperiodo === periodo));
+  renderFunilPf();
+}
 function setFpfRank(r) {
   fpfRank = r;
   document.querySelectorAll("[data-fpfrk]").forEach(b =>
@@ -6842,12 +6845,11 @@ function renderFpfAtuacoes() {
   syncFpfSubTabs();
 }
 
-// Comparativo mensal da sub-aba "Orçamentos e resultado" (07/09/2026). Mesma régua dos KPIs
-// do topo da aba -- vidas implantadas / vidas negociadas, com "implantada" somando Implantado +
-// Implantado c/ Erro -- só que ao longo dos meses em vez de um só. Acompanha os seletores de
-// GESTÃO e de GRÃO; não acompanha o de MÊS, que aqui viraria uma linha só. Roda ANTES do gate
-// de recorte do renderFunilPf(): a gestão pode não ter recorte no mês selecionado e ter nos
-// outros, e aí a tabela some sem motivo.
+// Comparativo mensal da sub-aba "Orçamentos e resultado". A régua é a mesma dos KPIs:
+// vidas implantadas / vidas negociadas, com Implantado + Implantado c/ Erro. Por padrão,
+// compara cada mês no mesmo intervalo já disponível no mês ativo (ex.: dias 1--15); o
+// toggle conserva a leitura de cada mês inteiro. Roda antes do gate do mês ativo, pois uma
+// gestão pode não ter recorte nele e ainda ter histórico nos meses anteriores.
 function renderFpfMesesOrc() {
   const card = document.getElementById("fpfOrcMesesCard");
   const tab = document.getElementById("fpfOrcMesesTab");
@@ -6856,11 +6858,26 @@ function renderFpfMesesOrc() {
   const set = function (id, valor) { const el = document.getElementById(id); if (el) el.innerHTML = valor; };
   const g = gestorAtivo || "TOTAL";
   const GAN = ["Implantado", "Implantado c/ Erro"];
+  const ativo = D && D.meses && D.meses[mesAtivo];
+  // O relatório pode já trazer digitações do dia da fotografia. A régua
+  // operacional é D-1, exposta pelo backend para manter comparativo e ranking
+  // no mesmo intervalo (16/09 => dias 1–15).
+  const corteAtivo = ativo ? Math.min(Number(ativo.diaFim || 0), Number(D.diaPeriodoAtual || ativo.diaFim || 0)) : 0;
+  const periodoAtual = fpfPeriodoComp === "atual" && corteAtivo > 0;
   const linhas = (!D || !D.meses) ? [] : Object.keys(D.meses)
     .map(function (k) { const m = D.meses[k]; return { chave: k, m: m, e: m.escopos && m.escopos[g] }; })
     .filter(function (x) { return !!x.e; })
     .sort(function (a, b) { return (a.m.mesNum || 0) - (b.m.mesNum || 0); })
     .map(function (x) {
+      const corte = periodoAtual ? Math.min(corteAtivo, Number(x.m.diaFim || corteAtivo)) : null;
+      const porDia = (x.m.comparativoPeriodo || []).find(function (r) { return r.dia === corte; });
+      const resumo = porDia && porDia[fpfGrao] && porDia[fpfGrao][g];
+      if (resumo) {
+        const tot = resumo.vidas || 0, impl = resumo.implantadas || 0, canc = resumo.canceladas || 0;
+        return { chave: x.chave, mesNum: x.m.mesNum || 0, casos: resumo.casos || 0,
+                 tot: tot, impl: impl, canc: canc, conv: tot ? 100 * impl / tot : 0,
+                 corte: corte };
+      }
       const bl = (fpfGrao === "bruto" && x.e.bruto) ? x.e.bruto : x.e.caso;
       const somaV = function (nomes) {
         return bl.classes.filter(function (c) { return nomes.indexOf(c.nome) >= 0; })
@@ -6869,7 +6886,8 @@ function renderFpfMesesOrc() {
       const tot = bl.totVidas || 0;
       const impl = somaV(GAN), canc = somaV(["CANCELADO"]);
       return { chave: x.chave, mesNum: x.m.mesNum || 0, casos: bl.totCasos || 0,
-               tot: tot, impl: impl, canc: canc, conv: tot ? 100 * impl / tot : 0 };
+               tot: tot, impl: impl, canc: canc, conv: tot ? 100 * impl / tot : 0,
+               corte: null };
     })
     .filter(function (r) { return r.tot > 0; });
 
@@ -6882,7 +6900,8 @@ function renderFpfMesesOrc() {
   };
   tab.innerHTML = linhas.map(function (r) {
     const forte = r.chave === mesAtivo ? " style=\"background:#f7f5fd\"" : "";
-    return "<tr" + forte + "><td><b>" + _fpfEsc(fpfAdmMesLabel(r.chave)) + "</b></td>"
+    const periodo = r.corte ? "<br><small style=\"color:#6b6b78\">dias 1–" + r.corte + "</small>" : "";
+    return "<tr" + forte + "><td><b>" + _fpfEsc(fpfAdmMesLabel(r.chave)) + "</b>" + periodo + "</td>"
       + "<td class=\"td-right\">" + fmt(r.tot) + "<br><small style=\"color:#6b6b78\">"
       + fmt(r.casos) + " " + un + "</small></td>"
       + "<td class=\"td-right\" style=\"color:" + FPF_TXT.impl + ";font-weight:700\">"
@@ -6904,7 +6923,9 @@ function renderFpfMesesOrc() {
   }
   notas.push("Segue os seletores de <b>Gestão</b> e de grão do topo da aba — hoje, "
     + _fpfEsc(fpfGestaoLabel(g)) + " no grão " + (fpfGrao === "bruto" ? "bruto" : "por CPF")
-    + ". O seletor de <b>Mês</b> não: a tabela é justamente a comparação entre meses.");
+    + ". " + (periodoAtual
+      ? "<b>Período atual</b>: compara dias 1–" + corteAtivo + " em cada mês."
+      : "<b>Todo o período</b>: cada linha mostra o mês inteiro.") );
   notas.push("Vidas negociadas = implantadas + canceladas + <b>em aberto</b> — o que não "
     + "aparece aqui ainda está em jogo.");
   notas.push("O mês corrente tem coorte aberta: a conversão dele ainda sobe até fechar.");
@@ -7205,62 +7226,37 @@ function renderFunilPf() {
 
 // ── RENDER ALL ──
 // ══════════════════════════ Aba Funil PME ══════════════════════════════════════════════
-// Propostas PJ assinadas no portal NDI (const FUNIL_PME_DATA, de funil_pme.py).
-// ⚠️ REESCRITO em 01/09/2026: o funil cumulativo saiu; a aba é a FILA DE TRABALHO.
-// Reusa .fpf-funil-*, .fpf-ms-* e o gerador de XLSX (_fpfZip/_fpfXmlEsc/_fpfSerial/
-// _fpfColLetra) da aba Funil PF -- são genéricos.
-let fpmeRank = "porGestao";
-let fpmeSubView = "RESULT";
-let _fpmeCartF = { gestao: [], supervisor: [], dono: [], situacao: [], q: "" };
-let _fpmeCartSort = { k: "prioridade", asc: true };
-let _fpmeCartTudo = false;
-let _fpmeUltimoGestor = null;
-const FPME_CART_TETO = 250;
-// cores do estado. Medidas na página: branco sobre cada uma passa de 4,5:1 (o rótulo é bold
-// pequeno, que não conta como "texto grande" no WCAG). Ver a lição do botão invisível do PF.
+// Propostas PJ assinadas no portal NDI, SÓ as nossas (const FUNIL_PME_DATA, de funil_pme.py).
+// ⭐ REESCRITA em 18/09/2026 (opção B: cascata + composição). A versão anterior — partição de
+//    estado, fila por dono da ação, faixas de idade, ranking e carteira/Excel — saiu inteira;
+//    está em v1_pub_backup_1809_pre_fpme.html.
+// ⚠️ A aba NÃO tem recorte por gestão. O seletor #selGestor não a alcança de propósito: no
+//    recorte próprio a supervisão vem vazia em 83% das linhas, e um filtro que quase sempre
+//    devolve o total é pior que filtro nenhum. Só o seletor de MÊS vale aqui.
+// ⭐ 18/09/2026 (2ª rodada): o status de cada proposta deixou de sair só do portal. A regra é
+//    "a nossa BASE PME manda; o portal só desempata quem a base não conhece" — o portal atrasa
+//    e sempre para o mesmo lado. E o grão virou a EMPRESA: proposta cancelada e refeita é a
+//    mesma negociação. Backup da versão anterior: v1_bak_pre_cruzamento.html.
 const FPME_COR = {
-  SO_ASSINADO: "#5B6B7F", TRAVADO: "#B3261E", IMPLANTADO: "#2A7A46", PERDIDO: "#6E4B4B"
+  ASSINADAS: "#2A5E8C",   // a barra cheia: tudo que foi assinado
+  VIG_FUTURA: "#3C74A8",  // não é perda — é venda feita que entra no mês seguinte
+  CANCELADA: "#B3261E",   // a perda de verdade
+  NA_FILA: "#8A97A5",     // fila normal do portal, nada a fazer
+  TRAVADA: "#B8800F",     // é o que precisa de ação
+  IMPLANTADA: "#2A7A46"   // o resultado
 };
-// urgência do dono da ação: quanto mais escuro, mais tempo parado. Não é decoração -- é a
-// ordem em que a fila deve ser atacada.
-// ⚠️ MEDIDAS na pagina com texto branco por cima (rotulo bold pequeno = precisa de 4,5:1).
-// A 3a cor era #B96A2E e dava 4,07 -- reprovada. Todas passam agora.
-const FPME_COR_DONO = ["#8c2315", "#A8442A", "#96501C", "#5B6B7F", "#4A5A6B"];
-const FPME_SIT = { 0: ["venc", "Vencida"], 1: ["trav", "Travada"], 2: ["vig", "Só assinada"] };
+// rampa sequencial de UM tom para o porte: é magnitude ordenada (1 → 10+), não categoria.
+const FPME_PORTE_COR = ["#cfe0ef", "#9dc0df", "#6b9fcf", "#3a7fbf", "#1b5a91"];
 
-function fpmeEscopo() {
+function fpmeCtx() {
   const D = (typeof FUNIL_PME_DATA !== "undefined") ? FUNIL_PME_DATA : null;
   if (!D || !D.meses) return null;
-  const m = D.meses[mesAtivo];
-  if (!m) return { D: D, m: null, g: gestorAtivo || "TOTAL", e: null, semMes: true };
-  const g = gestorAtivo || "TOTAL";
-  if (!m.escopos[g]) return { D: D, m: m, g: g, e: null, semRecorte: true };
-  return { D: D, m: m, g: g, e: m.escopos[g] };
+  return { D: D, m: D.meses[mesAtivo] || null };
 }
 
-// ⚠️ `nomeCurto` existe, mas é LOCAL do buildCompSelects -- não dá para chamar daqui.
 function fpmeMesLabel() {
   const m = DADOS_MESES[mesAtivo];
   return (m && m.mesLabel) ? m.mesLabel.split(" ")[0] : String(mesAtivo);
-}
-function fpmeGestaoLabel(g) {
-  const o = document.querySelector('#selGestor option[value="' + g + '"]');
-  return (o && o.textContent.trim()) || g;
-}
-
-function syncFpmeSubTabs() {
-  document.querySelectorAll("[data-fpmesub]").forEach(function (b) {
-    const ativo = b.dataset.fpmesub === fpmeSubView;
-    b.classList.toggle("active", ativo);
-    b.setAttribute("aria-selected", ativo ? "true" : "false");
-  });
-  document.querySelectorAll("[data-fpme-subpanel]").forEach(function (el) {
-    el.style.display = el.dataset.fpmeSubpanel === fpmeSubView ? "" : "none";
-  });
-}
-function setFpmeSubView(v) {
-  fpmeSubView = (v === "TABELA") ? "TABELA" : "RESULT";
-  syncFpmeSubTabs();
 }
 
 function renderFpmeFonte(ctx) {
@@ -7268,678 +7264,267 @@ function renderFpmeFonte(ctx) {
   if (!el) return;
   if (!ctx || !ctx.D) {
     el.className = "fpme-fonte erro";
-    el.textContent = "Sem fonte de propostas PME disponível.";
+    el.textContent = "Sem dados do portal: o bloco FUNIL_PME_DATA não foi injetado nesta versão.";
     return;
   }
   const D = ctx.D;
-  const reutilizada = !!D.reutilizada;
-  const semMes = !D.meses || !D.meses[mesAtivo];
-  el.className = "fpme-fonte" + ((reutilizada || semMes) ? " aviso" : "");
-  let texto = "Fonte: " + (D.fonte || "stats_export_gndi")
-    + (D.fontePasta ? " · pasta operacional " + D.fontePasta : "")
-    + " · cobertura de " + ((D.janela || ["—"])[0]) + " até " + (D.ref || "—") + ". ";
-  if (reutilizada) texto += "Export reutilizado porque a pasta desta rodada não contém uma fonte válida. ";
-  if (semMes) texto += "Sem assinaturas em " + fpmeMesLabel()
-    + ": os KPIs mensais ficam indisponíveis; o histórico e a fila acumulada permanecem visíveis.";
-  else texto += "O mês selecionado está disponível no export.";
-  el.textContent = texto;
+  const fontes = (D.fontes || []).map(function (f) { return f.nome + " (" + f.pasta + ")"; });
+  const semBase = ctx.m && !ctx.m.base;
+  el.className = "fpme-fonte" + (D.reutilizada || semBase ? " aviso" : "");
+  el.innerHTML = "<b>Fonte:</b> " + (fontes.join(" + ") || "—")
+    + (D.reutilizada ? " — <b>reutilizada</b> de uma pasta anterior: o portal não gerou "
+        + "fotografia nova hoje." : "")
+    + " · assinaturas de " + D.janela[0] + " a " + D.janela[1]
+    + " · recorte próprio: " + (D.concessionarias || []).length + " concessionárias PME."
+    + (ctx.m && ctx.m.base ? " Cruzado com a <b>" + ctx.m.base.arquivo + "</b> ("
+        + fmt(ctx.m.base.empresas) + " empresas nossas implantadas)." : "")
+    + (semBase ? " <b>Sem a BASE PME deste mês</b>: o status vem só do portal, que atrasa — o "
+        + "que aparece como em aberto está superestimado." : "")
+    + (ctx.m ? "" : " <b>" + fpmeMesLabel() + " não está nesta fonte</b> — escolha outro mês "
+        + "ou puxe um export que cubra o período.");
 }
 
-function renderFpmeMesesResultado(ctx) {
-  const tb = document.getElementById("fpmeMesesTab");
-  const nota = document.getElementById("fpmeMesesNota");
-  if (!tb || !nota) return;
-  if (!ctx || !ctx.D || !ctx.D.meses) {
-    tb.innerHTML = "";
-    nota.textContent = "Histórico indisponível.";
+// Cascata em SVG. Waterfall de verdade: os degraus do meio FLUTUAM entre o topo anterior e o
+// novo topo, então a altura de cada um é a perda que ele representa — e o último encosta no
+// eixo porque é saldo, não perda.
+// ⚠️ Barra com altura mínima de 3px: 17 vidas em 2.105 dão 1,4px e sumiriam. Uma perda
+// invisível é pior que uma perda desproporcional.
+function fpmeCascataSvg(passos) {
+  const W = 1160, H = 262, TOPO = 24, BASE = 188, ALT = BASE - TOPO;
+  const n = passos.length, vaoTot = W / n, larg = Math.min(126, vaoTot - 26);
+  const base = passos[0].vidas || 1, esc = ALT / base;
+  let corrente = base, s = "";
+  const geo = passos.map(function (p, i) {
+    const cx = vaoTot * i + vaoTot / 2, x = cx - larg / 2;
+    let y0, y1;
+    if (p.tipo === "base") { y0 = 0; y1 = base; }
+    else if (p.tipo === "resultado") { y0 = 0; y1 = p.vidas; }
+    else { y1 = corrente; y0 = corrente - p.vidas; corrente = y0; }
+    const alt = Math.max(3, (y1 - y0) * esc);
+    const topo = BASE - y1 * esc;
+    return { p: p, x: x, cx: cx, larg: larg, topo: topo, alt: alt, y0: y0, y1: y1 };
+  });
+  s += '<line x1="0" y1="' + BASE + '" x2="' + W + '" y2="' + BASE
+     + '" stroke="#c9c9d4" stroke-width="1"/>';
+  geo.forEach(function (g, i) {
+    if (i > 0 && g.p.tipo !== "resultado") {
+      const ant = geo[i - 1], yl = BASE - ant.y0 * esc;
+      s += '<line x1="' + (ant.x + ant.larg) + '" y1="' + yl + '" x2="' + g.x + '" y2="' + yl
+         + '" stroke="#b9b9c6" stroke-width="1" stroke-dasharray="3 3"/>';
+    }
+    const cor = FPME_COR[g.p.chave] || "#5B6B7F";
+    s += '<rect x="' + g.x + '" y="' + g.topo + '" width="' + g.larg + '" height="' + g.alt
+       + '" rx="3" fill="' + cor + '"/>';
+    const sinal = (g.p.tipo === "saida" && g.p.vidas > 0) ? "−" : "";
+    s += '<text x="' + g.cx + '" y="' + (g.topo - 7) + '" text-anchor="middle" font-size="14"'
+       + ' font-weight="700" fill="' + cor + '">' + sinal + fmt(g.p.vidas) + "</text>";
+    s += '<text x="' + g.cx + '" y="' + (BASE + 19) + '" text-anchor="middle" font-size="12"'
+       + ' fill="#1a1a2e">' + g.p.rotulo + "</text>";
+    s += '<text x="' + g.cx + '" y="' + (BASE + 35) + '" text-anchor="middle" font-size="11"'
+       + ' fill="#6b6b78">' + fmt(g.p.empresas) + (g.p.empresas === 1 ? " empresa" : " empresas")
+       + "</text>";
+    if (g.p.pct != null && g.p.tipo !== "base") {
+      s += '<text x="' + g.cx + '" y="' + (BASE + 50) + '" text-anchor="middle" font-size="11"'
+         + ' fill="#8f8f9c">' + fmtDec(g.p.pct, 1) + "%</text>";
+    }
+  });
+  return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Cascata das vidas '
+    + 'assinadas até as que entraram em vigor no mês">' + s + "</svg>";
+}
+
+function renderFpmeCascata(m, dFila) {
+  const wrap = document.getElementById("fpmeCascWrap");
+  const tab = document.getElementById("fpmeCascTab");
+  const passos = m.cascata;
+  wrap.innerHTML = fpmeCascataSvg(passos);
+  const trav = passos.filter(function (p) { return p.chave === "TRAVADA"; })[0] || {};
+  document.getElementById("fpmeCascNota").innerHTML =
+    "Sai de tudo o que foi assinado no mês e chega no que <b>realmente foi implantado</b>. "
+    + "Uma linha é uma <b>empresa</b>: proposta cancelada e refeita é a mesma negociação. "
+    + "Os degraus do meio não são todos perda — <b>vigência futura</b> já está vendida e "
+    + "<b>na fila</b> é o andamento normal do portal (assinada há até " + dFila + " dias). "
+    + (m.base ? "O status de implantada vem da <b>nossa base de vendas</b>, não do portal: ele "
+        + "atrasa, e neste mês " + fmt(m.base.vidasReclassificadas) + " vidas em "
+        + fmt(m.base.reclassificadas) + " empresas que ele ainda mostra em análise já estão "
+        + "na base. "
+              : "<b>Sem cruzamento com a base de vendas neste mês</b> — o aberto abaixo está "
+        + "superestimado. ")
+    + (m.fechado ? "Mês fechado: o degrau <b>na fila</b> zera sozinho."
+                 : "Mês em andamento — o degrau <b>na fila</b> é o que impede a barra de "
+                   + "chamar de travado o que só chegou agora.")
+    + (trav.idadeMediana != null ? " O travado está parado há " + trav.idadeMediana
+        + " dias na mediana (o mais antigo, " + trav.idadeMax + ")." : "");
+  tab.innerHTML = passos.map(function (p) {
+    const cor = FPME_COR[p.chave] || "#5B6B7F";
+    const sinal = (p.tipo === "saida" && p.vidas > 0) ? "−" : "";
+    let det = "";
+    if (p.detalhe && p.detalhe.length) {
+      det = " <span style='color:#6b6b78'>· " + p.detalhe.map(function (d) {
+        return d[0] + " " + fmt(d[1]);
+      }).join(" · ") + "</span>";
+    }
+    return "<tr" + (p.tipo === "resultado" ? ' class="fpme-linha-forte"' : "") + ">"
+      + '<td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;'
+      + "background:" + cor + ';margin-right:7px"></span>' + p.rotulo + "</td>"
+      + '<td class="td-right num">' + sinal + fmt(p.vidas) + "</td>"
+      + '<td class="td-right num">' + fmt(p.empresas) + "</td>"
+      + '<td class="td-right num">' + fmtDec(p.pct, 1) + "%</td>"
+      + "<td style='color:#6b6b78'>" + p.nota + det + "</td></tr>";
+  }).join("");
+}
+
+// O degrau "em aberto" (na fila + travada) só serve para agir se disser ONDE está. Chip por
+// concessionária, com a contagem de travadas separada — é a lista de trabalho do mês.
+function renderFpmeAberto(m, dFila) {
+  const nota = document.getElementById("fpmeAbertoNota");
+  const chips = document.getElementById("fpmeAbertoChips");
+  if (!nota || !chips) return;
+  const lista = m.emAberto || [];
+  if (!lista.length) {
+    nota.innerHTML = "<b>Nada em aberto neste mês.</b>";
+    chips.innerHTML = "";
     return;
   }
-  const g = ctx.g || "TOTAL";
-  const meses = Object.keys(ctx.D.meses).map(function (chave) {
-    return { chave: chave, m: ctx.D.meses[chave] };
-  }).sort(function (a, b) { return a.m.mesNum - b.m.mesNum; });
-  const linhas = meses.map(function (x) {
-    const e = x.m.escopos && x.m.escopos[g];
-    if (!e || !e.kpi) return "";
-    const k = e.kpi;
-    const nomeMes = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    return "<tr><td>" + _fpfEsc(nomeMes[x.m.mesNum] || x.chave) + "</td>"
-      + '<td class="td-right num"><b>' + fmt(k.vidas) + '</b><small style="display:block;color:#6b6b78;font-size:10px">'
-      + fmt(k.propostas) + " propostas</small></td>"
-      + '<td class="td-right num" style="color:#8a6500;font-weight:600">' + fmt(k.vidasAbertas) + "</td>"
-      + '<td class="td-right num" style="color:#8C4F45">' + fmt(k.vidasPerdidas) + "</td>"
-      + '<td class="td-right num" style="color:#2A7A46;font-weight:600">' + fmt(k.vidasImpl) + "</td>"
-      + '<td class="td-right num"><span class="badge ' + badgeClass(k.conv, 60) + '">'
-      + fmtDec(k.conv, 1) + "%</span></td></tr>";
-  }).filter(Boolean);
-  tb.innerHTML = linhas.join("") || '<tr><td colspan="6" style="color:#6b6b78">Sem histórico para este recorte.</td></tr>';
-  nota.textContent = "Mês da assinatura. Em aberto + canceladas + implantadas = vidas propostas. "
-    + "A conversão usa vidas implantadas ÷ vidas propostas; a fila operacional abaixo é acumulada.";
+  const emp = lista.reduce(function (a, x) { return a + x.empresas; }, 0);
+  const vidas = lista.reduce(function (a, x) { return a + x.vidas; }, 0);
+  const trv = lista.reduce(function (a, x) { return a + x.travadas; }, 0);
+  const trvV = lista.reduce(function (a, x) { return a + (x.vidasTravadas || 0); }, 0);
+  nota.innerHTML = "<b>Em aberto de verdade:</b> " + fmt(vidas) + " vidas em " + fmt(emp)
+    + " empresas; dessas, " + fmt(trvV) + " vidas em " + fmt(trv)
+    + " empresas já passaram de " + dFila + " dias. Onde estão:";
+  chips.innerHTML = lista.map(function (x) {
+    return "<span>" + x.nome + " · " + fmt(x.vidas) + " vidas"
+      + (x.travadas ? " · " + fmt(x.travadas) + " travadas" : "") + "</span>";
+  }).join("");
 }
 
-// porSupervisao viaja só no TOTAL (é a mesma lista particionada dentro de FABIO/JOSY).
-function fpmeRankLinhas(ctx, qual) {
-  if (qual !== "porSupervisao") return (ctx.e && ctx.e[qual]) || [];
-  const tot = ctx.m && ctx.m.escopos && ctx.m.escopos.TOTAL;
-  return (tot && tot.porSupervisao) || [];
+function renderFpmePorte(m) {
+  const tot = m.kpi.vidas || 1;
+  document.getElementById("fpmePorteBarra").innerHTML = m.porte.map(function (p, i) {
+    if (!p.vidas) return "";
+    return '<div style="width:' + (100 * p.vidas / tot) + "%;background:" + FPME_PORTE_COR[i]
+      + ';color:' + (i >= 3 ? "#fff" : "#123a5c") + '" title="' + p.rotulo + ": " + fmt(p.vidas)
+      + ' vidas">' + (p.pct >= 8 ? fmtDec(p.pct, 0) + "%" : "") + "</div>";
+  }).join("");
+  document.getElementById("fpmePorteTab").innerHTML = m.porte.map(function (p, i) {
+    return "<tr><td><span style='display:inline-block;width:9px;height:9px;border-radius:2px;"
+      + "background:" + FPME_PORTE_COR[i] + ";margin-right:7px'></span>" + p.rotulo + "</td>"
+      + '<td class="td-right num">' + fmt(p.empresas) + "</td>"
+      + '<td class="td-right num">' + fmt(p.vidas) + "</td>"
+      + '<td class="td-right num">' + fmtDec(p.pct, 1) + "%</td></tr>";
+  }).join("");
 }
 
-function setFpmeRank(r) {
-  fpmeRank = r;
-  document.querySelectorAll("[data-fpmerank]").forEach(function (b) {
-    b.classList.toggle("active", b.dataset.fpmerank === r);
+function renderFpmeUf(m) {
+  const linhas = m.uf || [];
+  const teto = Math.max.apply(null, linhas.map(function (u) { return u.vidas; }).concat([1]));
+  const tot = m.kpi.vidas || 1;
+  document.getElementById("fpmeUfNota").innerHTML =
+    linhas.length ? "As " + (linhas.length - (linhas[linhas.length - 1].outras ? 1 : 0))
+      + " maiores respondem por " + fmtDec(100 * linhas.filter(function (u) { return !u.outras; })
+        .reduce(function (a, u) { return a + u.vidas; }, 0) / tot, 0) + "% das vidas." : "";
+  document.getElementById("fpmeUfBarras").innerHTML = linhas.map(function (u) {
+    return '<div class="fpme-bar-row"><div class="fpme-bar-lbl">' + u.uf + "</div>"
+      + '<div class="fpme-bar-trilho"><span class="fpme-bar-fill" style="width:'
+      + (100 * u.vidas / teto) + "%" + (u.outras ? ";background:#8A97A5" : "") + '"></span></div>'
+      + '<div class="fpme-bar-val">' + fmt(u.vidas) + " <span>· " + fmt(u.empresas)
+      + " emp.</span></div></div>";
+  }).join("");
+}
+
+function renderFpmeCanal(m) {
+  const c = m.canais || { semanas: [], linhas: [] };
+  const mtx = document.getElementById("fpmeCanalMtx");
+  mtx.style.gridTemplateColumns = "190px repeat(" + c.semanas.length + ", minmax(0,1fr)) 116px";
+  let s = '<div class="h"></div>'
+    + c.semanas.map(function (w) { return '<div class="h">semana ' + w + "</div>"; }).join("")
+    + '<div class="h">no mês</div>';
+  c.linhas.forEach(function (ln) {
+    // a escala do heat é da PRÓPRIA linha: interno e parceira têm ordens de grandeza
+    // diferentes, e uma escala comum apagaria a variação semanal da parceira.
+    const teto = Math.max.apply(null, ln.porSemana.concat([1]));
+    s += '<div class="r">' + ln.canal + "</div>";
+    ln.porSemana.forEach(function (v) {
+      const t = v / teto;
+      const i = t >= 0.8 ? 4 : t >= 0.6 ? 3 : t >= 0.4 ? 2 : t >= 0.2 ? 1 : 0;
+      s += '<div class="c" style="background:' + FPME_PORTE_COR[i] + ";color:"
+        + (i >= 3 ? "#fff" : "#123a5c") + '">' + fmt(v) + "</div>";
+    });
+    s += '<div class="c" style="background:#f1f1f5;color:#1a1a2e;font-weight:700">'
+      + fmt(ln.vidas) + "</div>";
   });
-  renderFpmeRank();
-}
+  mtx.innerHTML = s;
 
-function renderFpmeRank() {
-  const ctx = fpmeEscopo();
-  const tb = document.getElementById("fpmeRankTab");
-  const CAB = { porGestao: "Gestão", porSupervisao: "Supervisão",
-                porVendedor: "Vendedor", porTipo: "Tipo" };
-  document.getElementById("fpmeRankCab").textContent = CAB[fpmeRank] || "Item";
-  if (!ctx || !ctx.e) { tb.innerHTML = ""; return; }
-  const linhas = fpmeRankLinhas(ctx, fpmeRank);
-  document.getElementById("fpmeRankNota").textContent = (fpmeRank === "porSupervisao")
-    ? "Supervisão vem do NOSSO cadastro (SUPERVISOR DIRETO), não da coluna do portal — ela só "
-      + "vem preenchida em 19% das linhas. Sempre o total geral: o recorte por gestão não se aplica."
-    : (fpmeRank === "porTipo")
-      ? "PPO = planos INFINITY / PREMIUM / ADVANCE. O resto é PME."
-      : "Ordenado por vidas propostas. Em aberto + canceladas + implantadas = vidas propostas.";
-  tb.innerHTML = linhas.map(function (r) {
-    return "<tr><td>" + _fpfEsc(r.nome) + "</td>"
-      + '<td class="td-right num"><b>' + fmt(r.vidas) + '</b><small style="display:block;color:#6b6b78;font-size:10px">'
-      + fmt(r.propostas) + " propostas</small></td>"
-      + '<td class="td-right num" style="color:#8a6500;font-weight:600">' + fmt(r.vidasAbertas) + "</td>"
-      + '<td class="td-right num" style="color:#8C4F45">' + fmt(r.vidasPerdidas) + "</td>"
-      + '<td class="td-right num" style="color:#2A7A46;font-weight:600">' + fmt(r.vidasImpl) + "</td>"
-      + '<td class="td-right num">' + fmtDec(r.conv, 1) + "%</td></tr>";
+  document.getElementById("fpmeCanalCards").innerHTML = c.linhas.map(function (ln) {
+    const top = (ln.topVendedores || []).map(function (v) {
+      return "<span>" + v.nome + " · " + fmt(v.vidas) + "</span>";
+    }).join("");
+    const corr = (ln.corretoras || []).map(function (x) {
+      return "<tr><td>" + x.nome + '</td><td class="td-right num">' + fmt(x.empresas)
+        + '</td><td class="td-right num">' + fmt(x.vidas) + "</td></tr>";
+    }).join("");
+    return '<div class="fpme-canal-card"><h4>' + ln.canal + "</h4>"
+      + '<div class="sub">' + fmt(ln.vidas) + " vidas · " + fmt(ln.empresas) + " empresas · "
+      + fmt(ln.vendedores) + " vendedores identificados</div>"
+      + (top ? '<div class="fpme-chips" style="margin-bottom:10px">' + top + "</div>" : "")
+      + "<table><thead><tr><th>Concessionária</th><th class=\"td-right\">Empresas</th>"
+      + "<th class=\"td-right\">Vidas</th></tr></thead><tbody>" + corr + "</tbody></table></div>";
   }).join("");
 }
 
 function renderFunilPme() {
-  const ctx = fpmeEscopo();
+  const ctx = fpmeCtx();
   renderFpmeFonte(ctx);
-  renderFpmeMesesResultado(ctx);
-  syncFpmeSubTabs();
-  if (ctx && _fpmeUltimoGestor !== ctx.g) {
-    // a fila acompanha o seletor global de Gestão, mas continua abrível à mão -- por isso só
-    // reescreve quando o seletor MUDA.
-    _fpmeUltimoGestor = ctx.g;
-    _fpmeCartF.gestao = (ctx.g === "TOTAL") ? [] : [ctx.g];
-    _fpmeCartTudo = false;
-  }
-  const ids = ["fpmeKProp", "fpmeKAberto", "fpmeKPerd", "fpmeKImp", "fpmeKConv"];
-  const zera = function (msg) {
-    ids.forEach(function (i) {
-      document.getElementById(i).textContent = "—";
-      document.getElementById(i + "Sub").textContent = "";
+  const ids = ["fpmeKVidas", "fpmeKVigor", "fpmeKFut", "fpmeKFila", "fpmeKTrav"];
+  const painel = document.getElementById("funilPmePanel");
+  if (!ctx || !ctx.m) {
+    ids.forEach(function (i) { document.getElementById(i).textContent = "—"; });
+    ["fpmeKVidasSub", "fpmeKVigorSub", "fpmeKFutSub", "fpmeKFilaSub", "fpmeKTravSub",
+     "fpmeCascNota", "fpmeUfNota", "fpmeAbertoNota"].forEach(function (i) {
+      const el = document.getElementById(i); if (el) el.textContent = "";
     });
-    ["fpmeEstadoBarra", "fpmeEstadoTab", "fpmeDonoTab", "fpmeFaltaTab", "fpmeFaixaTab",
-     "fpmeRankTab", "fpmeFaltaResumo"].forEach(function (i) {
+    ["fpmeCascWrap", "fpmeCascTab", "fpmeAbertoChips", "fpmePorteBarra", "fpmePorteTab",
+     "fpmeUfBarras", "fpmeCanalMtx", "fpmeCanalCards"].forEach(function (i) {
       const el = document.getElementById(i); if (el) el.innerHTML = "";
     });
-    document.getElementById("fpmeEstadoMes").textContent = "— assinado em " + fpmeMesLabel();
-    document.getElementById("fpmeEstadoNota").textContent = msg;
-    document.getElementById("fpmeDonoNota").textContent = "";
-    document.getElementById("fpmeFaltaNota").textContent = "";
-  };
-  if (!ctx) {
-    zera("Sem dados de propostas PME disponíveis.");
-    renderFpmeCarteira();
-    syncFpmeSubTabs();
     return;
   }
-  if (!ctx.e) {
-    zera(ctx.semMes
-      ? "Sem propostas PME assinadas em " + fpmeMesLabel() + " neste export."
-      : "Sem propostas PME de " + fpmeGestaoLabel(ctx.g) + " em " + fpmeMesLabel() + ".");
-    renderFpmeCarteira();
-    syncFpmeSubTabs();
-    return;
-  }
-  const D = ctx.D, e = ctx.e, k = e.kpi, a = e.atacar, f = e.faltaImplantar;
-
-  const set = function (id, v, sub) {
-    document.getElementById(id).textContent = v;
-    document.getElementById(id + "Sub").textContent = sub || "";
+  const m = ctx.m, k = m.kpi;
+  const passo = function (chave) {
+    return m.cascata.filter(function (p) { return p.chave === chave; })[0] || {};
   };
-  set("fpmeKProp", fmt(k.vidas), fmt(k.propostas) + " propostas · "
-      + fmtDec(k.vidasPorProposta, 2) + " vidas/proposta");
-  set("fpmeKAberto", fmt(k.vidasAbertas), fmt(k.propAbertas) + " propostas");
-  set("fpmeKPerd", fmt(k.vidasPerdidas), fmt(k.propPerdidas) + " propostas");
-  set("fpmeKImp", fmt(k.vidasImpl), fmt(k.propImpl) + " propostas");
-  set("fpmeKConv", fmtDec(k.conv, 1) + "%", "vidas implantadas ÷ vidas propostas");
+  const vigor = passo("IMPLANTADA"), trav = passo("TRAVADA");
+  const fut = passo("VIG_FUTURA"), fila = passo("NA_FILA");
+  const rot = fpmeMesLabel();
+  const recorte = m.fechado ? rot + " · mês fechado" : rot + " · até o dia " + m.diaFim;
 
-  // ---- estado atual (partição, não funil)
-  const rotulo = {};
-  (D.estados || []).forEach(function (x) { rotulo[x.chave] = x; });
-  const totV = e.estado.reduce(function (s, x) { return s + x.vidas; }, 0) || 1;
-  document.getElementById("fpmeEstadoBarra").innerHTML = e.estado
-    .filter(function (x) { return x.vidas > 0; })
-    .map(function (x) {
-      const p = 100 * x.vidas / totV;
-      return '<div style="width:' + p + "%;background:" + (FPME_COR[x.chave] || "#888")
-        + '" title="' + _fpfEsc((rotulo[x.chave] || {}).rotulo || x.chave) + ": " + fmt(x.vidas)
-        + ' vidas">' + (p >= 7 ? fmtDec(p, 0) + "%" : "") + "</div>";
-    }).join("");
-  // guardado para o toggle do detalhe redesenhar sem recalcular o recorte
-  _fpmeEstadoBloco = e.estado;
-  _fpmeEstadoRot = rotulo;
-  renderFpmeEstadoTab();
-  document.getElementById("fpmeEstadoNota").textContent =
-    "Onde está, hoje, cada vida assinada em " + fpmeMesLabel() + ". Os quatro somam o mês — não "
-    + "é funil, é foto. “Só assinado” é fila normal do portal (integra em ~3h): só se ataca o "
-    + "vermelho. As linhas indentadas são o status literal do portal — o de-para é auditável.";
+  document.getElementById("fpmeKVidas").textContent = fmt(k.vidas);
+  document.getElementById("fpmeKVidasSub").textContent = recorte + " · " + fmt(k.empresas)
+    + " empresas · R$ " + fmt(Math.round(k.valor));
+  document.getElementById("fpmeKVigor").textContent = fmt(vigor.vidas);
+  document.getElementById("fpmeKVigorSub").textContent = fmtDec(vigor.pct, 1)
+    + "% das assinadas · " + fmt(vigor.empresas) + " empresas";
+  document.getElementById("fpmeKFutLabel").textContent = "Entra em " + (m.proxMes || "—");
+  document.getElementById("fpmeKFut").textContent = fmt(fut.vidas);
+  document.getElementById("fpmeKFutSub").textContent = fmt(fut.empresas)
+    + " empresas · venda feita, vigência depois do mês";
+  document.getElementById("fpmeKFila").textContent = fmt(fila.vidas);
+  document.getElementById("fpmeKFilaSub").textContent = fmt(fila.empresas)
+    + " empresas · até " + ctx.D.dFila + " dias, nada a fazer";
+  document.getElementById("fpmeKTrav").textContent = fmt(trav.vidas);
+  document.getElementById("fpmeKTravSub").textContent = fmt(trav.empresas) + " empresas"
+    + (trav.idadeMediana != null ? " · parado há " + trav.idadeMediana + "d na mediana" : "");
 
-  // ---- o que falta implantar (EIXO VIGÊNCIA — outro universo, e a tela precisa dizer isso)
-  document.getElementById("fpmeFaltaMes").textContent = "— vigência em " + fpmeMesLabel();
-  document.getElementById("fpmeFaltaNota").textContent =
-    "⚠️ Este card corta pelo mês da VIGÊNCIA, não pelo da assinatura — é outro universo do "
-    + "resto da aba. De " + fmt(f.universo) + " propostas com vigência em " + fpmeMesLabel()
-    + ", parte foi assinada no mês anterior.";
-  document.getElementById("fpmeFaltaResumo").innerHTML =
-    "<span>" + fmt(f.implantadas) + " de " + fmt(f.universo) + " já implantadas ("
-      + fmt(f.vidasImplantadas) + " vidas)</span>"
-    + (f.falta ? '<span class="alerta">falta implantar ' + fmt(f.falta) + " propostas · "
-        + fmt(f.faltaVidas) + " vidas" + (f.faltaVencidas ? " · " + fmt(f.faltaVencidas)
-        + " já vencidas" : "") + "</span>" : "<span>nada pendente</span>")
-    + (f.cancelado ? "<span>" + fmt(f.cancelado) + " canceladas ("
-        + fmt(f.canceladoVidas) + " vidas) — fora da conta</span>" : "");
-  document.getElementById("fpmeFaltaTab").innerHTML = f.porDono.map(function (x) {
-    return "<tr><td>" + _fpfEsc(x.dono) + "</td>"
-      + '<td class="td-right num">' + fmt(x.propostas) + "</td>"
-      + '<td class="td-right num">' + fmt(x.vidas) + "</td></tr>";
-  }).join("") || '<tr><td colspan="3" style="color:#6b6b78">Nada pendente neste mês.</td></tr>';
-
-  renderFpmeRank();
-  renderFpmeCarteira();
-  syncFpmeSubTabs();
-}
-
-// ---------------- fila de trabalho (carteira ACUMULADA, sem corte mensal) ----------------
-let _fpmeRowsCache = null, _fpmeRowsRef = null;
-function fpmeCartRows() {
-  const D = (typeof FUNIL_PME_DATA !== "undefined") ? FUNIL_PME_DATA : null;
-  if (!D || !D.carteira) return [];
-  const c = D.carteira;
-  if (_fpmeRowsCache && _fpmeRowsRef === c) return _fpmeRowsCache;
-  _fpmeRowsCache = c.rows.map(function (r) {
-    const o = {};
-    c.cols.forEach(function (k, i) {
-      o[k] = (c.dictCols.indexOf(k) >= 0) ? c.dicts[k][r[i]] : r[i];
-    });
-    return o;
-  });
-  _fpmeRowsRef = c;
-  return _fpmeRowsCache;
-}
-
-function fpmeMsToggle(campo) {
-  const el = document.getElementById("fpmeMs_" + campo);
-  if (!el) return;
-  const abrindo = !el.classList.contains("open");
-  document.querySelectorAll("#fpmeCarteira .fpf-ms.open")
-    .forEach(function (x) { x.classList.remove("open"); });
-  if (abrindo) el.classList.add("open");
-}
-function fpmeMsMarca(campo, valor, marcado) {
-  const arr = _fpmeCartF[campo], i = arr.indexOf(valor);
-  if (marcado && i < 0) arr.push(valor);
-  if (!marcado && i >= 0) arr.splice(i, 1);
-  _fpmeCartTudo = false;
-  renderFpmeCarteira();
-}
-function fpmeMsLimpa(campo) { _fpmeCartF[campo] = []; renderFpmeCarteira(); }
-function setFpmeCartFiltro(qual, valor) { _fpmeCartF[qual] = valor; renderFpmeCarteira(); }
-function setFpmeCartSort(k) {
-  if (_fpmeCartSort.k === k) _fpmeCartSort.asc = !_fpmeCartSort.asc;
-  else _fpmeCartSort = { k: k, asc: (k === "prioridade") };
-  renderFpmeCarteira();
-}
-function fpmeCartLimpa() {
-  _fpmeCartF = { gestao: [], supervisor: [], dono: [], situacao: [], q: "" };
-  const b = document.getElementById("fpmeCartBusca"); if (b) b.value = "";
-  _fpmeCartTudo = false;
-  renderFpmeCarteira();
-}
-function fpmeCartMostrarTudo() { _fpmeCartTudo = true; renderFpmeCarteira(); }
-
-// ⚠️ NÃO filtra por mês, de propósito -- ver o comentário no markup e em CARTEIRA_COLS.
-function fpmeCartFiltrada() {
-  const q = (_fpmeCartF.q || "").trim().toLowerCase();
-  return fpmeCartRows().filter(function (r) {
-    if (_fpmeCartF.gestao.length && _fpmeCartF.gestao.indexOf(r.gestao) < 0) return false;
-    if (_fpmeCartF.supervisor.length && _fpmeCartF.supervisor.indexOf(r.supervisor) < 0) return false;
-    if (_fpmeCartF.dono.length && _fpmeCartF.dono.indexOf(r.dono) < 0) return false;
-    if (_fpmeCartF.situacao.length && _fpmeCartF.situacao.indexOf(r.situacao) < 0) return false;
-    if (q && (String(r.contratante).toLowerCase().indexOf(q) < 0
-              && String(r.proposta).toLowerCase().indexOf(q) < 0
-              && String(r.vendedor).toLowerCase().indexOf(q) < 0)) return false;
-    return true;
-  }).sort(function (x, y) {
-    const k = _fpmeCartSort.k, s = _fpmeCartSort.asc ? 1 : -1;
-    let a = x[k], b = y[k];
-    if (typeof a === "string" || typeof b === "string") {
-      return s * String(a || "").localeCompare(String(b || ""), "pt-BR");
-    }
-    if (a === b) {
-      // desempate fixo: quem venceu há mais tempo primeiro, depois o contrato maior
-      if (y.diasVig !== x.diasVig) return y.diasVig - x.diasVig;
-      return y.vidas - x.vidas;
-    }
-    return s * ((a || 0) - (b || 0));
-  });
-}
-
-// A fila da subaba de RESULTADO segue somente a Gestão global. Busca e filtros finos são da
-// Tabela de propostas e não podem zerar silenciosamente os destaques operacionais ao voltar.
-function fpmeFilaGlobal() {
-  const g = gestorAtivo || "TOTAL";
-  return fpmeCartRows().filter(function (r) { return g === "TOTAL" || r.gestao === g; });
-}
-
-function _fpmePinta(campo, rotuloVazio) {
-  const box = document.getElementById("fpmeMs_" + campo);
-  if (!box) return;
-  const cont = {};
-  fpmeCartRows().forEach(function (r) { cont[r[campo]] = (cont[r[campo]] || 0) + 1; });
-  const sel = _fpmeCartF[campo];
-  const btn = box.querySelector(".fpf-ms-btn");
-  btn.innerHTML = _fpfEsc(sel.length === 0 ? rotuloVazio
-    : sel.length === 1 ? sel[0] : sel.length + " selecionadas")
-    + ' <span class="fpf-ms-seta">&#9662;</span>';
-  btn.classList.toggle("ativo", sel.length > 0);
-  // aspas simples dentro de atributo HTML: montadas por código, não por escape aninhado --
-  // um `\'` mal fechado aqui já derrubou o script inteiro do dashboard uma vez.
-  const AP = String.fromCharCode(39);
-  let h = '<div class="fpf-ms-acoes"><a href="#" onclick="fpmeMsLimpa(' + AP + campo
-        + AP + ');return false;">limpar seleção</a></div>';
-  Object.keys(cont).sort().forEach(function (v) {
-    const on = sel.indexOf(v) >= 0;
-    h += '<label class="fpf-ms-item"><input type="checkbox"' + (on ? " checked" : "")
-      + ' onchange="fpmeMsMarca(' + AP + campo + AP + ',' + JSON.stringify(v).replace(/"/g, "&quot;")
-      + ',this.checked)"><span>' + _fpfEsc(v) + "</span>"
-      + '<span class="fpf-ms-n">' + fmt(cont[v]) + "</span></label>";
-  });
-  box.querySelector(".fpf-ms-pop").innerHTML = h;
-}
-
-function renderFpmeCarteira() {
-  const tb = document.getElementById("fpmeCartTab");
-  if (!tb) return;
-  ["gestao", "supervisor", "dono", "situacao"].forEach(function (c) {
-    _fpmePinta(c, c === "dono" ? "Todos" : "Todas");
-  });
-  const rows = fpmeCartFiltrada();
-  const filaRows = fpmeFilaGlobal();
-  const vidas = rows.reduce(function (a, r) { return a + r.vidas; }, 0);
-  const travadas = filaRows.filter(function (r) { return r.prioridade <= 1; });
-  const vTravadas = travadas.reduce(function (a, r) { return a + r.vidas; }, 0);
-  const venc = filaRows.filter(function (r) { return r.prioridade === 0; });
-  const vVenc = venc.reduce(function (a, r) { return a + r.vidas; }, 0);
-  const vencTabela = rows.filter(function (r) { return r.prioridade === 0; });
-  const vVencTabela = vencTabela.reduce(function (a, r) { return a + r.vidas; }, 0);
-  const temFonte = (typeof FUNIL_PME_DATA !== "undefined") && FUNIL_PME_DATA.carteira;
-  const kTrav = document.getElementById("fpmeKTrav"), kVenc = document.getElementById("fpmeKVenc");
-  if (kTrav && kVenc) {
-    kTrav.textContent = temFonte ? fmt(vTravadas) : "—";
-    document.getElementById("fpmeKTravSub").textContent = temFonte
-      ? fmt(travadas.length) + " propostas no recorte acumulado" : "";
-    kVenc.textContent = temFonte ? fmt(vVenc) : "—";
-    document.getElementById("fpmeKVencSub").textContent = temFonte
-      ? fmt(venc.length) + " propostas com vigência já iniciada" : "";
-  }
-  document.getElementById("fpmeCartCount").textContent =
-    fmt(rows.length) + " propostas · " + fmt(vidas) + " vidas";
-  document.getElementById("fpmeCartNota").innerHTML =
-    "<b>Todas as propostas paradas, de todos os meses</b> — esta lista não segue o seletor de Mês: "
-    + "no PME nada morre sozinho (o PF mata em D+26), então o trabalho é o acumulado. "
-    + (vencTabela.length ? '<b style="color:#8c2315">' + fmt(vencTabela.length)
-        + " já com a vigência vencida (" + fmt(vVencTabela)
-        + " vidas)</b> — são as primeiras da lista. " : "")
-    + "Sem CPF/CNPJ e sem dado de beneficiário: a alça é o Nº da proposta no portal. "
-    + "⚠️ Boa parte das PME é MEI, então a razão social costuma ser o nome de uma pessoa.";
-  const mostra = _fpmeCartTudo ? rows : rows.slice(0, FPME_CART_TETO);
-  tb.innerHTML = mostra.map(function (r) {
-    const p = FPME_SIT[r.prioridade] || ["vig", r.situacao];
-    // diasVig: positivo = venceu há N dias; negativo = vigência ainda por vir
-    const dv = (r.diasVig <= -9000) ? "—"
-      : (r.diasVig > 0) ? '<span style="color:#8c2315;font-weight:600">venceu há ' + fmt(r.diasVig) + "d</span>"
-      : (r.diasVig === 0) ? "vence hoje"
-      : "em " + fmt(-r.diasVig) + "d";
-    return "<tr>"
-      + '<td><span class="fpme-pri ' + p[0] + '">' + _fpfEsc(r.situacao) + "</span>"
-      + '<div style="font-size:10px;color:#6b6b78">' + _fpfEsc(r.statusReal) + "</div></td>"
-      + "<td>" + _fpfEsc(r.dono) + "</td>"
-      + '<td class="num">' + _fpfEsc(r.proposta) + "</td>"
-      + "<td>" + _fpfEsc(r.contratante) + "</td>"
-      + "<td>" + _fpfEsc(r.uf) + "</td>"
-      + '<td class="td-right num">' + fmt(r.vidas) + "</td>"
-      + '<td class="td-right num">' + fmtDec(r.valor, 2) + "</td>"
-      + "<td>" + _fpfEsc(r.vigencia) + "</td>"
-      + '<td class="td-right num">' + dv + "</td>"
-      + '<td class="td-right num">' + fmt(r.idade) + "d</td>"
-      + "<td>" + _fpfEsc(r.vendedor) + "</td>"
-      + "<td>" + _fpfEsc(r.supervisor) + "</td>"
-      + "<td>" + _fpfEsc(r.gestao) + "</td></tr>";
-  }).join("");
-  renderFpmeDonos(filaRows);
-  renderFpmeFaixas(filaRows);
-  document.getElementById("fpmeCartRodape").innerHTML = (rows.length > mostra.length)
-    ? "Mostrando as " + fmt(mostra.length) + " primeiras de " + fmt(rows.length)
-      + '. <a href="javascript:void(0)" onclick="fpmeCartMostrarTudo()">ver todas</a>'
-      + " — o Excel sempre leva o recorte inteiro."
-    : "O Excel leva o recorte inteiro, com os filtros aplicados.";
-}
-
-// ════════════ AGRUPAMENTO COM O STATUS LITERAL DENTRO (molde do Funil PF)
-// Pedido do David em 02/09/2026: *"algo como o funil PF, que faz o agrupamento mas mostra os
-// status reais da planilha dentro"*. `estado` e `dono` sao rotulos MEUS; sem a linha filha com
-// a palavra do portal o de-para nao e' audit'avel -- e' exatamente o valor que o `CANCELADO`
-// do PF entrega ao abrir em DECURSO PRAZO / FALTA PAGTO. / RECUSADO.
-//
-// ⚠️ Na FILA o agrupamento e' quase 1:1 com o status (so' `pendencia` tem duas origens), entao
-// varios grupos abrem UMA linha. Nao e' bug: ali o detalhe e' prova, nao variedade. Onde ele
-// rende de fato e' no card do MES -- o `Travado` de agosto tem 4 origens.
-let fpmeEstadoExpandido = true, fpmeDonoExpandido = true;
-let _fpmeEstadoBloco = null, _fpmeEstadoRot = {};
-
-// helper local: a mediana de uma lista de numeros (as duas tabelas usam).
-function _fpmeMed(v) {
-  if (!v.length) return null;
-  const a = v.slice().sort(function (x, y) { return x - y; });
-  const m = Math.floor(a.length / 2);
-  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
-}
-
-// Uma linha filha: o status literal do portal, indentado sob o grupo. `pct` opcional.
-function _fpmeSubLinha(cels) {
-  return '<tr style="border-left:4px solid transparent">' + cels + "</tr>";
-}
-
-// ---- card do MES: os 4 baldes, cada um abrindo no status do portal que o compos
-function renderFpmeEstadoTab() {
-  const tb = document.getElementById("fpmeEstadoTab");
-  if (!tb) return;
-  const bloco = _fpmeEstadoBloco || [];
-  const totV = bloco.reduce(function (s, x) { return s + x.vidas; }, 0) || 1;
-  let h = "";
-  bloco.forEach(function (x) {
-    if (!x.propostas && !(x.detalhe || []).length) return;
-    const meta = _fpmeEstadoRot[x.chave] || { rotulo: x.chave, nota: "" };
-    const cor = FPME_COR[x.chave] || "#6c757d";
-    h += '<tr style="background:#fafbfc;border-left:4px solid ' + cor + '" title="'
-      + _fpfEsc(meta.nota) + '"><td><b style="color:' + cor + '">&#9679; '
-      + _fpfEsc(meta.rotulo) + "</b></td>"
-      + '<td class="td-right num"><b>' + fmt(x.vidas) + "</b></td>"
-      + '<td class="td-right num"><b>' + fmt(x.propostas) + "</b></td>"
-      + '<td class="td-right num"><b>' + fmtDec(100 * x.vidas / totV, 1) + "%</b></td></tr>";
-    if (fpmeEstadoExpandido) {
-      (x.detalhe || []).forEach(function (d) {          // d = [status literal, prop, vidas]
-        h += _fpmeSubLinha('<td style="padding-left:22px;color:#666">' + _fpfEsc(d[0])
-          + '</td><td class="td-right num">' + fmt(d[2])
-          + '</td><td class="td-right num">' + fmt(d[1])
-          + '</td><td class="td-right num" style="color:#6b6b78">'
-          + fmtDec(100 * d[2] / totV, 1) + "%</td>");
-      });
-    }
-  });
-  tb.innerHTML = h;
-}
-function toggleFpmeEstadoDetalhe() {
-  fpmeEstadoExpandido = !fpmeEstadoExpandido;
-  const b = document.getElementById("fpmeEstadoToggleBtn");
-  if (b) {
-    b.classList.toggle("active", fpmeEstadoExpandido);
-    b.textContent = fpmeEstadoExpandido ? "▾ Detalhe" : "▸ Detalhe";
-  }
-  renderFpmeEstadoTab();
-}
-
-// ---- card da FILA: de quem e' a acao, cada dono abrindo no status do portal.
-// ⚠️ Le a FILA ACUMULADA (nao o mes) e segue somente a Gestão global. Os filtros finos da
-// subaba Tabela de propostas nao interferem nesta visao operacional.
-let _fpmeDonoLinhas = [];
-function renderFpmeDonos(rows) {
-  const nota = document.getElementById("fpmeDonoNota");
-  const trav = rows.filter(function (r) { return r.prioridade <= 1; });
-  if (!trav.length) {
-    _fpmeDonoLinhas = [];
-    renderFpmeDonoTab();
-    nota.textContent = "Nada travado neste recorte — tudo já implantou, caiu ou acabou de chegar.";
-    return;
-  }
-  const D = (typeof FUNIL_PME_DATA !== "undefined") ? FUNIL_PME_DATA : null;
-  const ordem = (D && D.donos) || [];
-  const agg = {};
-  trav.forEach(function (r) {
-    const o = agg[r.dono] || (agg[r.dono] = { dono: r.dono, propostas: 0, vidas: 0,
-                                              idades: [], vencidas: 0, dias: [], sub: {} });
-    o.propostas++; o.vidas += r.vidas; o.idades.push(r.idade);
-    if (r.prioridade === 0) { o.vencidas++; o.dias.push(r.diasVig); }
-    // agrupa a linha filha pela PALAVRA DO PORTAL que veio no payload
-    const k = r.statusReal || "(sem status)";
-    const s = o.sub[k] || (o.sub[k] = { nome: k, propostas: 0, vidas: 0,
-                                        idades: [], vencidas: 0, dias: [] });
-    s.propostas++; s.vidas += r.vidas; s.idades.push(r.idade);
-    if (r.prioridade === 0) { s.vencidas++; s.dias.push(r.diasVig); }
-  });
-  _fpmeDonoLinhas = Object.keys(agg).map(function (k) { return agg[k]; })
-    .sort(function (x, y) { return y.vidas - x.vidas; });
-  // a cor sai da ORDEM DE URGENCIA declarada no payload, nao da posicao na tela: assim o mesmo
-  // dono guarda a mesma cor quando um filtro muda o ranking.
-  _fpmeDonoLinhas.forEach(function (x) {
-    const i = ordem.indexOf(x.dono);
-    x.cor = FPME_COR_DONO[Math.min(i < 0 ? FPME_COR_DONO.length - 1 : i,
-                                   FPME_COR_DONO.length - 1)];
-    x.filhas = Object.keys(x.sub).map(function (k) { return x.sub[k]; })
-      .sort(function (a, b) { return b.vidas - a.vidas; });
-  });
-  renderFpmeDonoTab();
-  nota.textContent = "Quem tem de agir, por volume de vidas — na fila inteira, não só no mês. "
-    + "As linhas indentadas são o status literal do portal, para você não ter de acreditar no "
-    + "agrupamento. “Vencidas” = a vigência já começou e a vida não entrou na base.";
-}
-
-function renderFpmeDonoTab() {
-  const tb = document.getElementById("fpmeDonoTab");
-  if (!tb) return;
-  const cel = function (x, forte) {
-    const a = forte ? "<b>" : "", z = forte ? "</b>" : "";
-    const idm = _fpmeMed(x.idades), dm = _fpmeMed(x.dias);
-    return '<td class="td-right num">' + a + fmt(x.vidas) + z + "</td>"
-      + '<td class="td-right num">' + a + fmt(x.propostas) + z + "</td>"
-      + '<td class="td-right num">'
-      + (x.vencidas ? a + fmt(x.vencidas) + z
-                      + (dm != null ? ' <span style="color:#6b6b78">há '
-                                      + fmt(Math.round(dm)) + "d</span>" : "")
-                    : '<span style="color:#6b6b78">—</span>') + "</td>"
-      + '<td class="td-right num">' + a + (idm != null ? fmt(Math.round(idm)) + "d" : "—")
-      + z + "</td>";
-  };
-  tb.innerHTML = _fpmeDonoLinhas.map(function (x) {
-    let h = '<tr style="background:#fafbfc;border-left:4px solid ' + x.cor
-      + '"><td><b style="color:' + x.cor + '">&#9679; ' + _fpfEsc(x.dono) + "</b></td>"
-      + cel(x, true) + "</tr>";
-    if (fpmeDonoExpandido) {
-      x.filhas.forEach(function (f) {
-        h += _fpmeSubLinha('<td style="padding-left:22px;color:#666">' + _fpfEsc(f.nome)
-          + "</td>" + cel(f, false));
-      });
-    }
-    return h;
-  }).join("");
-}
-function toggleFpmeDonoDetalhe() {
-  fpmeDonoExpandido = !fpmeDonoExpandido;
-  const b = document.getElementById("fpmeDonoToggleBtn");
-  if (b) {
-    b.classList.toggle("active", fpmeDonoExpandido);
-    b.textContent = fpmeDonoExpandido ? "▾ Detalhe" : "▸ Detalhe";
-  }
-  renderFpmeDonoTab();
-}
-
-// ⚠️ As faixas de idade leem a FILA ACUMULADA, nao o mes -- a cauda (44 propostas com mais de
-// 90 dias) e' o achado, e por mes ela nao aparecia em lugar nenhum. Como sai da carteira JA
-// recortada somente pela Gestão global.
-function renderFpmeFaixas(rows) {
-  const el = document.getElementById("fpmeFaixaTab");
-  if (!el) return;
-  const D = (typeof FUNIL_PME_DATA !== "undefined") ? FUNIL_PME_DATA : null;
-  const faixas = (D && D.faixasIdade) || [];
-  const trav = rows.filter(function (r) { return r.prioridade <= 1; });
-  const linhas = faixas.map(function (f) {
-    const sub = trav.filter(function (r) {
-      return r.idade >= f.de && (f.ate === null || r.idade <= f.ate);
-    });
-    return {
-      rotulo: f.rotulo, propostas: sub.length,
-      vidas: sub.reduce(function (a, r) { return a + r.vidas; }, 0),
-      vencidas: sub.filter(function (r) { return r.prioridade === 0; }).length
-    };
-  }).filter(function (x) { return x.propostas > 0; });
-  el.innerHTML = linhas.map(function (x) {
-    return "<tr><td>" + x.rotulo + "</td>"
-      + '<td class="td-right num">' + fmt(x.propostas) + "</td>"
-      + '<td class="td-right num">' + fmt(x.vidas) + "</td>"
-      + '<td class="td-right num">' + (x.vencidas
-          ? '<span style="color:#8c2315;font-weight:600">' + fmt(x.vencidas) + "</span>"
-          : "0") + "</td></tr>";
-  }).join("") || '<tr><td colspan="4" style="color:#6b6b78">Nada travado neste recorte.</td></tr>';
-}
-
-function fpmeCartNomeRecorte() {
-  const g = _fpmeCartF.gestao.length ? _fpmeCartF.gestao.join("-") : (gestorAtivo || "TOTAL");
-  return ("fila_" + String(g).toLowerCase()).replace(/[^a-z0-9_-]+/g, "");
-}
-
-// XLSX sem biblioteca externa -- reusa os helpers do Funil PF (o v1.html é autocontido).
-function baixarCarteiraPmeXlsx() {
-  const rows = fpmeCartFiltrada();
-  if (!rows.length) { alert("Nenhuma proposta no recorte atual."); return; }
-  const cols = [
-    { k: "situacao", t: "Situação", w: 14 }, { k: "dono", t: "De quem depende", w: 30 },
-    { k: "statusReal", t: "Status no portal", w: 34 },
-    { k: "proposta", t: "Nº proposta", w: 13 }, { k: "contratante", t: "Contratante", w: 38 },
-    { k: "uf", t: "UF", w: 6 }, { k: "plano", t: "Plano", w: 30 },
-    { k: "vidas", t: "Vidas", w: 8 }, { k: "valor", t: "Valor", w: 12 },
-    { k: "assinatura", t: "Assinatura", w: 12 }, { k: "vigencia", t: "Vigência", w: 12 },
-    { k: "_dv", t: "Dias desde a vigência", w: 20 }, { k: "idade", t: "Idade (dias)", w: 12 },
-    { k: "vendedor", t: "Vendedor", w: 30 }, { k: "supervisor", t: "Supervisão", w: 22 },
-    { k: "gestao", t: "Gestão", w: 16 },
-    { k: "_ppo", t: "PPO", w: 7 }, { k: "_am", t: "Área médica", w: 13 }
-  ];
-  const NUM = { vidas: 1, valor: 1, idade: 1, _dv: 1 };
-  const DATA = { assinatura: 1, vigencia: 1 };
-  const estilo = function (k, r) {
-    if (k === "valor") return 5;
-    if (DATA[k]) return 6;
-    if (k !== "situacao" && k !== "_dv") return 0;
-    return r.prioridade === 0 ? 2 : (r.prioridade === 1 ? 3 : 0);
-  };
-  let sd = '<row r="1">' + cols.map(function (c, i) {
-    return '<c r="' + _fpfColLetra(i) + '1" s="1" t="inlineStr"><is><t>' + _fpfXmlEsc(c.t)
-      + "</t></is></c>";
-  }).join("") + "</row>";
-  rows.forEach(function (r, ri) {
-    const linha = ri + 2;
-    sd += '<row r="' + linha + '">' + cols.map(function (c, i) {
-      const v = (c.k === "_ppo") ? (r.ppo ? "SIM" : "")
-              : (c.k === "_am") ? (r.areaMedica ? "SIM" : "")
-              : (c.k === "_dv") ? (r.diasVig <= -9000 ? "" : r.diasVig)
-              : r[c.k];
-      const ref = _fpfColLetra(i) + linha, st = estilo(c.k, r);
-      const sAttr = st ? ' s="' + st + '"' : "";
-      if (DATA[c.k]) {
-        const sn = _fpfSerial(v);
-        if (sn !== null) return '<c r="' + ref + '"' + sAttr + "><v>" + sn + "</v></c>";
-      }
-      if (NUM[c.k] && v !== "" && v !== null && v !== undefined && !isNaN(v)) {
-        return '<c r="' + ref + '"' + sAttr + "><v>" + Number(v) + "</v></c>";
-      }
-      if (v === "" || v === null || v === undefined) return '<c r="' + ref + '"' + sAttr + "/>";
-      return '<c r="' + ref + '"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">'
-        + _fpfXmlEsc(v) + "</t></is></c>";
-    }).join("") + "</row>";
-  });
-  const cs = cols.map(function (c, i) {
-    return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + c.w
-      + '" customWidth="1"/>';
-  }).join("");
-  const ultima = _fpfColLetra(cols.length - 1) + (rows.length + 1);
-  // ⚠️ no worksheet o autoFilter vem DEPOIS do sheetData; no styleSheet a ordem é
-  // numFmts → fonts → fills → borders → cellStyleXfs → cellXfs → cellStyles.
-  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    + '<sheetViews><sheetView workbookViewId="0">'
-    + '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
-    + "</sheetView></sheetViews>"
-    + '<sheetFormatPr defaultRowHeight="15"/><cols>' + cs + "</cols>"
-    + "<sheetData>" + sd + "</sheetData>"
-    + '<autoFilter ref="A1:' + ultima + '"/></worksheet>';
-  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    + '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.00"/>'
-    + '<numFmt numFmtId="165" formatCode="dd/mm/yyyy"/></numFmts>'
-    + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>'
-    + '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>'
-    + '<fills count="5"><fill><patternFill patternType="none"/></fill>'
-    + '<fill><patternFill patternType="gray125"/></fill>'
-    + '<fill><patternFill patternType="solid"><fgColor rgb="FF2F3B52"/><bgColor indexed="64"/></patternFill></fill>'
-    + '<fill><patternFill patternType="solid"><fgColor rgb="FFFDE8E4"/><bgColor indexed="64"/></patternFill></fill>'
-    + '<fill><patternFill patternType="solid"><fgColor rgb="FFFEF3CD"/><bgColor indexed="64"/></patternFill></fill>'
-    + "</fills>"
-    + '<borders count="1"><border/></borders>'
-    + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    + '<cellXfs count="7">'
-    + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-    + '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>'
-    + '<xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/>'
-    + '<xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyFill="1"/>'
-    + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-    + '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
-    + '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
-    + "</cellXfs>"
-    + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
-    + "</styleSheet>";
-  const blob = _fpfZip([
-    { nome: "[Content_Types].xml",
-      xml: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-        + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-        + '<Default Extension="xml" ContentType="application/xml"/>'
-        + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
-        + '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
-        + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
-        + "</Types>" },
-    { nome: "_rels/.rels",
-      xml: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
-        + "</Relationships>" },
-    { nome: "xl/workbook.xml",
-      xml: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
-        + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-        + '<sheets><sheet name="Fila PME" sheetId="1" r:id="rId1"/></sheets></workbook>' },
-    { nome: "xl/_rels/workbook.xml.rels",
-      xml: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
-        + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
-        + "</Relationships>" },
-    { nome: "xl/styles.xml", xml: styles },
-    { nome: "xl/worksheets/sheet1.xml", xml: sheet }
-  ]);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "fila_pme_" + fpmeCartNomeRecorte() + ".xlsx";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  document.getElementById("fpmeCascMes").textContent = "· " + recorte;
+  document.getElementById("fpmeCanalMes").textContent = "· " + recorte
+    + " · de-para resolve " + fmt(m.depara.resolvidas) + " das " + fmt(m.depara.total)
+    + " empresas";
+  renderFpmeCascata(m, ctx.D.dFila);
+  renderFpmeAberto(m, ctx.D.dFila);
+  renderFpmePorte(m);
+  renderFpmeUf(m);
+  renderFpmeCanal(m);
+  if (painel) painel.dataset.mes = mesAtivo;
 }
 
 function renderAll() {
@@ -8399,7 +7984,9 @@ function checkLogin(){
       var fpm=document.getElementById('funilPmePanel'); if(fpm)fpm.style.display='none';
       painel.style.display='block';pos();
       document.querySelectorAll('.view-tab').forEach(function(b){b.classList.toggle('active',b.dataset.view==='PROD');});
+      if(typeof syncOrcTab==='function')syncOrcTab(null);
       var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      var gg=document.getElementById('gestorGroup');if(gg)gg.style.display='none';
       return;
     }
     painel.style.display='none';
@@ -8430,7 +8017,9 @@ function checkLogin(){
       var fpm=document.getElementById('funilPmePanel'); if(fpm)fpm.style.display='none';
       painel.style.display='block';pos();
       document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='LEADS');});
+      if(typeof syncOrcTab==='function')syncOrcTab(null);
       var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      var gg=document.getElementById('gestorGroup');if(gg)gg.style.display='none';
       return;
     }
     painel.style.display='none';
@@ -8478,7 +8067,9 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       ['funilPfPanel','funilPmePanel','prodPanel','leadsPanel'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
       pos(p);
       document.querySelectorAll('.view-tab').forEach(function(b){b.classList.toggle('active',b.dataset.view===v);});
+      if(typeof syncOrcTab==='function')syncOrcTab(null);
       var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      var gg=document.getElementById('gestorGroup');if(gg)gg.style.display='none';
       return;
     }
     p26.style.display='none';pcc.style.display='none';
