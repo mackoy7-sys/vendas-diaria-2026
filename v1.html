@@ -113,6 +113,28 @@
     .view-drop-menu em { display: block; font-size: 11px; font-style: normal; color: #6b6b78;
       margin-top: 1px; line-height: 1.35; }
     #orcSel { font-weight: 500; opacity: .9; }
+    #cmpSel { font-weight: 500; opacity: .9; }
+
+    /* ── aba "Comparar": Meses e Semanas num dropdown so (19/09/2026) ──
+       Mesma casca do #orcDrop: o estado real continua sendo mesAtivo === "COMPARATIVO"
+       e currentView() segue devolvendo "COMP". O que muda e' so' qual painel aparece. */
+    #cmpMenu button.ativo { background: #e7f6f0; border-left-color: #2bbd8a; }
+    .cs-wtd { background: #f5f7fa; border-radius: 8px; padding: 9px 12px; font-size: 12.5px;
+      color: #3c4250; margin-bottom: 14px; }
+    .cs-seg { display: inline-flex; gap: 4px; }
+    .cs-seg button { border: 1.5px solid #cfd6de; background: #fff; color: #5b6472;
+      border-radius: 7px; padding: 4px 11px; font-size: 12px; cursor: pointer; }
+    .cs-seg button.ativo { border-color: #0d6e4a; background: #eaf3ee; color: #0d4a32; font-weight: 700; }
+    .cs-grid { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); gap: 4px; }
+    .cs-grid .cs-h { text-align: center; font-size: 11px; color: #8b93a1;
+      text-transform: uppercase; letter-spacing: .04em; }
+    .cs-grid .cs-h small { display: block; font-size: 10px; color: #aab1bd;
+      text-transform: none; letter-spacing: 0; }
+    .cs-grid .cs-r { display: flex; align-items: center; font-size: 12px; font-weight: 700; color: #5b6472; }
+    .cs-cell { height: 46px; border-radius: 6px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; line-height: 1.15; }
+    .cs-cell.vazia { border: 1px dashed #dfe4ea; }
+    .cs-cell small { font-size: 9px; font-weight: 600; opacity: .8; }
 
     /* FILTROS */
     .filters {
@@ -558,7 +580,17 @@
   <div class="view-tabs" id="viewTabs">
       <button class="view-tab active" data-view="CONS" onclick="setView('CONS')">Consolidado</button>
       <button class="view-tab" data-view="PPO" onclick="setView('PPO')">NotreDame Saúde</button>
-      <button class="view-tab" data-view="COMP" onclick="setView('COMP')">Comparar meses</button>
+      <div class="view-drop" id="cmpDrop">
+        <button class="view-tab" data-view="COMP" id="cmpTrigger" aria-haspopup="menu"
+                aria-expanded="false" aria-controls="cmpMenu" onclick="toggleCmpMenu(event)"
+        >Comparar<span id="cmpSel"></span><span class="view-drop-caret" aria-hidden="true">&#9662;</span></button>
+        <div class="view-drop-menu" id="cmpMenu" role="menu" aria-labelledby="cmpTrigger">
+          <button role="menuitem" data-cmp="MES" onclick="escolheCmp('MES')">
+            <b>Meses</b><em>at&eacute; 3 meses, dias compar&aacute;veis</em></button>
+          <button role="menuitem" data-cmp="SEM" onclick="escolheCmp('SEM')">
+            <b>Semanas</b><em>semanas do m&ecirc;s corrente</em></button>
+        </div>
+      </div>
       <button class="view-tab" data-view="PROD" onclick="setView('PROD')">📆 Produtividade</button>
       <button class="view-tab" data-view="LEADS" onclick="setView('LEADS')">📈 Leads</button>
       <button class="view-tab" data-view="VD2026" onclick="setView('VD2026')">📊 Vendas 2026</button>
@@ -757,6 +789,33 @@
           <tbody id="compCVBody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- PAINEL COMPARATIVO POR SEMANA (aba Comparar ▸ Semanas) — 19/09/2026 -->
+  <div id="compSemPanel" style="display:none;">
+    <div style="background:#eaf3ee;border-left:4px solid #0d6e4a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0d4a32;">
+      🗓️ <b>Comparativo por semana</b> — <span id="semNota"></span>. A semana é um <b>bloco fixo de 7 dias a partir do dia 1º</b> (1–7, 8–14, 15–21…), então toda semana cheia tem o mesmo tamanho e as colunas D1…D7 caem sempre no mesmo dia da semana.
+      O ritmo é <b>vidas por dia útil</b> (seg–sex, <b>sem feriado</b> no numerador nem no denominador), porque o último bloco do mês costuma ficar pela metade.
+      Vidas e produtos seguem o filtro de gestão; <b>leads e conversão são sempre do Total</b> (o payload não tem lead por gestão) e excluem a VPC.
+    </div>
+    <div class="kpi-row" id="semKpis"></div>
+    <div class="cs-wtd" id="semWtd" style="display:none"></div>
+    <div class="chart-card">
+      <div class="chart-title" id="ctSemProduto">📦 Vidas por semana e produto</div>
+      <div style="position:relative;height:330px;width:100%"><canvas id="chartSemProduto"></canvas></div>
+    </div>
+    <div class="table-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div class="chart-title" id="ctSemMatriz" style="margin:0">🔲 Matriz semana × dia</div>
+        <div class="cs-seg" id="semSeg">
+          <button data-m="vidas" class="ativo" onclick="setSemMetrica('vidas')">Vidas</button>
+          <button data-m="leads" onclick="setSemMetrica('leads')">Leads</button>
+          <button data-m="conv" onclick="setSemMetrica('conv')">Conversão</button>
+        </div>
+      </div>
+      <div id="semMatriz" style="margin-top:10px"></div>
+      <div id="semMatrizNota" style="font-size:11px;color:#888;margin-top:8px"></div>
     </div>
   </div>
 
@@ -3354,6 +3413,48 @@ function syncOrcTab(v) {
   });
 }
 
+// ── Aba "Comparar" — Meses e Semanas num dropdown só (19/09/2026) ──
+// Também é CASCA: mesAtivo === "COMPARATIVO" e currentView() === "COMP" continuam iguais;
+// `cmpModo` só escolhe qual dos dois painéis renderAll() acende.
+const CMP_LABEL = { MES: "meses", SEM: "semanas" };
+let cmpModo = "MES";
+
+function fecharCmpMenu() {
+  const m = document.getElementById("cmpMenu");
+  if (m) m.classList.remove("aberto");
+  const t = document.getElementById("cmpTrigger");
+  if (t) t.setAttribute("aria-expanded", "false");
+}
+function toggleCmpMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const m = document.getElementById("cmpMenu");
+  if (!m) return;
+  const abrir = !m.classList.contains("aberto");
+  m.classList.toggle("aberto", abrir);
+  const t = document.getElementById("cmpTrigger");
+  if (t) t.setAttribute("aria-expanded", abrir ? "true" : "false");
+}
+function escolheCmp(v) {
+  fecharCmpMenu();
+  cmpModo = (v === "SEM") ? "SEM" : "MES";
+  setView("COMP");
+}
+document.addEventListener("click", function (e) {
+  const d = document.getElementById("cmpDrop");
+  if (d && !d.contains(e.target)) fecharCmpMenu();
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" || e.key === "Esc") fecharCmpMenu();
+});
+// Igual ao Orçamentos: o sufixo só aparece com a aba ATIVA, senão parece filtro ligado.
+function syncCmpTab(v) {
+  const sel = document.getElementById("cmpSel");
+  if (sel) sel.textContent = (v === "COMP") ? " · " + CMP_LABEL[cmpModo] : "";
+  document.querySelectorAll("#cmpMenu [data-cmp]").forEach(function (b) {
+    b.classList.toggle("ativo", v === "COMP" && b.dataset.cmp === cmpModo);
+  });
+}
+
 // ── VISÃO ATUAL (deriva do estado) ──
 function currentView() {
   if (mesAtivo === "COMPARATIVO") return "COMP";
@@ -3370,6 +3471,7 @@ function syncTabs() {
   document.querySelectorAll(".view-tab").forEach(b =>
     b.classList.toggle("active", b.dataset.view === vTab));
   syncOrcTab(v);
+  syncCmpTab(v);
   // Mês é filtro válido em toda visão que tem um bloco por mês (CONS/PPO/FPME/FPF).
   const mg = document.getElementById("mesGroup");
   if (mg) mg.style.display =
@@ -3409,8 +3511,12 @@ function setView(v) {
   } else if (v === "COMP") {
     ppoView = false; fpfView = false; fpmeView = false;
     mesAtivo = "COMPARATIVO";
-    buildCompSelects();
-    document.getElementById("mesLabel").textContent = "Comparativo entre meses";
+    if (cmpModo === "SEM") {
+      document.getElementById("mesLabel").textContent = "Comparativo por semana";
+    } else {
+      buildCompSelects();
+      document.getElementById("mesLabel").textContent = "Comparativo entre meses";
+    }
   } else {
     // CONS, PPO, FPF e FPME precisam de um mês real
     if (mesAtivo === "TRIMESTRE" || mesAtivo === "COMPARATIVO") {
@@ -7541,7 +7647,10 @@ function renderAll() {
   // alterna blocos
   document.querySelectorAll(".normal-view").forEach(el => el.style.display = (isTri || isComp || isPpo || isFpf || isFpme) ? "none" : "");
   document.getElementById("triPanel").style.display = (isTri && !isPpo && !isFpf && !isFpme) ? "" : "none";
-  document.getElementById("compPanel").style.display = (isComp && !isPpo && !isFpf && !isFpme) ? "" : "none";
+  const isSem = isComp && cmpModo === "SEM";   // Comparar ▸ Semanas
+  document.getElementById("compPanel").style.display = (isComp && !isSem && !isPpo && !isFpf && !isFpme) ? "" : "none";
+  const _csp = document.getElementById("compSemPanel");
+  if (_csp) _csp.style.display = (isSem && !isPpo && !isFpf && !isFpme) ? "" : "none";
   document.getElementById("ppoPanel").style.display = (isPpo && !isFpme) ? "" : "none";
   const _fp = document.getElementById("funilPfPanel");
   if (_fp) _fp.style.display = isFpf ? "" : "none";
@@ -7552,7 +7661,7 @@ function renderAll() {
   if (isFpme) { renderFunilPme(); return; }
   if (isFpf) { renderFunilPf(); return; }
   if (isPpo) { renderPpoTab(); return; }
-  if (isComp) { renderComparativo(); return; }
+  if (isComp) { if (isSem) renderSemanas(); else renderComparativo(); return; }
 
   renderKPIs();
   if (isTri) {
@@ -7664,6 +7773,260 @@ function renderTrimestre() {
     `;
     tbody.appendChild(tr);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPARATIVO POR SEMANA (aba Comparar ▸ Semanas) — 19/09/2026
+// Semana = BLOCO FIXO DE 7 DIAS a partir do dia 1º (1–7, 8–14, 15–21…), decisão
+// do David em 19/09. Toda semana cheia tem o mesmo tamanho, e como os blocos
+// andam de 7 em 7 a posição D1…D7 cai SEMPRE no mesmo dia da semana dentro do
+// mês -- é por isso que a matriz usa a posição no bloco como coluna e não o
+// nome do dia: numa coluna "segunda" o dia 7 apareceria ANTES do dia 1.
+// O último bloco do mês fica curto (ex.: 29–30); é o preço do tamanho fixo, e
+// por isso o ritmo é sempre por DIA ÚTIL, nunca o total do bloco.
+// Tudo sai do payload que já existe: `volumeDia` (PF/PME/Adesão por dia e por
+// gestão), `gestores.TOTAL.leads` (leads/dia) e `leadsOrigemDia` (p/ descontar
+// a VPC — mesma regra de conversão do comparativo de meses).
+// ⚠️ LEADS SÓ EXISTEM EM TOTAL (`gestores.FABIO.leads` vem vazio): leads e
+//    conversão aqui são SEMPRE consolidados, mesmo com a gestão filtrada.
+// ⚠️ O corte é `diaDados`, não `diaAtual`: `volumeDia.pme` carrega implantação
+//    FUTURA (vidas em dias que ainda não aconteceram) e sem o corte a última
+//    semana aparece inflada.
+// ══════════════════════════════════════════════════════════════════════════════
+const SEM_MES_NUM = { JANEIRO:1, FEVEREIRO:2, "MARÇO":3, MARCO:3, ABRIL:4, MAIO:5, JUNHO:6,
+                      JULHO:7, AGOSTO:8, SETEMBRO:9, OUTUBRO:10, NOVEMBRO:11, DEZEMBRO:12 };
+// Feriados nacionais. Entram como MARCAÇÃO e ficam fora do numerador e do
+// denominador do ritmo: sem isso a semana do 7/9 parece ter uma segunda ruim.
+const SEM_FERIADOS = { 2026: ["01-01","02-16","02-17","04-03","04-21","05-01","06-04",
+                              "09-07","10-12","11-02","11-15","11-20","12-25"] };
+const SEM_DOW = ["seg","ter","qua","qui","sex","sáb","dom"];
+let semMetrica = "vidas";
+let semCtxCache = null;
+
+function semEhFeriado(ano, mesNum, d) {
+  const lst = SEM_FERIADOS[ano];
+  if (!lst) return false;
+  const k = String(mesNum).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  return lst.indexOf(k) >= 0;
+}
+function semCtx() {
+  const mk = ultimoMesReal();
+  const M = DADOS_MESES[mk];
+  const mesNum = SEM_MES_NUM[mk] || 1;
+  const ano = parseInt((String(M.mesLabel).match(/\d{4}/) || ["2026"])[0], 10);
+  let ultimo = M.diaDados || 0;
+  if (!ultimo) {                                   // fallback: último dia com lead preenchido
+    const L = M.gestores.TOTAL.leads || [];
+    for (let i = 0; i < L.length; i++) if (L[i] !== null && L[i] !== undefined) ultimo = i + 1;
+  }
+  if (!ultimo) ultimo = M.diaAtual || M.diasNoMes || 1;
+  const dow = d => new Date(ano, mesNum - 1, d).getDay();   // 0=dom … 6=sáb
+  const semanas = [];
+  for (let ini = 1; ini <= ultimo; ini += 7) {
+    const w = [];
+    for (let d = ini; d < ini + 7 && d <= ultimo; d++) w.push(d);
+    semanas.push(w);
+  }
+  return { mk, M, mesNum, ano, ultimo, dow, semanas, emCurso: ultimo < (M.diasNoMes || 31) };
+}
+function semVidasDia(M, g, d) {
+  const G = M.gestores[g];
+  if (!G) return 0;
+  const v = G.volumeDia;
+  if (v) return (v.pf[d-1] || 0) + (v.pme[d-1] || 0) + (v.adesao[d-1] || 0);
+  const a = G.acumulado || [];                     // meses antigos não têm volumeDia
+  return (a[d-1] || 0) - (d > 1 ? (a[d-2] || 0) : 0);
+}
+function semProdDia(M, g, d) {
+  const v = M.gestores[g] && M.gestores[g].volumeDia;
+  return v ? { pf: v.pf[d-1] || 0, pme: v.pme[d-1] || 0, ades: v.adesao[d-1] || 0 } : null;
+}
+function semLeadsDia(M, d) {                       // leads do dia SEM VPC (regra do comparativo)
+  const L = M.gestores.TOTAL.leads || [];
+  const tot = L[d-1] || 0;
+  let vpc = 0;
+  const lod = M.leadsOrigemDia;
+  if (lod && Array.isArray(lod.origens)) {
+    const o = lod.origens.find(x => x.origem === "VPC");
+    if (o && Array.isArray(o.dias)) vpc = o.dias[d-1] || 0;
+  }
+  return Math.max(0, tot - vpc);
+}
+function setSemMetrica(m) { semMetrica = m; renderSemMatriz(); }
+
+function renderSemanas() {
+  const C = semCtx();
+  semCtxCache = C;
+  const M = C.M, g = gestorAtivo;
+  const dd = d => String(d).padStart(2, "0");
+  const mm = String(C.mesNum).padStart(2, "0");
+  const labelG = M.gestores[g] ? M.gestores[g].label : "Total geral";
+  const setTxt = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+  setTxt("mesLabel", "Semanas de " + M.mesLabel);
+  setTxt("diaAtualLabel", "dias 1–" + C.ultimo);
+  setTxt("filtroLabel", C.semanas.length + " semanas · " + labelG);
+  setTxt("semNota", M.mesLabel + ", com dado fechado até o dia " + C.ultimo);
+
+  const ag = C.semanas.map(w => {
+    const uteis = w.filter(d => C.dow(d) >= 1 && C.dow(d) <= 5 && !semEhFeriado(C.ano, C.mesNum, d));
+    let vidas = 0, vidasUteis = 0, pf = 0, pme = 0, ades = 0, leads = 0, vidasTot = 0;
+    w.forEach(d => {
+      const v = semVidasDia(M, g, d);
+      vidas += v;
+      if (uteis.indexOf(d) >= 0) vidasUteis += v;
+      const p = semProdDia(M, g, d);
+      if (p) { pf += p.pf; pme += p.pme; ades += p.ades; }
+      leads += semLeadsDia(M, d);
+      vidasTot += semVidasDia(M, "TOTAL", d);
+    });
+    return { ini: w[0], fim: w[w.length-1], dias: w, uteis: uteis.length,
+             feriados: w.filter(d => semEhFeriado(C.ano, C.mesNum, d)),
+             vidas, vidasUteis, pf, pme, ades, leads,
+             taxa: uteis.length ? vidasUteis / uteis.length : 0,
+             conv: leads > 0 ? vidasTot / leads * 100 : 0 };
+  });
+
+  // KPIs: uma carta por semana (total do período + ritmo por dia útil)
+  const kp = document.getElementById("semKpis");
+  if (kp) kp.innerHTML = ag.map((s, i) => {
+    const prev = i > 0 ? ag[i-1] : null;
+    const dl = (prev && prev.taxa > 0) ? (s.taxa - prev.taxa) / prev.taxa * 100 : null;
+    const badge = dl === null ? ""
+      : ` <span class="badge ${dl >= 0 ? "green" : "red"}">${dl >= 0 ? "+" : ""}${fmtDec(dl)}%</span>`;
+    const ult = (i === ag.length - 1) && C.emCurso;
+    const fer = s.feriados.length ? " · feriado " + s.feriados.map(dd).join(", ") + "/" + mm : "";
+    return `<div class="kpi-card ${ult ? "laranja" : "cinza"}">
+      <div class="kpi-label">S${i+1} · ${dd(s.ini)}–${dd(s.fim)}${ult ? " · em curso" : ""}</div>
+      <div class="kpi-value">${fmt(s.vidas)}</div>
+      <div class="kpi-sub">${fmt(Math.round(s.taxa))} / dia útil${badge}</div>
+      <div class="kpi-sub" style="font-size:11px;color:#8b93a1;margin-top:2px">${s.dias.length} dias · ${s.uteis} úteis${fer}</div>
+    </div>`;
+  }).join("");
+
+  // Semana em curso: comparação na MESMA POSIÇÃO do bloco (D1 contra D1, D2 contra
+  // D2…) contra a semana anterior. Sem isso o total de um bloco pela metade sempre
+  // parece queda. Como os blocos andam de 7 em 7, a posição também casa o dia da semana.
+  const wtd = document.getElementById("semWtd");
+  if (wtd) {
+    if (ag.length >= 2 && C.emCurso) {
+      const cur = ag[ag.length-1], prev = ag[ag.length-2];
+      let a = 0, b = 0, aEx = 0, bEx = 0, temFer = false;
+      cur.dias.forEach((d, pos) => {
+        const alvo = prev.dias[pos];
+        if (alvo === undefined) return;
+        const vd = semVidasDia(M, g, d), vp = semVidasDia(M, g, alvo);
+        a += vd; b += vp;
+        if (semEhFeriado(C.ano, C.mesNum, d) || semEhFeriado(C.ano, C.mesNum, alvo)) temFer = true;
+        else { aEx += vd; bEx += vp; }
+      });
+      const pct = (x, y) => y > 0 ? (x - y) / y * 100 : 0;
+      const bd = (x, y) => { const p = pct(x, y);
+        return `<span class="badge ${p >= 0 ? "green" : "red"}">${p >= 0 ? "+" : ""}${fmtDec(p)}%</span>`; };
+      let txt = `↔ <b>Semana em curso na mesma posição do bloco:</b> S${ag.length} fez ${fmt(a)} contra `
+              + `${fmt(b)} da S${ag.length-1} ${bd(a, b)}`;
+      if (temFer) txt += ` &nbsp;·&nbsp; descontando os dias de feriado: ${fmt(aEx)} contra ${fmt(bEx)} ${bd(aEx, bEx)}`;
+      wtd.innerHTML = txt;
+      wtd.style.display = "";
+    } else {
+      wtd.style.display = "none";
+    }
+  }
+
+  // Barra empilhada por produto + linha de conversão (Total)
+  destroyChart("semProduto");
+  const labels = ag.map((s, i) => `S${i+1} · ${dd(s.ini)}–${dd(s.fim)}`);
+  const temProd = ag.some(s => (s.pf + s.pme + s.ades) > 0);
+  const ds = temProd
+    ? [ { label: "PF",     data: ag.map(s => s.pf),   backgroundColor: "#185FA5", stack: "v", datalabels: { display: false } },
+        { label: "PME",    data: ag.map(s => s.pme),  backgroundColor: "#1D9E75", stack: "v", datalabels: { display: false } },
+        // sem rótulo de total em cima da barra: ele colidia com a linha de conversão
+        // e repetia o número que as cartas de KPI já mostram logo acima.
+        { label: "Adesão", data: ag.map(s => s.ades), backgroundColor: "#D85A30", stack: "v",
+          datalabels: { display: false } } ]
+    : [ { label: "Vidas", data: ag.map(s => s.vidas), backgroundColor: "#185FA5", stack: "v",
+          datalabels: { display: false } } ];
+  ds.push({ type: "line", label: "Conversão (Total)", data: ag.map(s => Number(s.conv.toFixed(2))),
+            borderColor: "#7a5000", backgroundColor: "#7a5000", borderDash: [6, 4], borderWidth: 2,
+            pointStyle: "triangle", pointRadius: 6, yAxisID: "y1", tension: .2,
+            datalabels: { display: false } });
+  charts["semProduto"] = new Chart(document.getElementById("chartSemProduto"), {
+    type: "bar",
+    data: { labels, datasets: ds },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      layout: { padding: { top: 22 } },
+      plugins: {
+        legend: { labels: { font: { size: 11 } } },
+        datalabels: {},
+        tooltip: { callbacks: {
+          label: ctx => ctx.dataset.type === "line"
+            ? `Conversão: ${fmtDec(ctx.parsed.y, 2)}%`
+            : `${ctx.dataset.label}: ${fmt(ctx.parsed.y || 0)}`,
+          afterBody: items => {
+            const s = ag[items[0].dataIndex];
+            return [`${s.uteis} dias úteis · ${fmt(Math.round(s.taxa))} vidas/dia útil`,
+                    `${fmt(s.leads)} leads (Total, sem VPC)`];
+          } } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 11 } } },
+        y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 } }, grace: "8%" },
+        y1: { position: "right", beginAtZero: true, grid: { display: false },
+              ticks: { font: { size: 10 }, callback: v => v + "%" } }
+      }
+    }
+  });
+
+  renderSemMatriz();
+}
+
+// Matriz semana × dia. A coluna é a POSIÇÃO no bloco (D1…D7), não o nome do dia:
+// com bloco fixo de 7 dias o dia 7 é o FIM da S1, e numa coluna "segunda" ele
+// apareceria antes do dia 1. Como os blocos andam de 7 em 7, cada coluna cai
+// sempre no mesmo dia da semana — o cabeçalho mostra qual. Lida na VERTICAL, a
+// coluna é o histórico daquele dia no mês: é ali que a quinta caindo aparece.
+function renderSemMatriz() {
+  const C = semCtxCache;
+  if (!C) return;
+  const M = C.M, g = gestorAtivo;
+  const val = d => semMetrica === "vidas" ? semVidasDia(M, g, d)
+                 : semMetrica === "leads" ? semLeadsDia(M, d)
+                 : (semLeadsDia(M, d) > 0 ? semVidasDia(M, "TOTAL", d) / semLeadsDia(M, d) * 100 : 0);
+  const fmtV = v => semMetrica === "conv" ? fmtDec(v, 1) + "%" : fmt(Math.round(v));
+  let mx = 0;
+  for (let d = 1; d <= C.ultimo; d++) mx = Math.max(mx, val(d));
+  const stops = ["#e8f1fb", "#c9dff5", "#9cc4ec", "#5f9bdd", "#2b6cb0"];
+  const mm = String(C.mesNum).padStart(2, "0");
+  // cabeçalho: D1…D7 + o dia da semana em que aquela posição cai no mês
+  let h = '<div class="cs-grid"><div></div>'
+    + [0,1,2,3,4,5,6].map(p => `<div class="cs-h">D${p+1}<small>${SEM_DOW[(C.dow(1 + p) + 6) % 7]}</small></div>`).join("");
+  C.semanas.forEach((w, i) => {
+    h += `<div class="cs-r">S${i+1}</div>`;
+    const cells = new Array(7).fill(null);
+    w.forEach(d => { cells[(d - w[0]) % 7] = d; });
+    cells.forEach(d => {
+      if (d === null) { h += '<div class="cs-cell vazia"></div>'; return; }
+      const v = val(d);
+      const k = mx > 0 ? Math.min(4, Math.floor(v / mx * 5)) : 0;
+      const fg = k >= 3 ? "#eef5fd" : "#0b3d6b";
+      const fer = semEhFeriado(C.ano, C.mesNum, d);
+      h += `<div class="cs-cell" title="${String(d).padStart(2,"0")}/${mm}" style="background:${stops[k]};color:${fg}">`
+         + `${fmtV(v)}<small>${String(d).padStart(2,"0")}${fer ? " · feriado" : ""}</small></div>`;
+    });
+  });
+  h += "</div>";
+  document.getElementById("semMatriz").innerHTML = h;
+  const labelG = M.gestores[g] ? M.gestores[g].label : "Total geral";
+  const notas = {
+    vidas: `Intensidade = vidas do dia (${labelG}). Corte no dia ${C.ultimo}, o último com dado fechado — depois dele só há implantação futura de PME.`,
+    leads: "Intensidade = leads do dia, já sem VPC (Total, o payload não tem lead por gestão).",
+    conv:  "Intensidade = vidas ÷ leads do dia, sem VPC (Total). Fim de semana e feriado têm base pequena — leia com cuidado."
+  };
+  const nt = document.getElementById("semMatrizNota");
+  if (nt) nt.textContent = notas[semMetrica];
+  document.querySelectorAll("#semSeg button").forEach(b =>
+    b.classList.toggle("ativo", b.dataset.m === semMetrica));
 }
 
 // ── COMPARATIVO ENTRE MESES (seleção dinâmica, até 3 meses) ──
