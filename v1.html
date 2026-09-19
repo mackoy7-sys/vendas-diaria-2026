@@ -821,13 +821,11 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
         <div class="chart-title" id="ctSemOrigem" style="margin:0">📣 Origem dos leads por semana</div>
         <div class="cs-seg" id="semOrigemSeg">
-          <button data-m="volume" onclick="setSemOrigemMetrica('volume')">Volume</button>
-          <button data-m="participacao" onclick="setSemOrigemMetrica('participacao')">Participação</button>
-          <button data-m="crescimento" class="ativo" onclick="setSemOrigemMetrica('crescimento')">Crescimento</button>
+          <button data-m="total" class="ativo" onclick="setSemOrigemMetrica('total')">Total</button>
+          <button data-m="por-dia" onclick="setSemOrigemMetrica('por-dia')">Por dia</button>
         </div>
       </div>
-      <div id="semOrigemGraficoWrap" style="position:relative;height:360px;width:100%;margin-top:10px"><canvas id="chartSemOrigem"></canvas></div>
-      <div id="semOrigemCrescimento" style="display:none;overflow-x:auto;margin-top:10px"></div>
+      <div id="semOrigemCrescimento" style="overflow-x:auto;margin-top:10px"></div>
       <div id="semOrigemNota" style="font-size:11px;color:#888;margin-top:8px"></div>
     </div>
   </div>
@@ -7814,7 +7812,7 @@ const SEM_FERIADOS = { 2026: ["01-01","02-16","02-17","04-03","04-21","05-01","0
                               "09-07","10-12","11-02","11-15","11-20","12-25"] };
 const SEM_DOW = ["seg","ter","qua","qui","sex","sáb","dom"];
 let semMetrica = "vidas";
-let semOrigemMetrica = "crescimento";
+let semOrigemMetrica = "total";
 let semCtxCache = null;
 
 function semEhFeriado(ano, mesNum, d) {
@@ -8030,87 +8028,39 @@ function renderSemOrigem() {
   if (demais.length) principais.push({ origem: "Outras origens", semanas: semanas.map((_, i) =>
     demais.reduce((s, o) => s + o.semanas[i], 0)), total: demais.reduce((s, o) => s + o.total, 0) });
   const totais = semanas.map((_, i) => principais.reduce((s, o) => s + o.semanas[i], 0));
-  const labels = semanas.map((w, i) => `S${i + 1} · ${String(w[0]).padStart(2, "0")}–${String(w[w.length - 1]).padStart(2, "0")}`);
-  const cores = ["#185FA5", "#1D9E75", "#D85A30", "#6c4ed8", "#B8800F", "#2B8C9E", "#B64F7B", "#688A1E", "#8A97A5"];
-  const participar = semOrigemMetrica === "participacao";
-  const crescimento = semOrigemMetrica === "crescimento";
-  const graficoWrap = document.getElementById("semOrigemGraficoWrap");
+  const porDia = semOrigemMetrica === "por-dia";
   const crescimentoWrap = document.getElementById("semOrigemCrescimento");
   const nota = document.getElementById("semOrigemNota");
-
-  // Crescimento é medido no ritmo (leads/dia), não no total da barra. Assim a
-  // semana ainda em curso é comparável a uma semana completa e não aparece como
-  // queda apenas por ter menos dias no calendário.
-  if (crescimento) {
-    destroyChart("semOrigem");
-    if (graficoWrap) graficoWrap.style.display = "none";
-    if (crescimentoWrap) {
-      crescimentoWrap.style.display = "";
-      const ritmo = (o, i) => semanas[i].length ? o.semanas[i] / semanas[i].length : 0;
-      const ult = semanas.length - 1;
-      const anterior = Math.max(0, ult - 1);
-      const deltaAtual = o => ritmo(o, ult) - ritmo(o, anterior);
-      const linhas = principais.slice().sort((a, b) => deltaAtual(b) - deltaAtual(a) || a.origem.localeCompare(b.origem, "pt-BR"));
-      const esc = s => String(s).replace(/[&<>\"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;" })[c]);
-      const cabecalho = semanas.map((w, i) => i === 0
-        ? `<th class="td-right">Ritmo S1<br><small>${String(w[0]).padStart(2,"0")}–${String(w[w.length-1]).padStart(2,"0")}</small></th>`
-        : `<th class="td-right">S${i+1} vs S${i}<br><small>${String(w[0]).padStart(2,"0")}–${String(w[w.length-1]).padStart(2,"0")}</small></th>`).join("");
-      const celula = (o, i) => {
-        const atual = ritmo(o, i);
-        if (i === 0) return `<td class="td-right"><b>${fmtDec(atual)}</b><br><small>leads/dia</small></td>`;
-        const anteriorRitmo = ritmo(o, i - 1), delta = atual - anteriorRitmo;
-        const pct = anteriorRitmo ? delta / anteriorRitmo * 100 : null;
-        const cor = pct === null ? "#f3f4f6" : pct >= 0 ? "#eaf5ef" : "#fdf0ef";
-        const tinta = pct === null ? "#6b7280" : pct >= 0 ? "#19734c" : "#b43a32";
-        const sinal = delta > 0 ? "+" : "";
-        return `<td class="td-right" style="background:${cor};color:${tinta}"><b>${pct === null ? "novo" : sinal + fmtDec(pct) + "%"}</b><br><small>${fmtDec(atual)} / dia · ${sinal}${fmtDec(delta)}</small></td>`;
-      };
-      const corpo = linhas.map(o => `<tr><td style="font-weight:600">${esc(o.origem)}</td>${semanas.map((_, i) => celula(o, i)).join("")}</tr>`).join("");
-      const total = { origem: "Total (sem VPC)", semanas: totais };
-      crescimentoWrap.innerHTML = `<table style="min-width:720px"><thead><tr><th>Origem</th>${cabecalho}</tr></thead><tbody>${corpo}<tr style="font-weight:700;border-top:2px solid #185FA5"><td>Total (sem VPC)</td>${semanas.map((_, i) => celula(total, i)).join("")}</tr></tbody></table>`;
-    }
-    if (nota) nota.textContent = "Crescimento compara a média de leads/dia de cada origem contra a semana anterior; verde cresceu, vermelho caiu. VPC não entra na régua.";
-    return;
+  const valor = (o, i) => porDia && semanas[i].length ? o.semanas[i] / semanas[i].length : o.semanas[i];
+  const ultimo = semanas.length - 1;
+  const deltaAtual = o => valor(o, ultimo) - valor(o, Math.max(0, ultimo - 1));
+  const linhas = principais.slice().sort((a, b) => deltaAtual(b) - deltaAtual(a) || a.origem.localeCompare(b.origem, "pt-BR"));
+  const esc = s => String(s).replace(/[&<>\"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;" })[c]);
+  const unidade = porDia ? "leads/dia" : "leads";
+  const periodo = w => `${String(w[0]).padStart(2,"0")}–${String(w[w.length - 1]).padStart(2,"0")}`;
+  const cabecalho = semanas.map((w, i) => i === 0
+    ? `<th class="td-right">S1<br><small>${periodo(w)}</small></th>`
+    : `<th class="td-right">S${i+1}<br><small>${periodo(w)}</small></th><th class="td-right">Δ S${i+1} vs S${i}</th>`).join("")
+    + (semanas.length > 2 ? `<th class="td-right">Δ S${semanas.length} vs S1</th>` : "");
+  const celulaSemana = (o, i) => `<td class="td-right"><b>${fmtDec(valor(o, i))}</b><br><small>${unidade}</small></td>`;
+  const celulaDelta = (o, ini, fim) => {
+    const anterior = valor(o, ini), atual = valor(o, fim), delta = atual - anterior;
+    const pct = anterior ? delta / anterior * 100 : null;
+    const cor = pct === null ? "#f3f4f6" : pct >= 0 ? "#eaf5ef" : "#fdf0ef";
+    const tinta = pct === null ? "#6b7280" : pct >= 0 ? "#19734c" : "#b43a32";
+    const sinal = delta > 0 ? "+" : "";
+    return `<td class="td-right" style="background:${cor};color:${tinta}"><b>${pct === null ? "novo" : sinal + fmtDec(pct) + "%"}</b><br><small>${sinal}${fmtDec(delta)} ${unidade}</small></td>`;
+  };
+  const linha = o => semanas.map((_, i) => celulaSemana(o, i) + (i ? celulaDelta(o, i - 1, i) : "")).join("")
+    + (semanas.length > 2 ? celulaDelta(o, 0, ultimo) : "");
+  if (crescimentoWrap) {
+    const corpo = linhas.map(o => `<tr><td style="font-weight:600">${esc(o.origem)}</td>${linha(o)}</tr>`).join("");
+    const total = { semanas: totais };
+    crescimentoWrap.innerHTML = `<table style="min-width:860px"><thead><tr><th>Origem</th>${cabecalho}</tr></thead><tbody>${corpo}<tr style="font-weight:700;border-top:2px solid #185FA5"><td>Total (sem VPC)</td>${linha(total)}</tr></tbody></table>`;
   }
-  if (graficoWrap) graficoWrap.style.display = "";
-  if (crescimentoWrap) crescimentoWrap.style.display = "none";
-  const datasets = principais.map((o, i) => ({
-    label: o.origem,
-    data: o.semanas.map((v, j) => participar ? (totais[j] ? v / totais[j] * 100 : 0) : v),
-    _bruto: o.semanas,
-    backgroundColor: cores[i % cores.length],
-    stack: "origem",
-    datalabels: { display: false }
-  }));
-  destroyChart("semOrigem");
-  charts["semOrigem"] = new Chart(document.getElementById("chartSemOrigem"), {
-    type: "bar",
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      plugins: {
-        legend: { labels: { font: { size: 11 }, boxWidth: 11 } },
-        datalabels: {},
-        tooltip: { callbacks: {
-          label: ctx => {
-            const bruto = ctx.dataset._bruto[ctx.dataIndex] || 0;
-            const pct = totais[ctx.dataIndex] ? bruto / totais[ctx.dataIndex] * 100 : 0;
-            return `${ctx.dataset.label}: ${fmt(bruto)} leads (${fmtDec(pct)}%)`;
-          },
-          afterBody: itens => `Total da semana: ${fmt(totais[itens[0].dataIndex] || 0)} leads`
-        } }
-      },
-      scales: {
-        x: { stacked: true, ticks: { font: { size: 11 } } },
-        y: { stacked: true, beginAtZero: true, max: participar ? 100 : undefined,
-             ticks: { font: { size: 10 }, callback: v => participar ? v + "%" : fmt(v) } }
-      }
-    }
-  });
-  if (nota) nota.textContent = participar
-    ? "Participação compara o mix entre semanas, mesmo quando a última estiver incompleta. VPC não entra na régua."
-    : "Volume mostra a captação semanal por origem. VPC não entra na régua; as 8 maiores origens aparecem separadas e as demais são consolidadas.";
+  if (nota) nota.textContent = porDia
+    ? "Por dia usa a média de leads de cada semana; escolha esta leitura para comparar uma semana em curso com semanas completas. VPC não entra na régua."
+    : "Total mostra os leads efetivamente captados em cada semana. VPC não entra na régua; semanas incompletas exibem menos dias no cabeçalho.";
 }
 
 // Matriz semana × dia. A coluna é a POSIÇÃO no bloco (D1…D7), não o nome do dia:
