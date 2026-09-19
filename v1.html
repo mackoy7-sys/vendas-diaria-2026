@@ -821,8 +821,8 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
         <div class="chart-title" id="ctSemOrigem" style="margin:0">📣 Origem dos leads por semana</div>
         <div class="cs-seg" id="semOrigemSeg">
-          <button data-m="total" class="ativo" onclick="setSemOrigemMetrica('total')">Total</button>
-          <button data-m="por-dia" onclick="setSemOrigemMetrica('por-dia')">Por dia</button>
+          <button data-m="total" onclick="setSemOrigemMetrica('total')">Total</button>
+          <button data-m="por-dia" class="ativo" onclick="setSemOrigemMetrica('por-dia')">Por dia</button>
         </div>
       </div>
       <div id="semOrigemCrescimento" style="overflow-x:auto;margin-top:10px"></div>
@@ -7812,7 +7812,7 @@ const SEM_FERIADOS = { 2026: ["01-01","02-16","02-17","04-03","04-21","05-01","0
                               "09-07","10-12","11-02","11-15","11-20","12-25"] };
 const SEM_DOW = ["seg","ter","qua","qui","sex","sáb","dom"];
 let semMetrica = "vidas";
-let semOrigemMetrica = "total";
+let semOrigemMetrica = "por-dia";
 let semCtxCache = null;
 
 function semEhFeriado(ano, mesNum, d) {
