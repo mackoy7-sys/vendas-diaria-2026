@@ -823,6 +823,7 @@
         <div class="cs-seg" id="semOrigemSeg">
           <button data-m="total" onclick="setSemOrigemMetrica('total')">Total</button>
           <button data-m="por-dia" class="ativo" onclick="setSemOrigemMetrica('por-dia')">Por dia</button>
+          <button data-m="conversao" onclick="setSemOrigemMetrica('conversao')">Conversão</button>
         </div>
       </div>
       <div id="semOrigemCrescimento" style="overflow-x:auto;margin-top:10px"></div>
@@ -8006,10 +8007,35 @@ function renderSemanas() {
 function renderSemOrigem() {
   const C = semCtxCache || semCtx();
   const card = document.getElementById("semOrigemCard");
+  const crescimentoWrap = document.getElementById("semOrigemCrescimento");
+  const nota = document.getElementById("semOrigemNota");
+  if (!card) return;
+  const titulo = document.getElementById("ctSemOrigem");
+  if (titulo) titulo.textContent = semOrigemMetrica === "conversao"
+    ? "📈 Conversão por semana" : "📣 Origem dos leads por semana";
+  if (semOrigemMetrica === "conversao") {
+    card.style.display = "";
+    const dd = d => String(d).padStart(2, "0");
+    const dados = C.semanas.map((w, i) => {
+      const leads = w.reduce((s, d) => s + semLeadsDia(C.M, d), 0);
+      const vidas = w.reduce((s, d) => s + semVidasDia(C.M, "TOTAL", d), 0);
+      return { semana: `S${i + 1}`, periodo: `${dd(w[0])}–${dd(w[w.length - 1])}`, leads, vidas,
+               conversao: leads ? vidas / leads * 100 : 0 };
+    });
+    const delta = (atual, base) => {
+      if (base === null || base === undefined) return "<td class=\"td-right\">—</td>";
+      const v = atual - base, sinal = v > 0 ? "+" : "";
+      const cor = v >= 0 ? "#eaf5ef" : "#fdf0ef";
+      const tinta = v >= 0 ? "#19734c" : "#b43a32";
+      return `<td class="td-right" style="background:${cor};color:${tinta}"><b>${sinal}${fmtDec(v)} p.p.</b></td>`;
+    };
+    if (crescimentoWrap) crescimentoWrap.innerHTML = `<table style="min-width:760px"><thead><tr><th>Semana</th><th>Período</th><th class="td-right">Leads<br><small>sem VPC</small></th><th class="td-right">Vidas</th><th class="td-right">Conversão</th><th class="td-right">Δ vs anterior</th><th class="td-right">Δ vs S1</th></tr></thead><tbody>${dados.map((d, i) => `<tr><td style="font-weight:600">${d.semana}</td><td>${d.periodo}</td><td class="td-right num">${fmt(d.leads)}</td><td class="td-right num">${fmt(d.vidas)}</td><td class="td-right"><b>${fmtDec(d.conversao)}%</b></td>${delta(d.conversao, i ? dados[i - 1].conversao : null)}${delta(d.conversao, i ? dados[0].conversao : null)}</tr>`).join("")}</tbody></table>`;
+    if (nota) nota.textContent = "Conversão semanal = vidas do Total ÷ leads sem VPC. A variação é exibida em pontos percentuais (p.p.).";
+    return;
+  }
   const dados = C && C.M && C.M.leadsOrigemDia;
   const origens = dados && Array.isArray(dados.origens) ? dados.origens
     .filter(o => o && o.origem !== "VPC" && Array.isArray(o.dias)) : [];
-  if (!card) return;
   if (!origens.length) { card.style.display = "none"; return; }
   card.style.display = "";
 
@@ -8029,8 +8055,6 @@ function renderSemOrigem() {
     demais.reduce((s, o) => s + o.semanas[i], 0)), total: demais.reduce((s, o) => s + o.total, 0) });
   const totais = semanas.map((_, i) => principais.reduce((s, o) => s + o.semanas[i], 0));
   const porDia = semOrigemMetrica === "por-dia";
-  const crescimentoWrap = document.getElementById("semOrigemCrescimento");
-  const nota = document.getElementById("semOrigemNota");
   const valor = (o, i) => porDia && semanas[i].length ? o.semanas[i] / semanas[i].length : o.semanas[i];
   const ultimo = semanas.length - 1;
   const deltaAtual = o => valor(o, ultimo) - valor(o, Math.max(0, ultimo - 1));
