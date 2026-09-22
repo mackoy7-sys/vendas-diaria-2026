@@ -3618,26 +3618,50 @@ function badgeClass(pct, ref) {
 }
 
 // ── KPIs ──
-// ── PROJEÇÃO POR TENDÊNCIA (mesma regra do gráfico: últimos 3 dias úteis consolidados, D-2, fds próprio) ──
+// ── PROJEÇÃO POR MÉDIA DE DIAS ÚTEIS (D-1) ──
+// Regra aprovada para setembro/2026: realizado do mês ÷ dias úteis até D-1,
+// aplicado aos dias úteis restantes. Fins de semana não recebem projeção.
+const FERIADOS_NACIONAIS_2026 = new Set([
+  "2026-01-01", "2026-04-03", "2026-04-21", "2026-05-01", "2026-09-07",
+  "2026-10-12", "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25"
+]);
+
+function projecaoDiasUteisD1(){
+  const meses = {janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  const partes = (CONFIG.mesLabel || "").toLowerCase().split(" ");
+  const mes = meses[partes[0]], ano = parseInt(partes[1]) || new Date().getFullYear();
+  const d1 = Math.max(1, Math.min(CONFIG.diasNoMes, Number(CONFIG.diaDados) || CONFIG.diasNoMes));
+  const chaveData = dia => `${ano}-${String(mes + 1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+  const ehDiaUtil = dia => {
+    const semana = new Date(ano, mes, dia).getDay();
+    return semana >= 1 && semana <= 5 && !FERIADOS_NACIONAIS_2026.has(chaveData(dia));
+  };
+  const uteisAteD1 = Array.from({length:d1}, (_,i) => i + 1).filter(ehDiaUtil).length;
+  const uteisRestantes = Array.from({length:CONFIG.diasNoMes - d1}, (_,i) => d1 + i + 1).filter(ehDiaUtil).length;
+  const gestoes = ["FABIO", "JOSY", "ADMINISTRATIVO", "ACTIONLINE"];
+  const fator = uteisAteD1 ? 1 + (uteisRestantes / uteisAteD1) : 1;
+  // O Ranking Consolidado é PF + PME + Adesão; a projeção parte da mesma
+  // base de "Realizadas", inclusive no Total geral.
+  const realizadasRanking = g => {
+    const gestor = CONFIG.gestores[g] || {};
+    return (gestor.pf || 0) + (gestor.pme || 0) + (gestor.adesao || 0);
+  };
+  const bruto = {}, resultado = {};
+  gestoes.forEach(g => { bruto[g] = realizadasRanking(g) * fator; resultado[g] = Math.floor(bruto[g]); });
+
+  // Arredondamento por maior resto: as linhas de gestão sempre fecham com o Total Geral.
+  const alvoTotal = Math.round(realizadasRanking("TOTAL") * fator);
+  let faltam = alvoTotal - gestoes.reduce((s,g) => s + resultado[g], 0);
+  gestoes
+    .slice()
+    .sort((a,b) => (bruto[b] % 1) - (bruto[a] % 1) || bruto[b] - bruto[a])
+    .forEach(g => { if (faltam > 0) { resultado[g] += 1; faltam -= 1; } });
+  resultado.TOTAL = alvoTotal;
+  return { valores:resultado, uteisAteD1, uteisRestantes, d1 };
+}
+
 function projTendencia(gKey){
-  const _MN = {janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
-  const _p=(CONFIG.mesLabel||"").toLowerCase().split(" ");
-  const _mi=_MN[_p[0]], _ano=parseInt(_p[1])||(new Date()).getFullYear();
-  const _hj=new Date();
-  const _cor=(_mi!==undefined && _mi===_hj.getMonth() && _ano===_hj.getFullYear());
-  const _anc=Math.max(2, Math.min(CONFIG.diasNoMes, _cor ? (_hj.getDate()-2) : (CONFIG.diaAtual||CONFIG.diasNoMes)));
-  const _wd=d=>(new Date(_ano,(_mi===undefined?_hj.getMonth():_mi),d)).getDay();
-  const _ic=d=>acum(gKey,d)-acum(gKey,d-1);
-  const _ut=[],_fd=[];
-  for(let d=_anc; d>=2 && d>=_anc-9 && (_ut.length<3||_fd.length<2); d--){
-    const w=_wd(d);
-    if(w>=1&&w<=5){ if(_ut.length<3)_ut.push(_ic(d)); } else { if(_fd.length<2)_fd.push(_ic(d)); }
-  }
-  const _tU=_ut.length?_ut.reduce((a,b)=>a+b,0)/_ut.length:0;
-  const _tF=_fd.length?_fd.reduce((a,b)=>a+b,0)/_fd.length:_tU*0.35;
-  let _r=acum(gKey,_anc);
-  for(let d=_anc+1; d<=CONFIG.diasNoMes; d++){ const w=_wd(d); _r+=(w===0||w===6)?_tF:_tU; }
-  return Math.round(_r);
+  return projecaoDiasUteisD1().valores[gKey] || 0;
 }
 
 function renderKPIs() {
@@ -3702,7 +3726,7 @@ function renderKPIs() {
   const meta = g.meta;                    // pode ser null (meta do gestor ainda nao decidida no mes)
   const pctMeta = meta ? (real / meta) * 100 : null;
   const media = mediaDiaMes(gestorAtivo);
-  const proj = projTendencia(gestorAtivo);   // mesma regra do gráfico (tendência 3 dias úteis, D-2)
+  const proj = projTendencia(gestorAtivo);   // média por dia útil até D-1, sem projeção de fim de semana
   const pctProj = meta ? (proj / meta) * 100 : null;
   const varAbr = ((proj / g.vendas_ant) - 1) * 100;
   const ref = (diaFim / CONFIG.diasNoMes) * 100;
@@ -4454,7 +4478,7 @@ function renderTabela() {
     const media = mediaDiaMes(k);
     const temMeta = g.meta != null;              // meta do gestor pode ainda nao estar decidida no mes
     const pctMeta = temMeta ? ((real / g.meta) * 100).toFixed(1) : null;
-    const proj = projTendencia(k);   // mesma regra do gráfico (tendência 3 dias úteis, D-2)
+    const proj = projTendencia(k);   // média por dia útil até D-1, sem projeção de fim de semana
     const pctProj = temMeta ? ((proj / g.meta) * 100).toFixed(1) : null;
     const varAbr = (((proj / g.vendas_ant) - 1) * 100).toFixed(1);
     const ref = (diaFim / CONFIG.diasNoMes) * 100;
@@ -4670,7 +4694,7 @@ function renderRankingSupervisores(tbody, gid, detK, gestorKey) {
   // gestao tem), entao derivamos da propria gestao:
   //  - Media/dia usa o mesmo diasComVenda da gestao-mae (ritmo do mes inteiro), dividindo o total
   //    proprio do supervisor -- nao ha serie diaria por supervisor pra contar os dias dele mesmo.
-  //  - Projecao PRORRATEIA a projecao oficial da gestao (g.projecao_fixa, regra de dias uteis) pela
+  //  - Projecao PRORRATEIA a projeção D-1 da gestão pela
   //    participacao do supervisor no realizado do mes -- a soma das projecoes dos supervisores fecha
   //    com a projecao da gestao (mesma cultura de conferencia usada no resto do dashboard).
   const g = CONFIG.gestores[gestorKey];
@@ -4681,8 +4705,8 @@ function renderRankingSupervisores(tbody, gid, detK, gestorKey) {
     const sid = gid + "_s" + si;
     const sTotal = s.pf + s.pme + s.adesao;
     const mediaSup = diasVenda > 0 ? sTotal / diasVenda : 0;
-    const projSup = (g.projecao_fixa != null && totalGestaoRank > 0)
-      ? g.projecao_fixa * (sTotal / totalGestaoRank) : null;
+    const projGestao = projTendencia(gestorKey);
+    const projSup = totalGestaoRank > 0 ? projGestao * (sTotal / totalGestaoRank) : null;
     // ⚠️ GATE DE MÊS igual ao do nível Gestor: sem CONFIG.ativosSupervisor (Junho e anteriores) a
     // família MVP fica em "—" como está hoje. O ADMINISTRATIVO cai fora pela gestão-mãe.
     const vendSup = (temPopSup && !MVP_SEM_POP.includes(gestorKey)) ? contaVendedores(s.itens) : 0;
