@@ -1610,7 +1610,7 @@
   <!-- Seção Projetos (SINTRO etc.) — separada do Ranking Consolidado. David 11/08/2026 -->
   <div class="table-card normal-view" id="projetosCard" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px">
-      <div class="chart-title" style="margin-bottom:0">📁 Projetos <span style="color:#888;font-weight:400;font-size:12px">· campanhas à parte (fora das métricas digitais) — clique no projeto para ver Gestão/Promotor</span></div>
+      <div class="chart-title" style="margin-bottom:0">📁 Projetos <span style="color:#888;font-weight:400;font-size:12px">· campanhas à parte (fora das métricas digitais) — clique no projeto para abrir o detalhe (SINTRO por gestão · HapON por concessionária)</span></div>
       <div style="display:flex;gap:8px">
         <button onclick="projExpandAll(true)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▼ Expandir Todos</button>
         <button onclick="projExpandAll(false)" style="padding:5px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:11px;font-weight:600;background:#f8fafc;cursor:pointer;color:#1a1a2e">▶ Colapsar Todos</button>
@@ -1619,7 +1619,7 @@
     <table>
       <thead>
         <tr>
-          <th>Projeto / Gestão / Promotor</th>
+          <th>Projeto / Gestão ou Concessionária / Promotor</th>
           <th class="td-right">Vidas</th>
           <th class="td-right" title="Média de Venda por Promotor no projeto (vidas ÷ promotores COM venda no projeto, excluindo férias/desligados/admissão recente). Passe o mouse em cada célula pra ver a conta.">MVP</th>
           <th class="td-right" title="Promotores COM venda no projeto (vidas &gt; 0), excluindo quem está de férias, foi desligado, ou foi admitido há menos de 2 meses.">Vendedores</th>
@@ -3219,9 +3219,9 @@ const DADOS_MESES = {
       {gestao:"JOSY",promotor:"THIAGO VALLADA",vidas:2,exclMvp:false,status:"ATIVO",admissao:"25/05/2026",motivoExclMvp:""}
     ],
     haponRanking: [
-      {gestao:"SEM GESTAO",promotor:"RICIBERTA ARAUJO OLIVEIRA",vidas:40,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
-      {gestao:"SEM GESTAO",promotor:"ALVARO VARELA",vidas:18,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
-      {gestao:"SEM GESTAO",promotor:"RICIBERTA ARAUJO OLIVEIRA AFONSO",vidas:18,exclMvp:false,status:"",admissao:"",motivoExclMvp:""}
+      {concessionaria:"RAISE TECH LTDA",promotor:"RICIBERTA ARAUJO OLIVEIRA",vidas:40,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
+      {concessionaria:"COMPLETO CORRETORA DE SEGUROS LTDA",promotor:"ALVARO VARELA",vidas:18,exclMvp:false,status:"",admissao:"",motivoExclMvp:""},
+      {concessionaria:"RAISE TECH LTDA",promotor:"RICIBERTA ARAUJO OLIVEIRA AFONSO",vidas:18,exclMvp:false,status:"",admissao:"",motivoExclMvp:""}
     ],
     ativosSupervisor: {
       "ADMINISTRATIVO": {"ADMINISTRATIVO":0},
@@ -4745,8 +4745,13 @@ function rtExpandAll(open) {
 }
 
 // ── Seção "Projetos" (campanhas à parte: SINTRO e HapON) ──
-// Fontes = CONFIG.sintroRanking / CONFIG.haponRanking [{gestao, promotor, vidas}]. Drill-down no
-// mesmo esquema do Ranking Consolidado: Projeto → Gestão → Promotor.
+// Fontes = CONFIG.sintroRanking [{gestao, promotor, vidas}] e CONFIG.haponRanking
+// [{concessionaria, promotor, vidas}]. Drill-down em 3 níveis, como o Ranking Consolidado, mas o
+// nível do meio depende do projeto: o SINTRO abre por GESTÃO e o HapON por CONCESSIONÁRIA
+// (NM_AREA_VENDA: COMPLETO x RAISE). São vidas de corretora parceira, todas em SEM GESTÃO no
+// cadastro -- abrir por gestão não dizia nada. (David 22/09/2026)
+// `projGrupo` é a chave única do nível do meio: concessionaria quando existe, senão gestao
+// (payload antigo, publicado antes de 22/09, continua abrindo por gestão sem quebrar).
 function projRowHtml(cls, label, badge, vidas, mvp, vend, indent, chevronId, mvpTitle) {
   const pad = 6 + indent * 20;
   const chev = chevronId
@@ -4773,6 +4778,7 @@ function projContaExcluidos(rows) {
   rows.forEach(r => { if (r.exclMvp && r.vidas > 0) s.add(r.promotor); });
   return s.size;
 }
+function projGrupo(r) { return ((r.concessionaria || r.gestao) || "").toUpperCase(); }
 function renderProjetos() {
   const card = document.getElementById("projetosCard");
   const tbody = document.getElementById("projetos");
@@ -4787,10 +4793,13 @@ function renderProjetos() {
   const LBL = { FABIO: "Fabio", JOSY: "Josy", ADMINISTRATIVO: "Administrativo", ACTIONLINE: "Actionline" };
   projetos.forEach(proj => {
     const byG = {};
-    proj.rows.forEach(r => { const G = (r.gestao || "").toUpperCase(); (byG[G] = byG[G] || []).push(r); });
-    const gs = Object.keys(byG).sort((a, b) => (ORDER[a] ?? 9) - (ORDER[b] ?? 9));
+    proj.rows.forEach(r => { const G = projGrupo(r); (byG[G] = byG[G] || []).push(r); });
+    // ORDER só ordena gestão; concessionária (HapON) cai no 9 e desempata por volume.
+    const volG = {};
+    Object.keys(byG).forEach(G => volG[G] = byG[G].reduce((a, r) => a + r.vidas, 0));
+    const gs = Object.keys(byG).sort((a, b) => ((ORDER[a] ?? 9) - (ORDER[b] ?? 9)) || (volG[b] - volG[a]));
     const total = proj.rows.reduce((a, r) => a + r.vidas, 0);
-    const projRowsPop = proj.rows.filter(r => !MVP_SEM_POP.includes((r.gestao || "").toUpperCase()));
+    const projRowsPop = proj.rows.filter(r => !MVP_SEM_POP.includes(projGrupo(r)));
     const vendTot = projVendedores(projRowsPop);
     const vidasExclTot = projVidasExcluidas(projRowsPop);
     const excluidosTot = projContaExcluidos(projRowsPop);
