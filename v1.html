@@ -4827,13 +4827,26 @@ function contaExcluidosMvp(rows) {
 // não entra no denominador do TOTAL — mesma convenção de hoje, embora as vidas dela sigam no numerador.
 const MVP_SEM_POP = ["ADMINISTRATIVO"];
 const RITMO_GEST = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];  // gestões reais (TOTAL soma essas, ignora SEM GESTÃO)
+// Vendedores ADM da Josy ganham um agrupador próprio no lugar do supervisor do cadastro (David
+// 25/09/2026). Só nesta tabela: vidas e meta de cada um saem do supervisor original e somam no grupo;
+// o dado do payload/cadastro continua igual. Reconhecidos pelo sufixo "VENDEDOR ADM" do nome.
+const GRUPO_VENDEDOR_ADM = { JOSY: "VENDEDORES ADM" };
+function supervisorRanking(r, gestorKey) {
+  const grupo = GRUPO_VENDEDOR_ADM[gestorKey];
+  return (grupo && /VENDEDOR ADM/i.test(r.promotor || "")) ? grupo : r.supervisor;
+}
 function renderRankingSupervisores(tbody, gid, detK, gestorKey) {
   const bySup = {};
   detK.forEach(r => {
-    if (!bySup[r.supervisor]) bySup[r.supervisor] = { supervisor: r.supervisor, pf: 0, pme: 0, adesao: 0, meta: 0, itens: [] };
-    const s = bySup[r.supervisor];
+    const supK = supervisorRanking(r, gestorKey);
+    if (!bySup[supK]) bySup[supK] = { supervisor: supK, pf: 0, pme: 0, adesao: 0, meta: 0, itens: [] };
+    const s = bySup[supK];
     s.pf += r.pf; s.pme += r.pme; s.adesao += r.adesao; s.meta += r.meta;
-    s.itens.push(r);
+    // no agrupador ADM a mesma pessoa pode vir de 2 supervisores (ex.: PATRICIA LIMA em ago/26) ->
+    // funde numa linha só, somando vidas e meta, sem mexer no objeto original do payload.
+    const dup = supK !== r.supervisor ? s.itens.find(x => x.promotor === r.promotor) : null;
+    if (dup) { dup.pf += r.pf; dup.pme += r.pme; dup.adesao += r.adesao; dup.meta += r.meta; }
+    else s.itens.push(supK !== r.supervisor ? Object.assign({}, r) : r);
   });
   // gate de mês (ver renderTabela): mês sem ativosSupervisor injetado = comportamento de hoje ("—").
   const temPopSup = !!CONFIG.ativosSupervisor;
