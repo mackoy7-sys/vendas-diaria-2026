@@ -238,6 +238,13 @@
     .badge.green  { background: #d4f4e8; color: #0d6e4a; }
     .badge.yellow { background: #fef3cd; color: #7a5000; }
     .badge.red    { background: #fde8e4; color: #8c2315; }
+    .badge.sql-rate { background: rgba(61, 101, 231, .12); color: #1539AA; }
+    .comp-cv-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+    .comp-cv-head .chart-title { margin-bottom:0; }
+    .comp-cv-toggle { display:inline-flex; gap:3px; padding:3px; border-radius:8px; background:rgba(61, 101, 231, .08); }
+    .comp-cv-toggle button { border:0; border-radius:6px; padding:7px 11px; background:transparent; color:#0F297B; font:inherit; font-size:12px; cursor:pointer; }
+    .comp-cv-toggle button[aria-pressed="true"] { background:#3D65E7; color:#fff; }
+    #compCVBody tr.comp-cv-total { background:rgba(61, 101, 231, .07); font-weight:600; }
 
     /* GRÁFICOS */
     .chart-grid-2 {
@@ -810,7 +817,13 @@
       </table>
     </div>
     <div class="table-card" id="compConvVidasCard">
-      <div class="chart-title" id="ctCompConvVidas">🧬 Conversão de Vidas por Origem — por mês (%)</div>
+      <div class="comp-cv-head">
+        <div class="chart-title" id="ctCompConvVidas">📊 % SQL por Origem — por mês (%)</div>
+        <div class="comp-cv-toggle" role="group" aria-label="Métrica por origem">
+          <button type="button" data-comp-cv="vidas" aria-pressed="false" onclick="setCompCVMetric('vidas')">Conversão de vidas</button>
+          <button type="button" data-comp-cv="sql" aria-pressed="true" onclick="setCompCVMetric('sql')">% SQL</button>
+        </div>
+      </div>
       <div id="compCVNote" style="font-size:11px;color:#888;margin-bottom:8px;"></div>
       <div style="overflow-x:auto;">
         <table>
@@ -2257,6 +2270,23 @@ const DADOS_MESES = {
       { origem: "Flamengo", leads: 23, produtivos: 7, contratos: 0, vidas: 0 },
       { origem: "Acompanhantes", leads: 1, produtivos: 1, contratos: 0, vidas: 0 }
     ],
+    classificacaoComercial: [
+      { origem: "Carrinho Abandonado Conecta", total: 15923, mql: 862, improdutivo: 7555, sql: 7506, vidas: 708 },
+      { origem: "Conecta", total: 17244, mql: 1858, improdutivo: 6235, sql: 9151, vidas: 1239 },
+      { origem: "Carrinho Abandonado", total: 16005, mql: 1788, improdutivo: 7542, sql: 6675, vidas: 885 },
+      { origem: "Outros", total: 15995, mql: 3133, improdutivo: 7734, sql: 5128, vidas: 758 },
+      { origem: "Espontâneo", total: 11006, mql: 1301, improdutivo: 4029, sql: 5676, vidas: 568 },
+      { origem: "Eugenia", total: 5888, mql: 840, improdutivo: 2264, sql: 2784, vidas: 631 },
+      { origem: "Campanhas Marketing", total: 17680, mql: 2417, improdutivo: 9682, sql: 5581, vidas: 410 },
+      { origem: "Repique Comercial", total: 19829, mql: 2599, improdutivo: 10158, sql: 7072, vidas: 291 },
+      { origem: "Televendas", total: 1078, mql: 143, improdutivo: 482, sql: 453, vidas: 116 },
+      { origem: "Leads Frios", total: 435, mql: 45, improdutivo: 236, sql: 154, vidas: 71 },
+      { origem: "VPC", total: 2344, mql: 202, improdutivo: 1530, sql: 612, vidas: 67 },
+      { origem: "Eugenia Cotação", total: 7668, mql: 676, improdutivo: 4048, sql: 2944, vidas: 131 },
+      { origem: "Mídia", total: 9, mql: 1, improdutivo: 2, sql: 6, vidas: 4 },
+      { origem: "Flamengo", total: 23, mql: 0, improdutivo: 14, sql: 9, vidas: 0 },
+      { origem: "Acompanhantes", total: 1, mql: 1, improdutivo: 0, sql: 0, vidas: 0 }
+    ],
     leadsOrigemDia: {
       dias: 31,
       origens: [
@@ -2622,6 +2652,23 @@ const DADOS_MESES = {
       { origem: "Mídia", leads: 8, produtivos: 5, contratos: 1, vidas: 1 },
       { origem: "Flamengo", leads: 5, produtivos: 3, contratos: 0, vidas: 0 },
       { origem: "Eugenia Seller", leads: 156, produtivos: 136, contratos: 57, vidas: 60 }
+    ],
+    classificacaoComercial: [
+      { origem: "Repique Comercial", total: 15826, mql: 1383, improdutivo: 7659, sql: 6784, vidas: 702 },
+      { origem: "Carrinho Abandonado", total: 20102, mql: 1768, improdutivo: 8873, sql: 9461, vidas: 1679 },
+      { origem: "Conecta", total: 7326, mql: 450, improdutivo: 3156, sql: 3720, vidas: 764 },
+      { origem: "VPC", total: 6136, mql: 358, improdutivo: 4271, sql: 1507, vidas: 235 },
+      { origem: "Eugenia Cotação", total: 16738, mql: 746, improdutivo: 10460, sql: 5532, vidas: 158 },
+      { origem: "Campanhas Marketing", total: 18425, mql: 2149, improdutivo: 10150, sql: 6126, vidas: 807 },
+      { origem: "Outros", total: 12540, mql: 1124, improdutivo: 7110, sql: 4306, vidas: 649 },
+      { origem: "Eugenia", total: 13218, mql: 1306, improdutivo: 5272, sql: 6640, vidas: 1023 },
+      { origem: "Espontâneo", total: 4669, mql: 456, improdutivo: 2080, sql: 2133, vidas: 520 },
+      { origem: "Carrinho Abandonado Conecta", total: 2986, mql: 252, improdutivo: 1537, sql: 1197, vidas: 243 },
+      { origem: "Leads Frios", total: 675, mql: 58, improdutivo: 386, sql: 231, vidas: 80 },
+      { origem: "Televendas", total: 870, mql: 107, improdutivo: 380, sql: 383, vidas: 123 },
+      { origem: "Mídia", total: 8, mql: 0, improdutivo: 3, sql: 5, vidas: 1 },
+      { origem: "Flamengo", total: 5, mql: 1, improdutivo: 2, sql: 2, vidas: 0 },
+      { origem: "Eugenia Seller", total: 156, mql: 65, improdutivo: 20, sql: 71, vidas: 60 }
     ],
     leadsOrigemDia: {
       dias: 31,
@@ -3526,6 +3573,13 @@ function syncOrcTab(v) {
 // `cmpModo` só escolhe qual dos dois painéis renderAll() acende.
 const CMP_LABEL = { MES: "meses", SEM: "semanas" };
 let cmpModo = "MES";
+let compCVMetric = "sql";
+
+function setCompCVMetric(metric) {
+  if (metric !== "vidas" && metric !== "sql") return;
+  compCVMetric = metric;
+  renderComparativo();
+}
 
 function fecharCmpMenu() {
   const m = document.getElementById("cmpMenu");
@@ -8921,29 +8975,52 @@ function renderComparativo() {
     return `<tr><td>${r.lab}</td>${cels}${vars}</tr>`;
   }).join("");
 
-  // ── CONVERSÃO DE VIDAS POR ORIGEM × MÊS ──
+  // ── CONVERSÃO DE VIDAS / % SQL POR ORIGEM × MÊS ──
   (function () {
     const card = document.getElementById("compConvVidasCard");
     if (!card) return;
-    const mcv = ms.filter(m => Array.isArray(DADOS_MESES[m].leadsConversao)); // meses com o dado
-    if (mcv.length === 0) { card.style.display = "none"; return; }
+    if (!ms.some(m => Array.isArray(DADOS_MESES[m].leadsConversao))) {
+      card.style.display = "none"; return;
+    }
     card.style.display = "";
-    setTxt("ctCompConvVidas", `🧬 Conversão de Vidas por Origem — ${mcv.map(full).join(" × ")} (%)`);
-    const omit = ms.filter(m => !Array.isArray(DADOS_MESES[m].leadsConversao)).map(full);
-    setTxt("compCVNote", (omit.length ? `Sem dado de conversão por origem em: ${omit.join(", ")}. ` : "") +
-      "Conv. Vidas = vidas ÷ leads totais (acumulado do mês). Cores: verde ≥8% · amarelo ≥5% · vermelho <5%.");
-    const perMes = mcv.map(m => { const o = {}; DADOS_MESES[m].leadsConversao.forEach(x => o[x.origem] = x); return o; });
-    const origens = Array.from(new Set(mcv.flatMap((m, i) => Object.keys(perMes[i]))));
-    origens.sort((a, b) => perMes.reduce((s, o) => s + (o[b] ? o[b].leads : 0), 0) - perMes.reduce((s, o) => s + (o[a] ? o[a].leads : 0), 0));
-    document.getElementById("compCVHead").innerHTML = `<th>Origem</th>` + mcv.map(m => `<th class="td-right">${full(m)}</th>`).join("");
-    const cell = (org, i) => {
-      const r = perMes[i][org];
-      if (!r || !r.leads) return `<td class="td-right">—</td>`;
-      const pct = r.vidas / r.leads * 100, cls = pct >= 8 ? "green" : pct >= 5 ? "yellow" : "red";
+    const sql = compCVMetric === "sql";
+    const campo = sql ? "classificacaoComercial" : "leadsConversao";
+    const denominador = sql ? "total" : "leads";
+    const numerador = sql ? "sql" : "vidas";
+    document.querySelectorAll("#compConvVidasCard [data-comp-cv]").forEach(btn =>
+      btn.setAttribute("aria-pressed", String(btn.dataset.compCv === compCVMetric)));
+    setTxt("ctCompConvVidas", `${sql ? "📊 % SQL" : "🧬 Conversão de Vidas"} por Origem — ${ms.map(full).join(" × ")} (%)`);
+    const omit = ms.filter(m => !Array.isArray(DADOS_MESES[m][campo])).map(full);
+    const parciais = ms.filter(m => DADOS_MESES[m].diaDados < DADOS_MESES[m].diasNoMes)
+      .map(m => `${full(m)} até dia ${DADOS_MESES[m].diaDados}`);
+    setTxt("compCVNote", (omit.length ? `Sem ${sql ? "classificação SQL" : "conversão por origem"} em: ${omit.join(", ")}. ` : "") +
+      (parciais.length ? `${parciais.join(" · ")}. ` : "") +
+      (sql ? "% SQL = leads classificados como SQL ÷ leads totais por origem (Fechado incluído)."
+           : "Conv. Vidas = vidas ÷ leads totais. Cores: verde ≥8% · amarelo ≥5% · vermelho <5%."));
+    const perMes = ms.map(m => new Map((DADOS_MESES[m][campo] || []).map(r => [r.origem, r])));
+    const origens = Array.from(new Set(perMes.flatMap(o => Array.from(o.keys()))));
+    origens.sort((a, b) => perMes.reduce((s, o) => s + (o.get(b)?.[denominador] || 0), 0)
+                         - perMes.reduce((s, o) => s + (o.get(a)?.[denominador] || 0), 0));
+    document.getElementById("compCVHead").innerHTML = `<th>Origem</th>` + ms.map(m => `<th class="td-right">${full(m)}</th>`).join("");
+    const cell = r => {
+      if (!r || !r[denominador]) return `<td class="td-right">—</td>`;
+      const pct = r[numerador] / r[denominador] * 100;
+      const cls = sql ? "sql-rate" : pct >= 8 ? "green" : pct >= 5 ? "yellow" : "red";
       return `<td class="td-right"><span class="badge ${cls}">${fmtDec(pct)}%</span></td>`;
     };
-    document.getElementById("compCVBody").innerHTML = origens.map(org =>
-      `<tr><td>${org}</td>${mcv.map((m, i) => cell(org, i)).join("")}</tr>`).join("");
+    const linhas = origens.map(org =>
+      `<tr><td>${org}</td>${perMes.map(o => cell(o.get(org))).join("")}</tr>`).join("");
+    const totais = perMes.map(o => {
+      if (!o.size) return null;
+      return Array.from(o.values()).reduce((t, r) => {
+        t[denominador] += r[denominador] || 0;
+        t[numerador] += r[numerador] || 0;
+        return t;
+      }, { [denominador]: 0, [numerador]: 0 });
+    });
+    document.getElementById("compCVBody").innerHTML = origens.length
+      ? linhas + `<tr class="comp-cv-total"><td>TOTAL</td>${totais.map(cell).join("")}</tr>`
+      : `<tr><td colspan="${ms.length + 1}">Sem ${sql ? "classificação SQL" : "conversão por origem"} nos meses selecionados.</td></tr>`;
   })();
 }
 
