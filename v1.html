@@ -8971,6 +8971,12 @@ function renderComparativo() {
     return Array.isArray(lc) ? lc.reduce((s, o) => s + (o.produtivos || 0), 0) : null; });
   const sqlMes = ms.map(m => { const cc = DADOS_MESES[m].classificacaoComercial;
     return Array.isArray(cc) ? cc.reduce((s, o) => s + (o.sql || 0), 0) : null; });
+  // % SQL = SQL ÷ volume de leads do mês (total da própria Classificação Comercial, mesma base)
+  const pctSqlMes = ms.map(m => { const cc = DADOS_MESES[m].classificacaoComercial;
+    if (!Array.isArray(cc)) return null;
+    const tt = cc.reduce((s, o) => s + (o.total || 0), 0);
+    const sq = cc.reduce((s, o) => s + (o.sql || 0), 0);
+    return tt > 0 ? sq / tt * 100 : null; });
   // Conversão sobre SQL = vidas atribuídas na própria Classificação Comercial ÷ SQL (mesma base)
   const convSqlMes = ms.map(m => { const cc = DADOS_MESES[m].classificacaoComercial;
     if (!Array.isArray(cc)) return null;
@@ -8990,6 +8996,7 @@ function renderComparativo() {
     { lab: "Volume Leads (Total)", vals: leadsArr, f: fmt, inv: false },
     { lab: "Leads Produtivos (mês)", vals: prodLeadsMes, f: v => v == null ? "—" : fmt(v), inv: false },
     { lab: "Leads SQL (mês)", vals: sqlMes, f: v => v == null ? "—" : fmt(v), inv: false },
+    { lab: "% SQL s/ Leads (mês)", vals: pctSqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false },
     { lab: "Conversão s/ SQL (mês)", vals: convSqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false },
     { lab: "Leads / Venda (Total)", vals: lpv, f: v => fmtDec(v), inv: true }
   ];
