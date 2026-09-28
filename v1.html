@@ -630,6 +630,7 @@
       <button class="view-tab" data-view="PROD" onclick="setView('PROD')">📆 Produtividade</button>
       <button class="view-tab" data-view="LEADS" onclick="setView('LEADS')">📈 Leads</button>
       <button class="view-tab" data-view="MVM" onclick="setView('MVM')">🧮 MVM</button>
+      <button class="view-tab" data-view="ASET" onclick="setView('ASET')">📉 Análise Set</button>
       <button class="view-tab" data-view="VD2026" onclick="setView('VD2026')">📊 Vendas 2026</button>
       <button class="view-tab" data-view="CANCRET" onclick="setView('CANCRET')">🔄 Canc. &amp; Retenção</button>
       <div class="view-drop" id="orcDrop">
@@ -9226,6 +9227,35 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       ['prodPanel','leadsPanel','vd2026Panel','cancPanel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none';});
       painel.style.display='block';pos();
       document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='MVM');});
+      var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      return;
+    }
+    painel.style.display='none';
+    _sv.apply(null, arguments);
+  };
+})();
+</script>
+
+<!-- ABA ANALISE SET — painel iframe (produtividade-vendas.vercel.app/analise-set.html), patch 28/09/2026.
+     Auto-contido: se a regeneração automática do dashboard remover este bloco, reaplicar. -->
+<script>
+(function(){
+  var painel=document.createElement('div');
+  painel.id='asetPanel';
+  painel.style.cssText='display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#eef1f5';
+  painel.innerHTML='<iframe id="asetFrame" style="width:100%;height:100%;border:0" title="Análise Setembro — Tendência de Conversão"></iframe>';
+  document.body.appendChild(painel);
+  function pos(){var nb=document.getElementById('navBar');if(!nb)return;var r=nb.getBoundingClientRect();painel.style.top=Math.max(0,r.bottom)+'px';}
+  window.addEventListener('resize',pos);
+  window.addEventListener('scroll',function(){if(painel.style.display==='block')pos();});
+  var _sv=window.setView;
+  window.setView=function(v){
+    if(v==='ASET'){
+      var f=document.getElementById('asetFrame');
+      if(!f.src)f.src='https://produtividade-vendas.vercel.app/analise-set.html';
+      ['prodPanel','leadsPanel','vd2026Panel','cancPanel','mvmPanel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none';});
+      painel.style.display='block';pos();
+      document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='ASET');});
       var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
       return;
     }
