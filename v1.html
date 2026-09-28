@@ -8965,6 +8965,12 @@ function renderComparativo() {
   const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.hapon || 0; });
   const digMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; let v = 0; for (const x of (g.acumulado||[])) if (x != null) v = x; return v; });
   const totalMes = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + haponMes[i] + sintroMes[i]);
+  // Leads PRODUTIVOS (leadsConversao) e SQL (classificacaoComercial, "Fechado incluído em SQL")
+  // só existem como TOTAL MENSAL por origem — linhas "(mês)", como SINTRO. Meses sem o campo → "—".
+  const prodLeadsMes = ms.map(m => { const lc = DADOS_MESES[m].leadsConversao;
+    return Array.isArray(lc) ? lc.reduce((s, o) => s + (o.produtivos || 0), 0) : null; });
+  const sqlMes = ms.map(m => { const cc = DADOS_MESES[m].classificacaoComercial;
+    return Array.isArray(cc) ? cc.reduce((s, o) => s + (o.sql || 0), 0) : null; });
   const linhas = [
     { lab: "HapON Interno (" + labelG + ")", vals: real, f: fmt, inv: false },
     { lab: "HapON Corretoras (mês)", vals: haponMes, f: fmt, inv: false },
@@ -8976,6 +8982,8 @@ function renderComparativo() {
     { lab: "Adesão", vals: prod.map(p => p.adesao), f: fmt, inv: false },
     { lab: "Conversão % (Total, s/ VPC)", vals: conv, f: v => fmtDec(v) + "%", inv: false },
     { lab: "Volume Leads (Total)", vals: leadsArr, f: fmt, inv: false },
+    { lab: "Leads Produtivos (mês)", vals: prodLeadsMes, f: v => v == null ? "—" : fmt(v), inv: false },
+    { lab: "Leads SQL (mês)", vals: sqlMes, f: v => v == null ? "—" : fmt(v), inv: false },
     { lab: "Leads / Venda (Total)", vals: lpv, f: v => fmtDec(v), inv: true }
   ];
   document.getElementById("tabelaComp").innerHTML = linhas.map(r => {
