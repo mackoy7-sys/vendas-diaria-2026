@@ -819,12 +819,12 @@
       </table>
     </div>
     <div class="table-card" id="compSafraCard">
-      <div class="chart-title">🧬 Vendas × safra do lead — de que mês veio o lead que virou venda</div>
+      <div class="chart-title">🧬 Vendas × entrada do lead — vínculo com as ENTRADAS de lead do mês</div>
       <table>
         <thead><tr id="safraHeadRow"></tr></thead>
         <tbody id="tabelaSafra"></tbody>
       </table>
-      <div style="font-size:11px;color:#6b6b78;margin-top:7px;line-height:1.5">Vinculadas = vidas atribuídas a leads nascidos no próprio mês (base de conversão por origem). <b>Leads de meses anteriores ≈ 0</b>: medido nos snapshots diários da base (01→26/09), as safras de mai–jul não ganharam nenhuma venda após o fechamento do mês — na fonte, a venda vinculada fecha dentro do mês do próprio lead. O restante são vendas <b>sem lead vinculado</b> (carteira, indicação, avulsas), não atribuíveis a safra.</div>
+      <div style="font-size:11px;color:#6b6b78;margin-top:7px;line-height:1.5">⚠️ <b>Leitura por ENTRADA, não pela 1ª origem do lead</b>: a base é agregada e não tem ID/CPF do lead — um lead REIMPACTADO (repique, carrinho, retrabalho) conta como entrada nova do mês, mesmo que o cliente exista desde janeiro. Medido nos snapshots (01→26/09), a venda vinculada fecha dentro do mês da última entrada; mas a safra ORIGINAL do lead só é rastreável com o histórico por lead do CRM (ID/CPF + todas as entradas). O restante são vendas <b>sem lead vinculado</b> (carteira, indicação, avulsas).</div>
     </div>
     <div class="table-card" id="compConvVidasCard">
       <div class="comp-cv-head">
@@ -9018,10 +9018,9 @@ function renderComparativo() {
     hr.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (mês)</th>`).join("");
     const rows = [
       { lab: "Vendas registradas no mês", f: i => fmt(digMes[i]) },
-      { lab: "— geradas por leads do PRÓPRIO mês (vinculadas)", f: i => vinc[i] == null ? "—" : fmt(vinc[i]) },
-      { lab: "— de leads de meses anteriores", f: i => vinc[i] == null ? "—" : "≈ 0" },
+      { lab: "— vinculadas a ENTRADAS de lead do próprio mês", f: i => vinc[i] == null ? "—" : fmt(vinc[i]) },
       { lab: "— sem lead vinculado (carteira/indicação/avulsas)", f: i => vinc[i] == null ? "—" : fmt(digMes[i] - vinc[i]) },
-      { lab: "% das vendas vindas de leads do mês", f: i => (vinc[i] == null || !digMes[i]) ? "—" : fmtDec(vinc[i] / digMes[i] * 100) + "%" }
+      { lab: "% vinculado a entradas do mês", f: i => (vinc[i] == null || !digMes[i]) ? "—" : fmtDec(vinc[i] / digMes[i] * 100) + "%" }
     ];
     tb.innerHTML = rows.map(r => `<tr><td>${r.lab}</td>${ms.map((_, i) => `<td class="td-right num">${r.f(i)}</td>`).join("")}</tr>`).join("");
   })();
