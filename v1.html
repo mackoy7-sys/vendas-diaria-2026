@@ -677,7 +677,7 @@
       </span>
       <span class="filter-sep"></span>
       <button class="btn-extrair" id="btnExtrair" onclick="exportarBase()"
-              title="Baixa a base de vendas do mês corrente (1 linha por vida, sem telefone/CPF) com o Session ID do lead quando a vida está vinculada a uma conversa do GUP">⬇ Base de vendas.csv</button>
+              title="Baixa a base tratada do fechamento (a mesma planilha do levantamento: BASE_PF, BASE PME, BASE ADESÃO, resumo e rankings), com CPF, nome e telefone. Pede o seu login Hapvida e é restrita a administradores: o arquivo não está nesta página, vem do banco na hora.">🔒 Base tratada.xlsx</button>
     </div>
   </div>
 <!-- /BARRA DE NAVEGAÇÃO -->
@@ -5149,21 +5149,84 @@ function projExpandAll(open) {
 }
 
 // ============================================================================================
-// ── EXTRAIR BASE ── baixa a base de vendas do MÊS CORRENTE (1 linha por vida, 1 aba só),
-// hospedada em bases/base_vendas_mes.csv. Mesma fonte/grão do botão da Conversão (vendas_efetiva):
-// sem telefone/CPF/nome do cliente, com o Session ID do lead do GUP quando a vida está vinculada.
-// Regerado TODO DIA pelo build_conversao_vendedor.py (dentro do /atualizar-conversao) — não é mais
-// um arquivo estático regerado à mão na virada de mês. Ver skill /vendas-diaria.
+// ── BASE TRATADA ── (30/09/2026) baixa o `<DD.MM>_LEVANTAMENTOVENDAS_<MES>.xlsx` do último
+// fechamento liberado: BASE_PF + BASE PME + BASE ADESAO + RESUMO + rankings, o MESMO arquivo que
+// o CHECK aprovou e que alimenta a vendas_efetiva — e COM CPF/nome/telefone (pedido do David).
+// Antes era bases/base_vendas_mes.csv (vendas_efetiva, sem PII, 21 colunas).
+// ⚠️ O arquivo NÃO mora no repo nem neste HTML: a senha da tela de entrada roda no navegador e
+// /bases/... é baixável pela URL sem passá-la. Ele vive no bucket PRIVADO `base-tratada` do
+// Supabase (oracle-reports\py\daily\supabase_base_tratada.py, enviado a cada release) e só sai
+// depois de login Supabase de um ADMIN (`rem_acesso`) — mesmo desenho do "🔒 Excel + CPF".
+// Reusa o modal de login e o token em memória do pfPii.
 // ============================================================================================
-function exportarBase() { _baixarArquivo("bases/base_vendas_mes.csv"); }
+const BT_BUCKET = "base-tratada", BT_PREFIXO = "atual";
+const BT_LOGIN_TXT = {
+  titulo: "Baixar a base tratada",
+  sub: "A base tratada traz <b>CPF, nome e telefone</b> dos clientes e <b>não está neste "
+     + "arquivo</b> — ela vem do banco, só para administradores. Entre com o seu e-mail Hapvida.",
+  botao: "Entrar e baixar"
+};
 
-function _baixarArquivo(url) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = url.split("/").pop();
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+function _btHeaders(extra) {
+  return Object.assign({ apikey: PF_PII_ANON, Authorization: "Bearer " + _pfPiiTok }, extra || {});
+}
+
+// O que a SUA conta enxerga no bucket. A RLS devolve lista vazia (não erro) para quem não é
+// ADMIN — por isso "vazio" vira a mensagem de acesso, não "sem arquivo".
+function baseTratadaListar() {
+  return fetch(PF_PII_URL + "/storage/v1/object/list/" + BT_BUCKET, {
+    method: "POST", headers: _btHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ prefix: BT_PREFIXO, limit: 10 })
+  }).then(_pfPiiJson).then(function (arr) {
+    return (arr || []).filter(function (o) { return o && o.id; });
+  });
+}
+
+function baseTratadaObter() {
+  return baseTratadaListar().then(function (itens) {
+    if (!itens.length) { const e = new Error("__sem_acesso__"); throw e; }
+    const nome = itens[0].name;
+    return fetch(PF_PII_URL + "/storage/v1/object/authenticated/" + BT_BUCKET + "/" + BT_PREFIXO
+                 + "/" + encodeURIComponent(nome), { headers: _btHeaders() })
+      .then(function (r) { return r.ok ? r.blob() : _pfPiiJson(r); })
+      .then(function (blob) { return { nome: nome, blob: blob }; });
+  });
+}
+
+function exportarBase() {
+  const btn = document.getElementById("btnExtrair");
+  const rotulo = btn.innerHTML;
+  function ocupado(on) { btn.disabled = on; btn.innerHTML = on ? "Baixando…" : rotulo; }
+
+  function baixar() {
+    ocupado(true);
+    return baseTratadaObter().then(function (r) {
+      const url = URL.createObjectURL(r.blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = r.nome;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    }).then(function () { ocupado(false); }, function (err) { ocupado(false); throw err; });
+  }
+  function falha(err) {
+    if (err && err.message === "__cancelado__") return;
+    if (err && err.message === "__sem_acesso__") {
+      alert("A sua conta não tem acesso à base tratada.\n\nEste download é restrito a "
+        + "administradores. Se você deveria ter acesso, fale com o David.");
+      return;
+    }
+    alert("Não deu para baixar a base tratada.\n\n" + (err && err.message ? err.message : err));
+  }
+
+  (_pfPiiTok ? baixar() : pfPiiPedirLogin(BT_LOGIN_TXT).then(baixar)).catch(function (err) {
+    // token de 1h vencido entre um download e outro: pede o login de novo, sem jogar erro na cara
+    if (err && _pfPiiTok && /jwt|exp|expired|unauthor/i.test(err.message + " " + err.status)) {
+      _pfPiiTok = null; _pfPiiMapa = null;
+      pfPiiPedirLogin(BT_LOGIN_TXT).then(baixar).catch(falha);
+      return;
+    }
+    falha(err);
+  });
 }
 
 // ============================================================================================
@@ -6509,17 +6572,24 @@ function pfPiiCarregar() {
   return pagina(0);
 }
 
-let _pfPiiResolver = null;
-function pfPiiPedirLogin() {
+let _pfPiiResolver = null, _pfPiiBotao = "Entrar e baixar";
+const PII_LOGIN_PADRAO = {
+  titulo: "Exportar com CPF",
+  sub: 'O CPF, o nome e o celular <b>não estão neste arquivo</b> — eles vêm '
+     + "do banco, e só para quem tem acesso. Entre com o seu e-mail Hapvida.<br>"
+     + "Você vê apenas as negociações da sua gestão.",
+  botao: "Entrar e baixar"
+};
+// `txt` = {titulo, sub, botao}: o mesmo modal serve ao "Excel + CPF" (padrão) e à base tratada.
+function pfPiiPedirLogin(txt) {
+  txt = txt || PII_LOGIN_PADRAO;
   let ov = document.getElementById("piiOv");
   if (!ov) {
     ov = document.createElement("div");
     ov.id = "piiOv";
     ov.innerHTML = '<div class="box">'
-      + "<h3>Exportar com CPF</h3>"
-      + '<div class="sub">O CPF, o nome e o celular <b>não estão neste arquivo</b> — eles vêm '
-      + "do banco, e só para quem tem acesso. Entre com o seu e-mail Hapvida.<br>"
-      + "Você vê apenas as negociações da sua gestão.</div>"
+      + '<h3 id="piiTitulo"></h3>'
+      + '<div class="sub" id="piiSub"></div>'
       + '<div class="err" id="piiErr"></div>'
       + '<input id="piiEm" type="email" placeholder="nome.sobrenome@hapvida.com.br" autocomplete="username">'
       + '<input id="piiPw" type="password" placeholder="Senha" autocomplete="current-password">'
@@ -6534,6 +6604,9 @@ function pfPiiPedirLogin() {
     // clicar fora fecha; clicar DENTRO não (senão o modal some ao selecionar texto)
     ov.addEventListener("click", function (e) { if (e.target === ov) pfPiiFechar(); });
   }
+  document.getElementById("piiTitulo").textContent = txt.titulo;
+  document.getElementById("piiSub").innerHTML = txt.sub;
+  document.getElementById("piiOk").textContent = _pfPiiBotao = txt.botao;
   document.getElementById("piiErr").classList.remove("on");
   document.getElementById("piiPw").value = "";
   if (_pfPiiQuem) document.getElementById("piiEm").value = _pfPiiQuem;
@@ -6574,7 +6647,7 @@ function pfPiiConfirmar() {
     pfPiiErro((err.status === 400 || err.status === 401)
       ? "E-mail ou senha não conferem. Sem acesso? Fale com o David."
       : "Não deu para entrar: " + err.message);
-  }).then(function () { b.disabled = false; b.textContent = "Entrar e baixar"; });
+  }).then(function () { b.disabled = false; b.textContent = _pfPiiBotao; });
 }
 
 // Baixa a MESMA planilha do botão ⬇ Excel, com três colunas a mais.
