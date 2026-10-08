@@ -3984,14 +3984,13 @@ function hapRkTd(v, extra) { return '<td class="td-right num"' + (extra || "") +
 function hapRkLinha(cls, estilo, label, cel) {
   return '<tr class="' + cls + '" style="' + estilo + '">' + label + cel.join("") + "</tr>";
 }
-function hapRankingLinha() {
-  const tbody = document.getElementById("tabela");
-  if (!tbody || (typeof CONFIG !== "undefined" && CONFIG.isTrimestre)) return;
+// Numeros da HapON Corretoras no mes ativo (HAPON_DATA) -- UMA so' conta, usada pela linha do ranking E pelos cards do topo.
+function hapRankingDados() {
+  if (typeof CONFIG !== "undefined" && CONFIG.isTrimestre) return null;
   const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null;
   const key = String(mesAtivo).toUpperCase();
   const m = D && D.meses ? D.meses[key] : null;
-  const totalTr = Array.from(tbody.children).find(tr => tr.style.fontWeight === "700");
-  if (!m || !m.kpi || !m.kpi.vidas || !totalTr) return;
+  if (!m || !m.kpi || !m.kpi.vidas) return null;
   const meta = hapMetaDoMes(key);
   const vidasMes = m.kpi.vidas;
   const pf = m.porCorretora.reduce((s, c) => s + c.pf, 0), pme = m.porCorretora.reduce((s, c) => s + c.pme, 0);
@@ -4002,6 +4001,15 @@ function hapRankingLinha() {
   const iPrev = HAP_MES_ORDEM.indexOf(key) - 1;
   const ant = iPrev >= 0 && D.meses[HAP_MES_ORDEM[iPrev]] ? D.meses[HAP_MES_ORDEM[iPrev]].kpi.vidas : 0;
   const ref = (diaFim / CONFIG.diasNoMes) * 100;
+  return { D, key, m, meta, vidasMes, pf, pme, real, ratio, proj, ant, ref };
+}
+function hapRankingLinha() {
+  const tbody = document.getElementById("tabela");
+  if (!tbody) return;
+  const dd = hapRankingDados();
+  const totalTr = Array.from(tbody.children).find(tr => tr.style.fontWeight === "700");
+  if (!dd || !totalTr) return;
+  const { D, key, m, meta, vidasMes, pf, pme, real, ratio, proj, ant, ref } = dd;
   const badge = p => '<span class="badge ' + badgeClass(p, ref) + '">' + p.toFixed(1) + "%</span>";
   const corVar = v => ' style="color:' + (v >= 0 ? "#1D9E75" : "#D85A30") + '"';
   const fVar = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
@@ -4051,15 +4059,37 @@ function hapRankingLinha() {
     tr.title = "Inclui HapON Corretoras (vidas, projeção, PF/PME e a meta de " + fmt(meta) + "); Média/dia, MVP e Vendedores são só do time próprio.";
   }
 }
-// card "HAPON CORRETORAS" do Consolidado ganha o % da meta
+// Cards do topo do Consolidado (gestao "Total geral", mes com meta da HapON): usam os MESMOS numeros do ranking.
+// O build (vendas_diaria.py) so' atualiza `g.hapon` no proximo release, entao o front recalcula a partir do HAPON_DATA:
+//   HAPON CORRETORAS = vidas da HapON | TOTAL = interno + HapON + SINTRO | PROJECAO = projecao do Total geral do ranking
+//   (interno + HapON; a SINTRO nao projeta) | VAR = projecao / mes anterior (interno + HapON). HAPON INTERNO e CONV MEDIA seguem so' do time proprio.
 function hapKpiConsolidado() {
-  const key = String(mesAtivo).toUpperCase(), meta = hapMetaDoMes(key);
-  const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null, m = D && D.meses ? D.meses[key] : null;
-  if (meta == null || !m || !m.kpi || (typeof CONFIG !== "undefined" && CONFIG.isTrimestre)) return;
-  document.querySelectorAll(".kpi-card").forEach(c => {
-    const l = c.querySelector(".kpi-label"), s = c.querySelector(".kpi-sub");
-    if (l && s && /HAPON CORRETORAS/i.test(l.textContent) && !/meta/i.test(s.textContent)) s.textContent += " · " + (100 * m.kpi.vidas / meta).toFixed(1).replace(".", ",") + "% de " + fmt(meta) + " de meta";
-  });
+  if (typeof gestorAtivo === "undefined" || gestorAtivo !== "TOTAL") return;
+  const dd = hapRankingDados();
+  if (!dd || dd.meta == null) return;
+  const g = CONFIG.gestores.TOTAL, el = id => document.getElementById(id);
+  const realInterno = vendas("TOTAL", diaIni, diaFim), sintro = g.sintro || 0;
+  const totalV = realInterno + dd.real + sintro;
+  const projNovo = projTendencia("TOTAL") + dd.proj;
+  const pct1 = x => fmtDec(x);
+  el("kMeta").textContent = fmt(dd.real);
+  el("kMetaSub").innerHTML = "PF (" + fmt(Math.round(dd.pf * dd.ratio)) + ") + PME (" + fmt(Math.round(dd.pme * dd.ratio)) + ") &middot; " +
+    pct1(100 * dd.real / dd.meta) + "% de " + fmt(dd.meta) + " de meta";
+  if (g.meta != null) {
+    const pctTotal = totalV / g.meta * 100;
+    el("kMedia").textContent = fmt(totalV);
+    el("kMediaSub").innerHTML = "de " + fmt(g.meta) + " meta &nbsp;<span class=\"badge " + badgeClass(pctTotal, dd.ref) + "\">" + pct1(pctTotal) + "%</span>";
+    el("kProj").textContent = fmt(projNovo);
+    el("kProjSub").innerHTML = pct1(projNovo / g.meta * 100) + "% da meta";
+  }
+  const antT = (g.vendas_ant || 0) + dd.ant;
+  if (antT > 0) {
+    const v = (projNovo / antT - 1) * 100;
+    el("kAbr").textContent = (v >= 0 ? "+" : "") + pct1(v) + "%";
+    el("kAbr").style.color = v >= 0 ? "#1D9E75" : "#D85A30";
+    el("kAbrSub").textContent = "vs " + CONFIG.mesAnteriorLabel + " (" + fmt(antT) + ")";
+  }
+  el("kProj").title = "Projeção do Total geral: time próprio + HapON Corretoras (a SINTRO não é projetada).";
 }
 // "Projetos" deixa de listar a HapON (08/10/2026): ela agora esta no Ranking Consolidado, com fonte propria (HAPON_DATA).
 // A CONFIG.haponRanking (fonte antiga, so' o que a VENDA_DIGITAL via) fica vazia so' durante o render dessa secao.
