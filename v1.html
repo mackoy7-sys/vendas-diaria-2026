@@ -3830,12 +3830,13 @@ const HAP_NOME = { RAISE: "RAISE TECH", COMPLETO: "COMPLETO", QUINDTECH: "QUINDT
 // Leads: as 4 corretoras acima tem venda no painel; as demais so' recebem lead (sem conversao).
 // Escopo de LEADS (David, 08/10/2026): RAISE, QUINDTECH, FJS, F FURTADO e CLINIPAM (hapon_leads.ORDEM). COMPLETO tem venda mas fica fora dos leads.
 Object.assign(HAP_COR, { "F FURTADO": "#1D9E75", CLINIPAM: "#B5539B" });
-Object.assign(HAP_NOME, { "F FURTADO": "F FURTADO CARNEIRO", CLINIPAM: "CALL LINK" });
+Object.assign(HAP_NOME, { "F FURTADO": "F FURTADO CARNEIRO", CLINIPAM: "CALL LINK" });   // chave interna segue CLINIPAM (hapon_leads); so' o nome exibido mudou (08/10/2026)
 Object.assign(HAP_COR, { DRV: "#E5484D" });
 Object.assign(HAP_NOME, { DRV: "DRV DIGITAL" });
 const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "DRV"];
 let hapSel = {};           // filtro global de corretora (vazio = todas)
 let hapSerie = "vidas";    // grafico principal: "vidas" | "leads"
+let hapCmpSerie = "leads"; // comparativo mes x mes: "leads" | "vidas"
 (function () {   // sublinhado da aba ativa + toggle no azul Hapvida (o da NotreDame e' roxo)
   const st = document.createElement("style");
   st.textContent = '.view-tab.active[data-view="HAPONCORR"] { border-bottom-color: #FFD424; }' +
@@ -3914,6 +3915,22 @@ function hapGaranteAba() {
       <canvas id="chartHapVend"></canvas>
     </div>
   </div>
+  <div class="chart-grid-2" id="hpCmpSec">
+    <div class="chart-card full">
+      <div class="ppo-card-head">
+        <div class="chart-title" id="hpCmpTitle" style="margin-bottom:0">📊 Comparativo</div>
+        <div class="ppo-toggle" id="hpCmpToggle">
+          <button class="ppo-tg-btn active" data-m="leads" onclick="hapSetCmp('leads')">Leads</button>
+          <button class="ppo-tg-btn" data-m="vidas" onclick="hapSetCmp('vidas')">Vidas</button>
+        </div>
+      </div>
+      <div class="kpi-row" id="hpCmpKpis"></div>
+      <div class="hp-leg" id="hpCmpLeg"></div>
+      <div id="hpCmpBox" style="position:relative;height:300px;width:100%"><canvas id="chartHapCmp"></canvas></div>
+      <div id="hpCmpVazio" style="display:none;padding:40px 4px;text-align:center;color:#999;font-size:12.5px"></div>
+      <div class="hp-nota" id="hpCmpNota" style="margin:8px 0 0"></div>
+    </div>
+  </div>
   <div id="hpNota" style="font-size:11.5px;color:#888;line-height:1.6;margin:2px 2px 24px"></div>
 </div>`;
   document.body.appendChild(p);
@@ -3953,6 +3970,122 @@ function haponAbaAtiva() { const p = document.getElementById("haponPanel"); retu
   window.renderAll = function () {
     const r = _ra.apply(this, arguments);
     if (haponAbaAtiva()) renderHaponCorr();
+    return r;
+  };
+})();
+// ---- HapON Corretoras no Ranking Consolidado + meta (David, 08/10/2026) -----------------------------------
+// A linha entra ABAIXO do Administrativo, com drill-down HapON > corretora > vendedor (mesmas classes rt_det /
+// rtToggle do ranking). A meta de 3.000 JA' FAZ PARTE do total de 13.300: o Total geral so' passa a somar as
+// vidas/projecao da HapON nos meses que tem meta aqui (senao o total antigo ficaria diferente do publicado).
+// Fonte = HAPON_DATA (relatorios PF/PME), a mesma do card "HAPON CORRETORAS" -- nao a CONFIG.haponRanking antiga.
+const HAP_META = { OUTUBRO: 3000 };   // vidas/mes; mes sem entrada = sem meta (linha aparece, total nao muda)
+function hapMetaDoMes(key) { return HAP_META[key] != null ? HAP_META[key] : null; }
+function hapRkTd(v, extra) { return '<td class="td-right num"' + (extra || "") + ">" + v + "</td>"; }
+function hapRkLinha(cls, estilo, label, cel) {
+  return '<tr class="' + cls + '" style="' + estilo + '">' + label + cel.join("") + "</tr>";
+}
+function hapRankingLinha() {
+  const tbody = document.getElementById("tabela");
+  if (!tbody || (typeof CONFIG !== "undefined" && CONFIG.isTrimestre)) return;
+  const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null;
+  const key = String(mesAtivo).toUpperCase();
+  const m = D && D.meses ? D.meses[key] : null;
+  const totalTr = Array.from(tbody.children).find(tr => tr.style.fontWeight === "700");
+  if (!m || !m.kpi || !m.kpi.vidas || !totalTr) return;
+  const meta = hapMetaDoMes(key);
+  const vidasMes = m.kpi.vidas;
+  const pf = m.porCorretora.reduce((s, c) => s + c.pf, 0), pme = m.porCorretora.reduce((s, c) => s + c.pme, 0);
+  const periodoTodo = diaIni === 1 && diaFim >= CONFIG.diaAtual;      // sem recorte de dias: o mes inteiro (inclui PME de vigencia futura)
+  const real = periodoTodo ? vidasMes : m.porDia.filter(d => d.dia >= diaIni && d.dia <= diaFim).reduce((s, d) => s + d.total, 0);
+  const ratio = vidasMes ? real / vidasMes : 0;
+  const proj = hapProjecao(vidasMes).proj;
+  const iPrev = HAP_MES_ORDEM.indexOf(key) - 1;
+  const ant = iPrev >= 0 && D.meses[HAP_MES_ORDEM[iPrev]] ? D.meses[HAP_MES_ORDEM[iPrev]].kpi.vidas : 0;
+  const ref = (diaFim / CONFIG.diasNoMes) * 100;
+  const badge = p => '<span class="badge ' + badgeClass(p, ref) + '">' + p.toFixed(1) + "%</span>";
+  const corVar = v => ' style="color:' + (v >= 0 ? "#1D9E75" : "#D85A30") + '"';
+  const fVar = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+  const vend = m.kpi.vendedores;
+  const mvpTxt = vend > 0 ? (real / vend).toFixed(1) : "—";
+  const varHap = ant > 0 ? (proj / ant - 1) * 100 : null;
+  const gid = "g_HAPON";
+  const chev = id => '<span id="rti_' + id + '" style="display:inline-block;width:14px;font-size:10px;color:#185FA5">&#9654;</span> ';
+  let html = hapRkLinha("", "cursor:pointer", "<td>" + chev(gid) + "HapON Corretoras</td>", [
+    hapRkTd(fmt(real)), hapRkTd(meta != null ? fmt(meta) : "—"),
+    '<td class="td-right">' + (meta != null ? badge(real / meta * 100) : "—") + "</td>",
+    hapRkTd(fmt(proj)), '<td class="td-right">' + (meta != null ? (proj / meta * 100).toFixed(1) + "%" : "—") + "</td>",
+    hapRkTd(fmtDec(m.kpi.media, 0)), hapRkTd(mvpTxt, vend > 0 ? ' title="' + fmt(real) + " vidas / " + fmt(vend) + ' vendedores"' : ""), hapRkTd(vend > 0 ? fmt(vend) : "—"),
+    '<td class="td-right"' + (varHap === null ? "" : corVar(varHap)) + ">" + (varHap === null ? "—" : fVar(varHap)) + "</td>",
+    hapRkTd(fmt(Math.round(pf * ratio))), hapRkTd(fmt(Math.round(pme * ratio))), hapRkTd(0)]).replace("<tr class=", '<tr onclick="rtToggle(\'' + gid + '\')" class=');
+  // nivel 1 = corretora, nivel 2 = vendedor
+  const sub = (cls, bg, ind, rotulo, id, cel, click) => '<tr class="rt_det ' + cls + '" style="display:none;font-size:12px;background:' + bg + (id ? ";cursor:pointer" : "") + '"' +
+    (click ? ' data-g="' + click + '" onclick="event.stopPropagation();rtToggle(this.dataset.g)"' : "") + '><td style="padding-left:' + ind + 'px;color:#666">' + (id ? chev(id) : "&#8627; ") + rotulo + "</td>" + cel.join("") + "</tr>";
+  const trio = ["—", "—", "—", "—", "—"];     // meta, % meta, projecao, % proj, media/dia: so' existem no nivel HapON
+  m.porCorretora.slice().sort((a, b) => b.vidas - a.vidas).forEach((c, ci) => {
+    const cid = gid + "_c" + ci, vs = m.porVendedor.filter(v => v.corretora === c.nome);
+    html += sub(gid, "#f4f7fb", 30, HAP_NOME[c.nome] || c.nome, cid, [
+      hapRkTd(fmt(c.vidas)), hapRkTd(trio[0]), '<td class="td-right">—</td>', hapRkTd("—"), '<td class="td-right">—</td>', hapRkTd("—"),
+      hapRkTd(vs.length ? (c.vidas / vs.length).toFixed(1) : "—"), hapRkTd(vs.length ? fmt(vs.length) : "—"), '<td class="td-right">—</td>',
+      hapRkTd(fmt(c.pf)), hapRkTd(fmt(c.pme)), hapRkTd(0)], cid);
+    vs.forEach(v => {
+      html += sub(cid, "#eef3f9", 46, v.nome, "", [
+        hapRkTd(fmt(v.vidas)), hapRkTd("—"), '<td class="td-right">—</td>', hapRkTd("—"), '<td class="td-right">—</td>', hapRkTd("—"),
+        hapRkTd("—"), hapRkTd("—"), '<td class="td-right">—</td>', hapRkTd("—"), hapRkTd("—"), hapRkTd("—")]);
+    });
+  });
+  totalTr.insertAdjacentHTML("beforebegin", html);
+  // Total geral: soma a HapON so' nos meses com meta (a meta ja' esta nos 13.300). Media/dia, MVP e Vendedores
+  // do total seguem so' do time proprio (populacao e criterio diferentes).
+  if (meta != null) {
+    const g = CONFIG.gestores.TOTAL, tr = totalTr, c = tr.children;
+    const realT = vendas("TOTAL", diaIni, diaFim), tot0 = g.pf + g.pme + g.adesao, ratioT = tot0 > 0 ? realT / tot0 : 0;
+    const realNovo = realT + real, projNovo = projTendencia("TOTAL") + proj;
+    c[1].textContent = fmt(realNovo);
+    if (g.meta != null) { c[3].innerHTML = badge(realNovo / g.meta * 100); c[5].textContent = (projNovo / g.meta * 100).toFixed(1) + "%"; }
+    c[4].textContent = fmt(projNovo);
+    const antT = (g.vendas_ant || 0) + ant;
+    if (antT > 0) { const v = (projNovo / antT - 1) * 100; c[9].textContent = fVar(v); c[9].style.color = v >= 0 ? "#1D9E75" : "#D85A30"; }
+    c[10].textContent = fmt(Math.round(g.pf * ratioT) + Math.round(pf * ratio));
+    c[11].textContent = fmt(Math.round(g.pme * ratioT) + Math.round(pme * ratio));
+    c[12].textContent = fmt(Math.round(g.adesao * ratioT));
+    tr.title = "Inclui HapON Corretoras (vidas, projeção, PF/PME e a meta de " + fmt(meta) + "); Média/dia, MVP e Vendedores são só do time próprio.";
+  }
+}
+// card "HAPON CORRETORAS" do Consolidado ganha o % da meta
+function hapKpiConsolidado() {
+  const key = String(mesAtivo).toUpperCase(), meta = hapMetaDoMes(key);
+  const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null, m = D && D.meses ? D.meses[key] : null;
+  if (meta == null || !m || !m.kpi || (typeof CONFIG !== "undefined" && CONFIG.isTrimestre)) return;
+  document.querySelectorAll(".kpi-card").forEach(c => {
+    const l = c.querySelector(".kpi-label"), s = c.querySelector(".kpi-sub");
+    if (l && s && /HAPON CORRETORAS/i.test(l.textContent) && !/meta/i.test(s.textContent)) s.textContent += " · " + (100 * m.kpi.vidas / meta).toFixed(1).replace(".", ",") + "% de " + fmt(meta) + " de meta";
+  });
+}
+// "Projetos" deixa de listar a HapON (08/10/2026): ela agora esta no Ranking Consolidado, com fonte propria (HAPON_DATA).
+// A CONFIG.haponRanking (fonte antiga, so' o que a VENDA_DIGITAL via) fica vazia so' durante o render dessa secao.
+(function () {
+  const _rp = window.renderProjetos;
+  if (typeof _rp === "function") window.renderProjetos = function () {
+    const guardado = CONFIG.haponRanking;
+    CONFIG.haponRanking = [];
+    try { return _rp.apply(this, arguments); }
+    finally {
+      CONFIG.haponRanking = guardado;
+      document.querySelectorAll("#projetosCard .chart-title span").forEach(sp => { sp.innerHTML = sp.innerHTML.replace(" · HapON por concessionária", ""); });
+    }
+  };
+})();
+(function () {
+  const _rt = window.renderTabela;
+  if (typeof _rt === "function") window.renderTabela = function () {
+    const r = _rt.apply(this, arguments);
+    try { hapRankingLinha(); } catch (e) { console.warn("[hapon] linha no ranking:", e); }
+    return r;
+  };
+  const _rk = window.renderKPIs;
+  if (typeof _rk === "function") window.renderKPIs = function () {
+    const r = _rk.apply(this, arguments);
+    try { hapKpiConsolidado(); } catch (e) { console.warn("[hapon] kpi meta:", e); }
     return r;
   };
 })();
@@ -4100,6 +4233,78 @@ function hapSetSerie(s) { hapSerie = s; hapToggle("hpSerieToggle", s); renderHap
 const hapMesDoRef = ref => ["JANEIRO", "FEVEREIRO", "MARCO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"][(parseInt(String(ref || "").slice(3, 5)) || 0) - 1];
 const hapPct1 = (v, l) => l ? (100 * v / l).toFixed(1).replace(".", ",") : "0,0";
 
+// ---- Comparativo mes atual x mes anterior (so' os dias ja fechados nos dois) ----------------------------
+// Mes atual = mes da data de referencia dos leads; anterior = o mes antes dele. Janela N = ultimo dia fechado
+// (leads: dia da ref - 1, o ultimo dia e' parcial; vendas: dia da ref das vendas). Segue o filtro de corretora,
+// nao o filtro de mes. Conversao do periodo inicial e' distorcida (as vendas dos primeiros dias vem de leads do mes
+// anterior): o card traz o mes fechado como referencia.
+const HAP_MES_ROTULO = { JANEIRO: "Janeiro", FEVEREIRO: "Fevereiro", MARCO: "Março", ABRIL: "Abril", MAIO: "Maio", JUNHO: "Junho", JULHO: "Julho",
+  AGOSTO: "Agosto", SETEMBRO: "Setembro", OUTUBRO: "Outubro", NOVEMBRO: "Novembro", DEZEMBRO: "Dezembro" };
+const HAP_MES_ORDEM = Object.keys(HAP_MES_ROTULO);
+function hapSetCmp(s) { hapCmpSerie = s; hapToggle("hpCmpToggle", s); renderHaponCorr(); }
+function hapDiasMes(src, key) { return (src && src.meses && src.meses[key]) ? src.meses[key].porDia : []; }
+function hapSomaAte(dias, ks, n) { return dias.reduce((s, d) => d.dia <= n ? s + ks.reduce((t, k) => t + ((d.por && d.por[k]) || 0), 0) : s, 0); }
+function hapDelta(atual, ant) { if (!ant) return "—"; const d = (atual - ant) / ant * 100; return (d >= 0 ? "+" : "−") + Math.abs(d).toFixed(0) + "%"; }
+function hapComparativo(D, L, sel, selV, selC) {
+  const sec = document.getElementById("hpCmpSec");
+  hapDestroy("hapCmp");
+  const ocultar = () => { sec.style.display = "none"; };
+  if (!D || !L || !L.ref) return ocultar();
+  const cur = hapMesDoRef(L.ref), ia = HAP_MES_ORDEM.indexOf(cur);
+  if (ia < 1) return ocultar();
+  const prev = HAP_MES_ORDEM[ia - 1];
+  const refL = parseInt(L.ref.slice(0, 2)), refV = hapMesDoRef(D.ref) === cur ? parseInt(D.ref.slice(0, 2)) : 0;
+  const N = Math.min(refL - 1, refV || refL - 1);
+  if (N < 1 || !hapDiasMes(L, prev).length) return ocultar();
+  sec.style.display = "";
+  const ldC = hapDiasMes(L, cur), ldP = hapDiasMes(L, prev), vdC = hapDiasMes(D, cur), vdP = hapDiasMes(D, prev);
+  const nCur = HAP_MES_ROTULO[cur], nPrev = HAP_MES_ROTULO[prev];
+  document.getElementById("hpCmpTitle").textContent = "📊 Comparativo " + nPrev + " × " + nCur + " · dias 1 a " + N;
+  const lc = hapSomaAte(ldC, sel, N), lp = hapSomaAte(ldP, sel, N), vc = hapSomaAte(vdC, selV, N), vp = hapSomaAte(vdP, selV, N);
+  const lcC = hapSomaAte(ldC, selC, N), lpC = hapSomaAte(ldP, selC, N), vcC = hapSomaAte(vdC, selC, N), vpC = hapSomaAte(vdP, selC, N);
+  const lpFull = hapSomaAte(ldP, selC, 31), vpFull = hapSomaAte(vdP, selC, 31);
+  const pct = (v, l) => l ? 100 * v / l : null, fp = x => x === null ? "—" : x.toFixed(1).replace(".", ",") + "%";
+  const cA = pct(vcC, lcC), cP = pct(vpC, lpC), cF = pct(vpFull, lpFull);
+  const card = (cor, rot, val, ant, sub, sc) => '<div class="kpi-card" style="border-left-color:' + cor + '"><div class="kpi-label">' + rot + '</div><div class="kpi-value">' + val +
+    ' <span style="font-size:12px;font-weight:400;color:#888">vs ' + ant + '</span></div><div class="kpi-sub" style="color:' + (sc || "#666") + '">' + sub + "</div></div>";
+  const ok = "#1D9E75", ruim = "#C0392B";
+  document.getElementById("hpCmpKpis").innerHTML =
+    card("#3D65E7", "Leads, dias 1 a " + N, hapFmt(lc), hapFmt(lp), hapDelta(lc, lp) + " sobre " + nPrev.toLowerCase(), lc >= lp ? ok : ruim) +
+    card("#FF8800", "Vidas, dias 1 a " + N, hapFmt(vc), hapFmt(vp), selV.length ? hapDelta(vc, vp) + " sobre " + nPrev.toLowerCase() : "sem venda no painel", vc >= vp ? ok : ruim) +
+    card("#1D9E75", "Conversão, dias 1 a " + N, fp(cA), fp(cP), (cA !== null && cP !== null ? ((cA - cP) >= 0 ? "+" : "−") + Math.abs(cA - cP).toFixed(1).replace(".", ",") + " p.p. · " : "") + nPrev.toLowerCase() + " fechado: " + fp(cF), (cA !== null && cP !== null && cA >= cP) ? ok : ruim);
+  // curvas acumuladas
+  const leads = hapCmpSerie === "leads", ks = leads ? sel : selV;
+  const dC = leads ? ldC : vdC, dP = leads ? ldP : vdP;
+  const cut = leads ? refL : (refV || refL);
+  const maxDia = Math.max(28, ...dP.map(d => d.dia), ...dC.map(d => d.dia));
+  const cum = (dias, ate) => { const r = []; let t = 0; for (let d = 1; d <= maxDia; d++) { const x = dias.find(y => y.dia === d); t += x ? ks.reduce((s, k) => s + ((x.por && x.por[k]) || 0), 0) : 0; r.push(d <= ate ? t : null); } return r; };
+  const sP = cum(dP, maxDia), sC = cum(dC, cut);
+  const box = document.getElementById("hpCmpBox"), vz = document.getElementById("hpCmpVazio");
+  document.getElementById("hpCmpLeg").innerHTML = '<span><i class="hp-sw" style="background:#9AA0B4"></i>' + nPrev + '</span><span><i class="hp-sw" style="background:#3D65E7"></i>' + nCur + "</span>";
+  const vazio = !ks.length || !(sP[maxDia - 1] || sC.filter(v => v !== null).length);
+  box.style.display = vazio ? "none" : ""; vz.style.display = vazio ? "" : "none";
+  if (vazio) vz.textContent = leads ? "Sem leads para este filtro." : "Sem vendas das corretoras HapON para este filtro.";
+  else {
+    const labels = []; for (let d = 1; d <= maxDia; d++) labels.push("Dia " + d);
+    const ultC = sC.reduce((u, v, i) => v !== null ? i : u, 0);
+    charts["hapCmp"] = new Chart(document.getElementById("chartHapCmp"), {
+      type: "line",
+      data: { labels, datasets: [
+        { label: nPrev, data: sP, borderColor: "#9AA0B4", backgroundColor: "#9AA0B4", borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15,
+          datalabels: { display: ctx => ctx.dataIndex === N - 1 || ctx.dataIndex === maxDia - 1, align: "top", color: "#666", font: { size: 10, weight: "700" }, formatter: v => hapFmt(v) } },
+        { label: nCur, data: sC, borderColor: "#3D65E7", backgroundColor: "#3D65E7", borderWidth: 2.5, pointRadius: 2, pointHoverRadius: 5, tension: .15, spanGaps: false,
+          datalabels: { display: ctx => ctx.dataIndex === ultC, align: "top", color: "#0F297B", font: { size: 11, weight: "700" }, formatter: v => hapFmt(v) } }] },
+      options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20, right: 18 } },
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, datalabels: {} },
+        scales: { y: { beginAtZero: true, ticks: { font: { size: 10 }, precision: 0 } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 15 } } } }
+    });
+  }
+  document.getElementById("hpCmpNota").innerHTML =
+    "Mesma régua nos dois meses: dias 1 a " + N + " (último dia fechado), seguindo o filtro de corretora. Leads até " + L.ref + (leads ? " (o último ponto é parcial)" : "") +
+    " e vidas por data de cadastro até " + (D.ref || "?") + ". A conversão dos primeiros dias é distorcida: as vendas desse período vêm em boa parte de leads do mês anterior, por isso o mês fechado aparece ao lado.";
+}
+
 function renderHaponCorr() {
   hapGaranteAba();
   const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null;
@@ -4107,9 +4312,9 @@ function renderHaponCorr() {
   const key = String(mesAtivo).toUpperCase();
   const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : key;
   const kp = document.getElementById("hpKpis"), chipsEl = document.getElementById("hpChips");
-  ["hapDia", "hapEmp", "hapVend"].forEach(hapDestroy);
+  ["hapDia", "hapEmp", "hapVend", "hapCmp"].forEach(hapDestroy);
   const vazio = txt => {
-    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none";
+    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none"; document.getElementById("hpCmpSec").style.display = "none";
     kp.innerHTML = '<div class="kpi-card cinza" style="grid-column:1/-1"><div class="kpi-sub">' + txt + "</div></div>";
   };
   if (!D || !D.meses) { vazio("Os dados de HapON Corretoras ainda não foram carregados nesta versão do painel."); return; }
@@ -4123,7 +4328,9 @@ function renderHaponCorr() {
 
   const vid = {}; m.porCorretora.forEach(x => vid[x.nome] = x.vidas);
   const ld = ml ? ml.porCorretora : {};
-  const ordem = (L && L.escopo) || D.escopo;
+  // chips = corretoras com LEAD (escopo de leads) + as que so' tem VENDA no painel (ex.: COMPLETO, DRV): a meta e o
+  // ranking contam a HapON inteira, entao as vidas da aba tambem
+  const ordem = ((L && L.escopo) || []).concat(D.escopo.filter(k => !((L && L.escopo) || []).includes(k)));
   const presentes = ordem.filter(k => vid[k] > 0 || ld[k] > 0);
   hapSel = Object.keys(hapSel).reduce((o, k) => (presentes.includes(k) ? (o[k] = 1, o) : o), {});   // chip de corretora sem dado no mes some
   const todos = Object.keys(hapSel).length === 0;
@@ -4145,8 +4352,11 @@ function renderHaponCorr() {
   const card = (cor, rot, val, sub) => '<div class="kpi-card" style="border-left-color:' + cor + '"><div class="kpi-label">' + rot +
     '</div><div class="kpi-value">' + val + '</div><div class="kpi-sub">' + sub + "</div></div>";
   const temV = selV.length > 0;
-  kp.innerHTML = card("#0F297B", "Vidas no mês", hapFmt(vidas), mesNome) +
-    card("#FF8800", "Projeção do mês", temV ? hapFmt(pj.proj) : "—", temV ? subProj : "sem venda no painel") +
+  const metaMes = hapMetaDoMes(key), filtrado = Object.keys(hapSel).length > 0;
+  const cardMeta = metaMes == null ? "" : card("#FF8800", "Meta do mês", hapFmt(metaMes),
+    filtrado ? hapPct1(vidas, metaMes) + "% da meta com esta seleção" : hapPct1(vidas, metaMes) + "% atingido · faltam " + hapFmt(Math.max(0, metaMes - vidas)));
+  kp.innerHTML = card("#0F297B", "Vidas no mês", hapFmt(vidas), mesNome) + cardMeta +
+    card("#FF8800", "Projeção do mês", temV ? hapFmt(pj.proj) : "—", temV ? subProj + (metaMes != null ? " · " + hapPct1(pj.proj, metaMes) + "% da meta" : "") : "sem venda no painel") +
     card("#6c757d", "Média / dia", diasVenda ? String(Math.round(10 * vidas / diasVenda) / 10).replace(".", ",") : "—", diasVenda + " dia(s) com venda") +
     card("#3D65E7", "Leads recebidos no mês", ml ? hapFmt(leads) : "—", ml ? (hapMesDoRef(L.ref) === key ? "até " + (L.ref || "?") + " (dia parcial)" : "mês completo") : "base de leads não carregada") +
     card("#1D9E75", "Conversão", (selC.length && leadsV) ? hapPct1(vidasC, leadsV) + "%" : "—", (selC.length && leadsV) ? hapFmt(vidasC) + " vidas ÷ " + hapFmt(leadsV) + " leads" : (temV ? "sem leads para estas corretoras" : "sem venda no painel"));
@@ -4184,6 +4394,7 @@ function renderHaponCorr() {
       "Distribuição em rodízio: uma corretora pode ficar dias sem receber. Leads contados só de RAISE, QUINDTECH, FJS, F FURTADO e CALL LINK; fora da conta: Notre Dame, testes, leads sem corretora e demais corretoras (" +
       hapFmt((ex.notreDame || 0) + (ex.teste || 0) + (ex.semCorretora || 0) + (ex.foraDoEscopo || 0)) + " linhas). F FURTADO CARNEIRO = FELIPE FURTADO + F FURTADO CARNEIRO LTDA.";
   }
+  hapComparativo(D, L, sel, selV, selC);
   const alias = Object.keys(D.aliasVendedor || {}).length;
   const f = (D.fontes || []).map(x => x.tipo + " " + x.extraidoEm).join(" · ");
   document.getElementById("hpNota").innerHTML =
