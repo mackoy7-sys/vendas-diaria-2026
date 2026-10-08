@@ -3911,16 +3911,6 @@ function hapGaranteAba() {
       <canvas id="chartHapVend"></canvas>
     </div>
   </div>
-  <div class="chart-grid-2">
-    <div class="chart-card">
-      <div class="ppo-card-head"><div class="chart-title" id="hpPracaTitle" style="margin-bottom:0">📍 Por Praça</div></div>
-      <canvas id="chartHapPraca"></canvas>
-    </div>
-    <div class="chart-card">
-      <div class="ppo-card-head"><div class="chart-title" id="hpPlanoTitle" style="margin-bottom:0">🩺 Por Plano</div></div>
-      <canvas id="chartHapPlano"></canvas>
-    </div>
-  </div>
   <div id="hpNota" style="font-size:11.5px;color:#888;line-height:1.6;margin:2px 2px 24px"></div>
 </div>`;
   document.body.appendChild(p);
@@ -4095,7 +4085,7 @@ function hapProjecao(vidasSel) {
 
 // ---- Filtro global por corretora + leads/conversao -----------------------------------------------------
 // HAPON_DATA = vidas (relatorios PF/PME); HAPON_LEADS = leads do portal NDI (hapon_leads.py). Os chips do topo
-// filtram KPIs, grafico, tabela de conversao e os graficos de empresa/vendedor (Praca e Plano ficam sem filtro).
+// filtram KPIs, grafico, tabela de conversao e os graficos de empresa/vendedor (Praca e Plano saíram da aba).
 // Conversao = vidas / leads por corretora e MES -- nao e' lead a lead (a base de leads nao tem CPF nem proposta).
 function hapOn(k) { return Object.keys(hapSel).length === 0 || !!hapSel[k]; }
 function hapToggleCor(k) {
@@ -4112,7 +4102,7 @@ function renderHaponCorr() {
   const key = String(mesAtivo).toUpperCase();
   const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : key;
   const kp = document.getElementById("hpKpis"), chipsEl = document.getElementById("hpChips");
-  ["hapDia", "hapEmp", "hapVend", "hapPraca", "hapPlano"].forEach(hapDestroy);
+  ["hapDia", "hapEmp", "hapVend"].forEach(hapDestroy);
   const vazio = txt => {
     chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none";
     kp.innerHTML = '<div class="kpi-card cinza" style="grid-column:1/-1"><div class="kpi-sub">' + txt + "</div></div>";
@@ -4160,16 +4150,11 @@ function renderHaponCorr() {
   // demais graficos seguem o filtro
   hapGraficoEmpresa({ porCorretora: m.porCorretora.filter(x => hapOn(x.nome)) }, mesNome);
   document.getElementById("hpVendTitle").textContent = "👥 Por Vendedor · " + mesNome;
-  const todasCor = Object.keys(hapSel).length ? " · todas as corretoras" : "";
-  document.getElementById("hpPracaTitle").textContent = "📍 Por Praça · " + mesNome + todasCor;
-  document.getElementById("hpPlanoTitle").textContent = "🩺 Por Plano · " + mesNome + todasCor;
   hapLegenda("hpVendLeg", selV.filter(k => vid[k] > 0));
   const vend = m.porVendedor.filter(r => hapOn(r.corretora)).map(r => ({ nome: r.nome, vidas: r.vidas, corretora: r.corretora }));
   hapBarraH("chartHapVend", "hapVend", vend, vend.map(r => HAP_COR[r.corretora] || "#3D65E7"));
-  // Praca e Plano NAO seguem o filtro de corretora (decisao do David, 08/10/2026): o payload so' tem o total.
-  const praca = m.porPraca.slice(0, 8), plano = m.porPlano.slice(0, 8);
-  hapBarraH("chartHapPraca", "hapPraca", praca, praca.map(() => "#3D65E7"));
-  hapBarraH("chartHapPlano", "hapPlano", plano, plano.map(() => "#3D65E7"));
+  // Praca e Plano FORAM RETIRADOS da aba (David, 08/10/2026) ate o recorte por corretora existir no payload
+  // (m.porPraca/m.porPlano so' tem o total; o filtro de corretora nao as alcanca).
 
   // tabela de conversao (so' as 4 corretoras HapON tem venda)
   if (ml) {
@@ -4195,9 +4180,9 @@ function renderHaponCorr() {
   document.getElementById("hpNota").innerHTML =
     "Fonte própria: relatórios de <b>PF</b> (orçamentos tipo 1, filtrados pela área de venda de cada corretora) e de <b>PME</b>, " +
     "sem usar a VENDA_DIGITAL. PF e PME são somados. A data é o <b>cadastro</b> (PF) e a <b>vigência</b> (PME). " +
-    "Praça = filial do cadastro. Extraído: " + f + "." +
+    "Extraído: " + f + "." +
     (alias ? " Cadastros duplicados do mesmo vendedor aparecem somados só nesta aba." : "") +
-    "<br>O filtro de corretora vale para KPIs, gráfico, conversão, empresa e vendedor (Praça e Plano mostram todas as corretoras); corretoras sem venda no painel só têm leads.";
+    "<br>O filtro de corretora vale para KPIs, gráfico, conversão, empresa e vendedor (Praça e Plano estão fora da aba por enquanto); corretoras sem venda no painel só têm leads.";
 }
 // === FIM HAPON_FRONT ===
 // === HAPON_DATA (gerado por hapon_corretoras.py -- NAO editar a mao) ===
