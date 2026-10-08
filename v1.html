@@ -3827,6 +3827,12 @@ let hapModo = "dia";       // Vidas por Dia: "dia" | "acu"
 const HAP_COR = { RAISE: "#3D65E7", COMPLETO: "#FF8800", QUINDTECH: "#FFD424", FJS: "#0F297B" };
 const HAP_TIPO = { pf: { nome: "PF", cor: "#1D9E75" }, pme: { nome: "PME", cor: "#7C5CE0" } };   // cores proprias: nao repetem as das empresas
 const HAP_NOME = { RAISE: "RAISE TECH", COMPLETO: "COMPLETO", QUINDTECH: "QUINDTECH", FJS: "FJS APOIO" };
+// Leads: as 4 corretoras acima tem venda no painel; as demais so' recebem lead (sem conversao).
+Object.assign(HAP_COR, { "F FURTADO": "#1D9E75", AMELS: "#7C5CE0", MHC: "#D85A30", SL91: "#00A3B4", CLINIPAM: "#B5539B", OUTRAS: "#A8A69C" });
+Object.assign(HAP_NOME, { "F FURTADO": "F FURTADO CARNEIRO", AMELS: "AMELS", MHC: "MHC", SL91: "SL91", CLINIPAM: "CLINIPAM", OUTRAS: "Outras" });
+const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS"];
+let hapSel = {};           // filtro global de corretora (vazio = todas)
+let hapSerie = "vidas";    // grafico principal: "vidas" | "leads"
 (function () {   // sublinhado da aba ativa + toggle no azul Hapvida (o da NotreDame e' roxo)
   const st = document.createElement("style");
   st.textContent = '.view-tab.active[data-view="HAPONCORR"] { border-bottom-color: #FFD424; }' +
@@ -3836,7 +3842,21 @@ const HAP_NOME = { RAISE: "RAISE TECH", COMPLETO: "COMPLETO", QUINDTECH: "QUINDT
     '#haponPanel .ppo-tg-btn.active { background:#3D65E7; color:#fff; }' +
     '#haponPanel .hp-leg { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11.5px; color:#555; margin:-4px 0 8px; }' +
     '#haponPanel .hp-sw { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }' +
-    '#haponPanel .hp-nota { color:#888; font-size:11px; margin:-4px 0 8px; }';
+    '#haponPanel .hp-nota { color:#888; font-size:11px; margin:-4px 0 8px; }' +
+    '#haponPanel .hp-fb { position:sticky; top:0; z-index:6; display:flex; flex-wrap:wrap; align-items:center; gap:8px; background:var(--bg); padding:8px 2px 10px; margin-bottom:4px; border-bottom:1px solid #e3e8f5; }' +
+    '#haponPanel .hp-fl { font-size:12px; color:#666; font-weight:600; }' +
+    '#haponPanel .hp-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }' +
+    '#haponPanel .hp-sep { width:1px; height:18px; background:#c9d5f7; margin:0 4px; }' +
+    '#haponPanel .hp-chip { border:1px solid #c9d5f7; background:#f2f5fe; color:#1539AA; border-radius:999px; padding:3px 12px; font-size:12px; cursor:pointer; font-family:inherit; }' +
+    '#haponPanel .hp-chip:hover { background:#e4ebfc; }' +
+    '#haponPanel .hp-chip.active { background:#3D65E7; border-color:#3D65E7; color:#fff; }' +
+    '#haponPanel .hp-chip.active .hp-sw { box-shadow:0 0 0 1px #fff; }' +
+    '#haponPanel .hp-tb { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:10px; }' +
+    '#haponPanel .hp-tb th { font-weight:600; color:#666; text-align:right; padding:5px 8px; border-bottom:1px solid #e3e8f5; font-size:11.5px; }' +
+    '#haponPanel .hp-tb td { text-align:right; padding:7px 8px; border-bottom:1px solid #eef1f8; }' +
+    '#haponPanel .hp-tb th:first-child, #haponPanel .hp-tb td:first-child { text-align:left; }' +
+    '#haponPanel .hp-tb tr.off td { opacity:.35; }' +
+    '#haponPanel .hp-cb { display:inline-block; height:8px; border-radius:2px; background:#3D65E7; vertical-align:middle; margin-right:6px; }';
   document.head.appendChild(st);
 })();
 function hapGaranteAba() {
@@ -3848,20 +3868,35 @@ function hapGaranteAba() {
   p.innerHTML = `
 <div class="container" style="padding-top:14px">
   <div style="background:#eaf0fd;border-left:4px solid #3D65E7;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0F297B;">
-    🏢 <b>HapON Corretoras</b> · RAISE TECH, COMPLETO, QUINDTECH e FJS. Dado dos <b>relatórios de PF e PME</b> por área de venda (não usa a VENDA_DIGITAL); PF e PME somados. Use o filtro de <b>mês</b>. <span id="hpRef" style="opacity:.75"></span>
+    🏢 <b>HapON Corretoras</b> · RAISE TECH, COMPLETO, QUINDTECH e FJS. Dado dos <b>relatórios de PF e PME</b> por área de venda (não usa a VENDA_DIGITAL); PF e PME somados. Leads: todas as corretoras que recebem lead do portal NDI. Use os filtros de <b>mês</b> e de <b>corretora</b>. <span id="hpRef" style="opacity:.75"></span>
   </div>
+  <div class="hp-fb" id="hpFiltro"><span class="hp-fl">Corretora</span><span class="hp-chips" id="hpChips"></span></div>
   <div class="kpi-row" id="hpKpis"></div>
   <div class="chart-grid-2">
     <div class="chart-card full">
       <div class="ppo-card-head">
         <div class="chart-title" id="hpDiaTitle" style="margin-bottom:0">📈 Vidas por Dia</div>
-        <div class="ppo-toggle" id="hpDiaToggle">
-          <button class="ppo-tg-btn active" data-m="dia" onclick="hapSetModo('dia')">Diário</button>
-          <button class="ppo-tg-btn" data-m="acu" onclick="hapSetModo('acu')">Acumulado</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="ppo-toggle" id="hpSerieToggle">
+            <button class="ppo-tg-btn active" data-m="vidas" onclick="hapSetSerie('vidas')">Vidas</button>
+            <button class="ppo-tg-btn" data-m="leads" onclick="hapSetSerie('leads')">Leads</button>
+          </div>
+          <div class="ppo-toggle" id="hpDiaToggle">
+            <button class="ppo-tg-btn active" data-m="dia" onclick="hapSetModo('dia')">Diário</button>
+            <button class="ppo-tg-btn" data-m="acu" onclick="hapSetModo('acu')">Acumulado</button>
+          </div>
         </div>
       </div>
       <div class="hp-leg" id="hpDiaLeg"></div>
-      <div style="position:relative;height:340px;width:100%"><canvas id="chartHapDia"></canvas></div>
+      <div id="hpDiaBox" style="position:relative;height:340px;width:100%"><canvas id="chartHapDia"></canvas></div>
+      <div id="hpDiaVazio" style="display:none;padding:40px 4px;text-align:center;color:#999;font-size:12.5px"></div>
+    </div>
+  </div>
+  <div class="chart-grid-2" id="hpLdSec">
+    <div class="chart-card full">
+      <div class="ppo-card-head"><div class="chart-title" id="hpLdTitle" style="margin-bottom:0">🎯 Conversão por corretora</div></div>
+      <table class="hp-tb"><thead><tr><th>Corretora</th><th>Leads</th><th>Vidas</th><th>Conversão</th></tr></thead><tbody id="hpLdTb"></tbody></table>
+      <div class="hp-nota" id="hpLdNota" style="margin:8px 0 0"></div>
     </div>
   </div>
   <div class="chart-grid-2">
@@ -3948,20 +3983,27 @@ function hapTotalDs(tot, tipo, mostra) {
 }
 function hapDestroy(k) { if (typeof destroyChart === "function") destroyChart(k); else if (charts[k]) { charts[k].destroy(); delete charts[k]; } }
 
-function hapGraficoDia(m, ativas) {
+// Grafico principal: Vidas OU Leads por dia (toggle hapSerie), empilhado pelas corretoras do filtro (`ativas`).
+// `dias` = [{dia, por:{CORRETORA:n}}] da serie escolhida. Diario/Acumulado como antes.
+function hapGraficoDia(dias, ativas) {
   hapDestroy("hapDia");
-  const dias = m.porDia, el = document.getElementById("chartHapDia");
+  const el = document.getElementById("chartHapDia"), box = document.getElementById("hpDiaBox"), vz = document.getElementById("hpDiaVazio");
+  const nomeSerie = hapSerie === "vidas" ? "Vidas" : "Leads";
   hapLegenda("hpDiaLeg", ativas);
-  document.getElementById("hpDiaTitle").textContent = hapModo === "dia" ? "📈 Vidas por Dia — diário" : "📈 Vidas por Dia — acumulado";
-  if (!dias.length) return;
-  const ultimo = dias[dias.length - 1].dia, mp = {};
+  document.getElementById("hpDiaTitle").textContent = (hapSerie === "vidas" ? "📈 " : "📥 ") + nomeSerie + " por Dia — " + (hapModo === "dia" ? "diário" : "acumulado");
+  const soma = d => ativas.reduce((s, c) => s + ((d.por && d.por[c]) || 0), 0);
+  const uteis = dias.filter(d => soma(d) > 0);
+  const vazio = !ativas.length || !uteis.length;
+  box.style.display = vazio ? "none" : ""; vz.style.display = vazio ? "" : "none";
+  if (vazio) { vz.textContent = hapSerie === "vidas" ? "Sem vendas das corretoras HapON para este filtro." : "Sem leads para este filtro."; return; }
+  const ultimo = uteis[uteis.length - 1].dia, mp = {};
   dias.forEach(d => mp[d.dia] = d);
   const labels = [], tot = [], ser = {};
   ativas.forEach(c => ser[c] = []);
   for (let d = 1; d <= ultimo; d++) {
     labels.push("Dia " + d);
     const r = mp[d];
-    tot.push(r ? r.total : 0);
+    tot.push(r ? soma(r) : 0);
     ativas.forEach(c => ser[c].push(r && r.por[c] ? r.por[c] : 0));
   }
   const dd = [];
@@ -4037,7 +4079,7 @@ function hapBarraH(canvasId, chave, linhas, cores) {
 
 // Projecao do mes: MESMA regra do Consolidado (projecaoDiasUteisD1): realizado ate D-1 / dias uteis ate D-1,
 // aplicado aos dias uteis restantes; fim de semana e feriado nacional nao recebem projecao. Mes fechado = realizado.
-function hapProjecao(m) {
+function hapProjecao(vidasSel) {
   const meses = { janeiro: 0, fevereiro: 1, "março": 2, abril: 3, maio: 4, junho: 5, julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11 };
   const partes = String(CONFIG.mesLabel || "").toLowerCase().split(" ");
   const mes = meses[partes[0]], ano = parseInt(partes[1]) || new Date().getFullYear();
@@ -4046,44 +4088,108 @@ function hapProjecao(m) {
   const util = dia => { const w = new Date(ano, mes, dia).getDay(); return w >= 1 && w <= 5 && !FERIADOS_NACIONAIS_2026.has(chave(dia)); };
   let ate = 0, resta = 0;
   for (let d = 1; d <= nDias; d++) if (util(d)) { if (d <= d1) ate++; else resta++; }
-  const total = m.kpi.vidas, base = total;   // todo o realizado do mes (inclui PME com vigencia futura), como o Consolidado
+  const total = vidasSel, base = total;   // todo o realizado do mes (inclui PME com vigencia futura), como o Consolidado
   const proj = (ate && resta) ? Math.max(total, Math.round(base * (1 + resta / ate))) : total;
   return { proj, ate, resta, d1, base };
 }
 
+// ---- Filtro global por corretora + leads/conversao -----------------------------------------------------
+// HAPON_DATA = vidas (relatorios PF/PME); HAPON_LEADS = leads do portal NDI (hapon_leads.py). Os chips do topo
+// filtram KPIs, grafico, tabela de conversao e os graficos de empresa/vendedor (Praca e Plano ficam sem filtro).
+// Conversao = vidas / leads por corretora e MES -- nao e' lead a lead (a base de leads nao tem CPF nem proposta).
+function hapOn(k) { return Object.keys(hapSel).length === 0 || !!hapSel[k]; }
+function hapToggleCor(k) {
+  if (k === "ALL") hapSel = {}; else if (hapSel[k]) delete hapSel[k]; else hapSel[k] = 1;
+  renderHaponCorr();
+}
+function hapSetSerie(s) { hapSerie = s; hapToggle("hpSerieToggle", s); renderHaponCorr(); }
+const hapPct1 = (v, l) => l ? (100 * v / l).toFixed(1).replace(".", ",") : "0,0";
+
 function renderHaponCorr() {
   hapGaranteAba();
   const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null;
+  const L = (typeof HAPON_LEADS !== "undefined" && HAPON_LEADS && HAPON_LEADS.meses) ? HAPON_LEADS : null;
   const key = String(mesAtivo).toUpperCase();
   const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : key;
-  const kp = document.getElementById("hpKpis");
+  const kp = document.getElementById("hpKpis"), chipsEl = document.getElementById("hpChips");
   ["hapDia", "hapEmp", "hapVend", "hapPraca", "hapPlano"].forEach(hapDestroy);
-  const vazio = txt => { kp.innerHTML = '<div class="kpi-card cinza" style="grid-column:1/-1"><div class="kpi-sub">' + txt + "</div></div>"; };
+  const vazio = txt => {
+    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none";
+    kp.innerHTML = '<div class="kpi-card cinza" style="grid-column:1/-1"><div class="kpi-sub">' + txt + "</div></div>";
+  };
   if (!D || !D.meses) { vazio("Os dados de HapON Corretoras ainda não foram carregados nesta versão do painel."); return; }
-  document.getElementById("hpRef").textContent = "Dados até " + (D.ref || "?") + ".";
-  const m = D.meses[key];
-  if (!m) { vazio("Sem vendas das corretoras HapON em " + mesNome + "."); return; }
-  const k = m.kpi;
-  const ativas = D.escopo.filter(c => m.porCorretora.some(x => x.nome === c && x.vidas > 0));
+  document.getElementById("hpRef").textContent = "Vendas até " + (D.ref || "?") + (L && L.ref ? " · leads até " + L.ref : "") + ".";
+  const m = D.meses[key] || { porDia: [], porCorretora: [], porVendedor: [], porPraca: [], porPlano: [] };
+  const ml = L ? L.meses[key] : null;
+  if (!D.meses[key] && !ml) { vazio("Sem vendas nem leads das corretoras HapON em " + mesNome + "."); return; }
+  document.getElementById("hpLdSec").style.display = ml ? "" : "none";
+  document.getElementById("hpSerieToggle").style.display = L ? "" : "none";
+  if (!L && hapSerie === "leads") { hapSerie = "vidas"; hapToggle("hpSerieToggle", "vidas"); }
+
+  const vid = {}; m.porCorretora.forEach(x => vid[x.nome] = x.vidas);
+  const ld = ml ? ml.porCorretora : {};
+  const ordem = (L && L.escopo) || D.escopo;
+  const presentes = ordem.filter(k => vid[k] > 0 || ld[k] > 0);
+  hapSel = Object.keys(hapSel).reduce((o, k) => (presentes.includes(k) ? (o[k] = 1, o) : o), {});   // chip de corretora sem dado no mes some
+  const todos = Object.keys(hapSel).length === 0;
+  const chip = (k, rot, ativo, cor) => '<button class="hp-chip' + (ativo ? " active" : "") + '" onclick="hapToggleCor(\'' + k + '\')">' +
+    (cor ? '<i class="hp-sw" style="background:' + cor + '"></i>' : "") + rot + "</button>";
+  const comV = presentes.filter(k => HAP_COM_VENDA.includes(k)), soL = presentes.filter(k => !HAP_COM_VENDA.includes(k));
+  chipsEl.innerHTML = chip("ALL", "Todas", todos) + comV.map(k => chip(k, HAP_NOME[k], hapSel[k], HAP_COR[k])).join("") +
+    (soL.length ? '<span class="hp-sep"></span>' + soL.map(k => chip(k, HAP_NOME[k], hapSel[k], HAP_COR[k])).join("") : "");
+
+  const sel = presentes.filter(hapOn), selV = sel.filter(k => HAP_COM_VENDA.includes(k));
+  const vidas = selV.reduce((s, k) => s + (vid[k] || 0), 0);
+  const diasVenda = m.porDia.filter(d => selV.some(k => d.por[k] > 0)).length;
+  const leads = sel.reduce((s, k) => s + (ld[k] || 0), 0), leadsV = selV.reduce((s, k) => s + (ld[k] || 0), 0);
+  const pj = hapProjecao(vidas);
+  const subProj = pj.resta ? "média de " + String(Math.round(10 * pj.base / pj.ate) / 10).replace(".", ",") + "/dia útil · " + pj.resta + " dia(s) útil(eis) restante(s)" : "mês fechado";
   const card = (cor, rot, val, sub) => '<div class="kpi-card" style="border-left-color:' + cor + '"><div class="kpi-label">' + rot +
     '</div><div class="kpi-value">' + val + '</div><div class="kpi-sub">' + sub + "</div></div>";
-  const pj = hapProjecao(m);
-  const subProj = pj.resta ? "média de " + String(Math.round(10 * pj.base / pj.ate) / 10).replace(".", ",") + "/dia útil · " + pj.resta + " dia(s) útil(eis) restante(s)" : "mês fechado";
-  kp.innerHTML = card("#0F297B", "Vidas no mês", hapFmt(k.vidas), mesNome) +
-    card("#FF8800", "Projeção do mês", hapFmt(pj.proj), subProj) +
-    card("#6c757d", "Média / dia", String(k.media).replace(".", ","), k.diasComVenda + " dia(s) com venda") +
-    card("#6c757d", "Ticket médio", "R$ " + hapFmt(k.ticket), "mensalidade por vida") +
-    card("#6c757d", "Vendedores", hapFmt(k.vendedores), "com venda no mês");
-  hapGraficoDia(m, ativas);
-  hapGraficoEmpresa(m, mesNome);
+  const temV = selV.length > 0;
+  kp.innerHTML = card("#0F297B", "Vidas no mês", hapFmt(vidas), mesNome) +
+    card("#FF8800", "Projeção do mês", temV ? hapFmt(pj.proj) : "—", temV ? subProj : "sem venda no painel") +
+    card("#6c757d", "Média / dia", diasVenda ? String(Math.round(10 * vidas / diasVenda) / 10).replace(".", ",") : "—", diasVenda + " dia(s) com venda") +
+    card("#3D65E7", "Leads recebidos no mês", ml ? hapFmt(leads) : "—", ml ? "até " + (L.ref || "?") + " (dia parcial)" : "base de leads não carregada") +
+    card("#1D9E75", "Conversão", (temV && leadsV) ? hapPct1(vidas, leadsV) + "%" : "—", (temV && leadsV) ? hapFmt(vidas) + " vidas ÷ " + hapFmt(leadsV) + " leads" : (temV ? "sem leads no mês" : "sem venda no painel"));
+
+  // grafico principal: Vidas OU Leads
+  if (hapSerie === "vidas") hapGraficoDia(m.porDia, selV.filter(k => vid[k] > 0));
+  else hapGraficoDia(ml ? ml.porDia : [], sel.filter(k => ld[k] > 0));
+
+  // demais graficos seguem o filtro
+  hapGraficoEmpresa({ porCorretora: m.porCorretora.filter(x => hapOn(x.nome)) }, mesNome);
   document.getElementById("hpVendTitle").textContent = "👥 Por Vendedor · " + mesNome;
-  document.getElementById("hpPracaTitle").textContent = "📍 Por Praça · " + mesNome;
-  document.getElementById("hpPlanoTitle").textContent = "🩺 Por Plano · " + mesNome;
-  hapLegenda("hpVendLeg", ativas);
-  hapBarraH("chartHapVend", "hapVend", m.porVendedor.map(r => ({ nome: r.nome, vidas: r.vidas })), m.porVendedor.map(r => HAP_COR[r.corretora] || "#3D65E7"));
+  const todasCor = Object.keys(hapSel).length ? " · todas as corretoras" : "";
+  document.getElementById("hpPracaTitle").textContent = "📍 Por Praça · " + mesNome + todasCor;
+  document.getElementById("hpPlanoTitle").textContent = "🩺 Por Plano · " + mesNome + todasCor;
+  hapLegenda("hpVendLeg", selV.filter(k => vid[k] > 0));
+  const vend = m.porVendedor.filter(r => hapOn(r.corretora)).map(r => ({ nome: r.nome, vidas: r.vidas, corretora: r.corretora }));
+  hapBarraH("chartHapVend", "hapVend", vend, vend.map(r => HAP_COR[r.corretora] || "#3D65E7"));
+  // Praca e Plano NAO seguem o filtro de corretora (decisao do David, 08/10/2026): o payload so' tem o total.
   const praca = m.porPraca.slice(0, 8), plano = m.porPlano.slice(0, 8);
   hapBarraH("chartHapPraca", "hapPraca", praca, praca.map(() => "#3D65E7"));
   hapBarraH("chartHapPlano", "hapPlano", plano, plano.map(() => "#3D65E7"));
+
+  // tabela de conversao (so' as 4 corretoras HapON tem venda)
+  if (ml) {
+    const leadsDe = k => ld[k] || 0;
+    const maxC = Math.max(0, ...HAP_COM_VENDA.filter(k => leadsDe(k)).map(k => 100 * (vid[k] || 0) / leadsDe(k)));
+    document.getElementById("hpLdTitle").textContent = "🎯 Conversão por corretora · " + mesNome;
+    document.getElementById("hpLdTb").innerHTML = presentes.map(k => {
+      const off = hapOn(k) ? "" : ' class="off"', dot = '<i class="hp-sw" style="background:' + HAP_COR[k] + '"></i>';
+      if (!HAP_COM_VENDA.includes(k)) return "<tr" + off + "><td>" + dot + HAP_NOME[k] + "</td><td>" + hapFmt(leadsDe(k)) + '</td><td>—</td><td style="color:#999">sem venda no painel</td></tr>';
+      const v = vid[k] || 0, l = leadsDe(k), w = maxC ? Math.round(70 * (100 * v / l) / maxC) : 0;
+      return "<tr" + off + "><td>" + dot + HAP_NOME[k] + "</td><td>" + hapFmt(l) + "</td><td>" + hapFmt(v) + "</td><td>" +
+        (l ? '<span class="hp-cb" style="width:' + w + 'px"></span>' + hapPct1(v, l) + "%" : "sem lead") + "</td></tr>";
+    }).join("");
+    const ex = L.excluidos || {};
+    document.getElementById("hpLdNota").innerHTML =
+      "Leads do portal NDI pela <b>data de distribuição</b> à corretora, até " + (L.ref || "?") + " (o último dia pode estar parcial). " +
+      "Conversão = vidas ÷ leads <b>por corretora e mês</b> — não é lead a lead, e a venda sai com defasagem em relação ao lead, então o mês corrente ainda sobe. " +
+      "Distribuição em rodízio: uma corretora pode ficar dias sem receber. Fora da conta: Notre Dame, testes e leads sem corretora (" +
+      hapFmt((ex.notreDame || 0) + (ex.teste || 0) + (ex.semCorretora || 0)) + " linhas). F FURTADO CARNEIRO = FELIPE FURTADO + F FURTADO CARNEIRO LTDA.";
+  }
   const alias = Object.keys(D.aliasVendedor || {}).length;
   const f = (D.fontes || []).map(x => x.tipo + " " + x.extraidoEm).join(" · ");
   document.getElementById("hpNota").innerHTML =
@@ -4091,12 +4197,16 @@ function renderHaponCorr() {
     "sem usar a VENDA_DIGITAL. PF e PME são somados. A data é o <b>cadastro</b> (PF) e a <b>vigência</b> (PME). " +
     "Praça = filial do cadastro. Extraído: " + f + "." +
     (alias ? " Cadastros duplicados do mesmo vendedor aparecem somados só nesta aba." : "") +
-    "<br>Empresas sem venda no mês não aparecem nos gráficos.";
+    "<br>O filtro de corretora vale para KPIs, gráfico, conversão, empresa e vendedor (Praça e Plano mostram todas as corretoras); corretoras sem venda no painel só têm leads.";
 }
 // === FIM HAPON_FRONT ===
 // === HAPON_DATA (gerado por hapon_corretoras.py -- NAO editar a mao) ===
 const HAPON_DATA = {"escopo": ["RAISE", "COMPLETO", "QUINDTECH", "FJS"], "ref": "07/10/2026", "fontes": [{"tipo": "PF", "arquivo": "_pf_hapon_lake.csv", "extraidoEm": "08/10/2026 08:19"}, {"tipo": "PME", "arquivo": "_pme_hapon_lake.csv", "extraidoEm": "08/10/2026 08:19"}], "aliasVendedor": {"RICIBERTA ARAUJO OLIVEIRA AFONSO": "RICIBERTA ARAUJO OLIVEIRA"}, "meses": {"AGOSTO": {"kpi": {"vidas": 7, "valor": 3673.38, "ticket": 524.77, "vendedores": 1, "canceladas": 0, "diasComVenda": 4, "media": 1.8}, "porDia": [{"dia": 26, "total": 1, "por": {"RAISE": 1}}, {"dia": 27, "total": 2, "por": {"RAISE": 2}}, {"dia": 28, "total": 1, "por": {"RAISE": 1}}, {"dia": 31, "total": 3, "por": {"RAISE": 3}}], "porCorretora": [{"nome": "RAISE", "vidas": 7, "pf": 7, "pme": 0}], "porPlano": [{"nome": "NOSSO MEDICO RMSP IN AHO CCF ENF CP", "vidas": 2}, {"nome": "N P AHO IN GM ENF CC PRM 183", "vidas": 1}, {"nome": "NOSSO MEDICO ARARAQUARA IND AHO CCF ENF", "vidas": 1}, {"nome": "NOSSO MÉDICO BH IND AHO CCF ENF", "vidas": 1}, {"nome": "NOSSO PLANO A IN GM JN 083", "vidas": 1}, {"nome": "SMART UP IND AH CCF APT CP", "vidas": 1}], "porPraca": [{"nome": "BELO HORIZONTE", "vidas": 2}, {"nome": "SAO PAULO - NDI SP", "vidas": 2}, {"nome": "ARARAQUARA", "vidas": 1}, {"nome": "SALVADOR", "vidas": 1}, {"nome": "SAO B. DO CAMPO - NDI SP", "vidas": 1}], "porVendedor": [{"nome": "RICIBERTA ARAUJO OLIVEIRA", "corretora": "RAISE", "vidas": 7}]}, "SETEMBRO": {"kpi": {"vidas": 129, "valor": 38907.36, "ticket": 301.61, "vendedores": 3, "canceladas": 1, "diasComVenda": 27, "media": 4.8}, "porDia": [{"dia": 1, "total": 1, "por": {"RAISE": 1}}, {"dia": 2, "total": 1, "por": {"RAISE": 1}}, {"dia": 3, "total": 3, "por": {"RAISE": 3}}, {"dia": 4, "total": 4, "por": {"RAISE": 4}}, {"dia": 5, "total": 1, "por": {"COMPLETO": 1}}, {"dia": 6, "total": 2, "por": {"RAISE": 2}}, {"dia": 7, "total": 3, "por": {"COMPLETO": 3}}, {"dia": 8, "total": 3, "por": {"RAISE": 2, "COMPLETO": 1}}, {"dia": 9, "total": 3, "por": {"RAISE": 2, "COMPLETO": 1}}, {"dia": 10, "total": 12, "por": {"RAISE": 8, "COMPLETO": 4}}, {"dia": 11, "total": 5, "por": {"RAISE": 5}}, {"dia": 12, "total": 3, "por": {"RAISE": 3}}, {"dia": 14, "total": 10, "por": {"RAISE": 8, "COMPLETO": 2}}, {"dia": 15, "total": 8, "por": {"RAISE": 6, "COMPLETO": 2}}, {"dia": 16, "total": 4, "por": {"RAISE": 4}}, {"dia": 17, "total": 3, "por": {"RAISE": 3}}, {"dia": 18, "total": 4, "por": {"COMPLETO": 4}}, {"dia": 19, "total": 2, "por": {"RAISE": 2}}, {"dia": 21, "total": 5, "por": {"RAISE": 4, "QUINDTECH": 1}}, {"dia": 22, "total": 6, "por": {"RAISE": 6}}, {"dia": 23, "total": 2, "por": {"RAISE": 2}}, {"dia": 24, "total": 4, "por": {"RAISE": 4}}, {"dia": 25, "total": 3, "por": {"RAISE": 2, "COMPLETO": 1}}, {"dia": 26, "total": 1, "por": {"RAISE": 1}}, {"dia": 28, "total": 5, "por": {"RAISE": 5}}, {"dia": 29, "total": 10, "por": {"RAISE": 10}}, {"dia": 30, "total": 21, "por": {"RAISE": 21}}], "porCorretora": [{"nome": "RAISE", "vidas": 109, "pf": 90, "pme": 19}, {"nome": "COMPLETO", "vidas": 19, "pf": 0, "pme": 19}, {"nome": "QUINDTECH", "vidas": 1, "pf": 1, "pme": 0}], "porPlano": [{"nome": "NOSSO PLANO A IN GM JN 083", "vidas": 31}, {"nome": "NP AHO IN GM ENF JN 087", "vidas": 15}, {"nome": "NOSSO MEDICO RMSP IN AHO CCF ENF CP", "vidas": 11}, {"nome": "N P AHO IN GM ENF CC PRM 183", "vidas": 8}, {"nome": "NP AHO IND GM ENF CCF JN 143", "vidas": 5}, {"nome": "NOSSO MÉDICO BH IND AHO CCF ENF", "vidas": 4}, {"nome": "NOSSO PLANO AHO IN GM ENF CC SF 046", "vidas": 3}, {"nome": "NOSSO MEDICO RMSP IN AHO CCF ENF", "vidas": 2}, {"nome": "NP AHO IN GM ENF CC SF 301", "vidas": 2}, {"nome": "INDIVIDUAL INTEGRADO 210E-SE", "vidas": 1}, {"nome": "NOSSO MEDICO BAURU IND AHO CCF ENF", "vidas": 1}, {"nome": "NOSSO MEDICO RECIFE IND AHO CCF ENF", "vidas": 1}, {"nome": "NOSSO MEDICO RIBEIRAO PRETO IND AHO CCF ENF", "vidas": 1}, {"nome": "NOSSO MEDICO SAO J D CAMPOS IND AHO CCF APT", "vidas": 1}, {"nome": "NOSSO MÉDICO SALVADOR IND AHO CCF ENF", "vidas": 1}, {"nome": "NOSSO PLANO A IN GM CC 329", "vidas": 1}, {"nome": "NOSSO PLANO AHO IN MUN ENF CCF 370", "vidas": 1}, {"nome": "SMART RIO PF CP ENF CP", "vidas": 1}, {"nome": "SMART UP IND AHO CCF ENF CP", "vidas": 1}], "porPraca": [{"nome": "SAO PAULO - NDI SP", "vidas": 36}, {"nome": "SALVADOR", "vidas": 24}, {"nome": "RECIFE", "vidas": 16}, {"nome": "BELO HORIZONTE", "vidas": 12}, {"nome": "FORTALEZA", "vidas": 10}, {"nome": "BAURU", "vidas": 6}, {"nome": "MOGI DAS CRUZES - NDI SP", "vidas": 5}, {"nome": "CAMPINAS - NDI SP", "vidas": 4}, {"nome": "GOIANIA", "vidas": 3}, {"nome": "FEIRA DE SANTANA", "vidas": 2}, {"nome": "RIBEIRAO PRETO", "vidas": 2}, {"nome": "SERTAOZINHO", "vidas": 2}, {"nome": "BRASILIA", "vidas": 1}, {"nome": "FRANCA", "vidas": 1}, {"nome": "JUAZEIRO", "vidas": 1}, {"nome": "RIO DE JANEIRO- NDI SP", "vidas": 1}, {"nome": "SOROCABA - NDI SP", "vidas": 1}, {"nome": "SÃO CARLOS", "vidas": 1}, {"nome": "SÃO JOSE DOS CAMPOS", "vidas": 1}], "porVendedor": [{"nome": "RICIBERTA ARAUJO OLIVEIRA", "corretora": "RAISE", "vidas": 109}, {"nome": "ALVARO VARELA", "corretora": "COMPLETO", "vidas": 19}, {"nome": "RONALDO DOMINGOS", "corretora": "QUINDTECH", "vidas": 1}]}, "OUTUBRO": {"kpi": {"vidas": 21, "valor": 6542.05, "ticket": 311.53, "vendedores": 3, "canceladas": 0, "diasComVenda": 7, "media": 3.0}, "porDia": [{"dia": 1, "total": 4, "por": {"RAISE": 4}}, {"dia": 2, "total": 1, "por": {"RAISE": 1}}, {"dia": 3, "total": 1, "por": {"RAISE": 1}}, {"dia": 5, "total": 1, "por": {"RAISE": 1}}, {"dia": 6, "total": 7, "por": {"RAISE": 4, "QUINDTECH": 3}}, {"dia": 7, "total": 5, "por": {"RAISE": 1, "QUINDTECH": 4}}, {"dia": 12, "total": 2, "por": {"QUINDTECH": 2}}], "porCorretora": [{"nome": "RAISE", "vidas": 12, "pf": 12, "pme": 0}, {"nome": "QUINDTECH", "vidas": 9, "pf": 0, "pme": 9}], "porPlano": [{"nome": "NOSSO PLANO A IN GM JN 083", "vidas": 4}, {"nome": "NP AHO IN GM ENF JN 087", "vidas": 4}, {"nome": "N P AHO IN GM ENF CC PRM 183", "vidas": 2}, {"nome": "NOSSO MÉDICO BH IND AHO CCF ENF", "vidas": 1}, {"nome": "SMART UP IND AHO CCF ENF CP", "vidas": 1}], "porPraca": [{"nome": "UBERABA", "vidas": 4}, {"nome": "BELO HORIZONTE", "vidas": 3}, {"nome": "FORTALEZA", "vidas": 3}, {"nome": "RECIFE", "vidas": 3}, {"nome": "SANTOS- NDI SP", "vidas": 3}, {"nome": "CAMACARI", "vidas": 2}, {"nome": "GOIANIA", "vidas": 2}, {"nome": "SAO PAULO - NDI SP", "vidas": 1}], "porVendedor": [{"nome": "RICIBERTA ARAUJO OLIVEIRA", "corretora": "RAISE", "vidas": 12}, {"nome": "RONALDO CESAR DOMINGOS", "corretora": "QUINDTECH", "vidas": 6}, {"nome": "RONALDO DOMINGOS", "corretora": "QUINDTECH", "vidas": 3}]}}};
 // === FIM HAPON_DATA ===
+
+// === HAPON_LEADS (gerado por hapon_leads.py -- NAO editar a mao) ===
+const HAPON_LEADS = {"escopo": ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "AMELS", "MHC", "SL91", "CLINIPAM", "OUTRAS"], "ref": "08/10/2026", "fonte": {"arquivo": "1791457266177-stats-gndi-deneuve-v2.5.xlsx", "extraidoEm": "08/10/2026 11:36"}, "excluidos": {"notreDame": 40510, "teste": 18, "semCorretora": 2112, "foraDoMapa": 1}, "meses": {"SETEMBRO": {"total": 14930, "porCorretora": {"RAISE": 4109, "COMPLETO": 1134, "QUINDTECH": 1163, "F FURTADO": 2057, "AMELS": 3210, "MHC": 1636, "SL91": 1620, "OUTRAS": 1}, "porDia": [{"dia": 1, "total": 766, "por": {"RAISE": 182, "AMELS": 248, "SL91": 73, "MHC": 90, "COMPLETO": 132, "F FURTADO": 41}}, {"dia": 2, "total": 713, "por": {"COMPLETO": 194, "SL91": 86, "MHC": 99, "AMELS": 181, "RAISE": 44, "F FURTADO": 109}}, {"dia": 3, "total": 523, "por": {"COMPLETO": 134, "F FURTADO": 101, "SL91": 77, "AMELS": 144, "MHC": 67}}, {"dia": 4, "total": 428, "por": {"AMELS": 92, "COMPLETO": 129, "SL91": 64, "F FURTADO": 85, "MHC": 58}}, {"dia": 5, "total": 242, "por": {"COMPLETO": 61, "AMELS": 59, "F FURTADO": 68, "SL91": 33, "MHC": 21}}, {"dia": 6, "total": 269, "por": {"AMELS": 50, "COMPLETO": 81, "MHC": 38, "F FURTADO": 55, "SL91": 45}}, {"dia": 7, "total": 299, "por": {"AMELS": 70, "F FURTADO": 49, "COMPLETO": 92, "MHC": 46, "SL91": 42}}, {"dia": 8, "total": 597, "por": {"AMELS": 145, "MHC": 79, "COMPLETO": 142, "F FURTADO": 114, "SL91": 83, "RAISE": 34}}, {"dia": 9, "total": 644, "por": {"F FURTADO": 103, "COMPLETO": 151, "SL91": 65, "RAISE": 104, "AMELS": 142, "MHC": 79}}, {"dia": 10, "total": 1574, "por": {"MHC": 91, "COMPLETO": 18, "AMELS": 147, "SL91": 72, "RAISE": 1131, "F FURTADO": 115}}, {"dia": 11, "total": 898, "por": {"RAISE": 569, "AMELS": 114, "MHC": 60, "F FURTADO": 86, "SL91": 69}}, {"dia": 12, "total": 357, "por": {"MHC": 39, "AMELS": 93, "SL91": 45, "RAISE": 132, "F FURTADO": 48}}, {"dia": 13, "total": 321, "por": {"SL91": 36, "MHC": 48, "AMELS": 78, "F FURTADO": 47, "RAISE": 112}}, {"dia": 14, "total": 805, "por": {"SL91": 84, "AMELS": 148, "F FURTADO": 143, "RAISE": 237, "MHC": 117, "QUINDTECH": 76}}, {"dia": 15, "total": 680, "por": {"RAISE": 158, "MHC": 94, "AMELS": 124, "QUINDTECH": 99, "F FURTADO": 108, "SL91": 97}}, {"dia": 16, "total": 663, "por": {"RAISE": 153, "AMELS": 140, "MHC": 78, "SL91": 68, "QUINDTECH": 113, "F FURTADO": 111}}, {"dia": 17, "total": 672, "por": {"RAISE": 166, "F FURTADO": 92, "QUINDTECH": 119, "AMELS": 119, "SL91": 94, "MHC": 82}}, {"dia": 18, "total": 557, "por": {"SL91": 69, "AMELS": 128, "MHC": 61, "F FURTADO": 79, "RAISE": 118, "QUINDTECH": 102}}, {"dia": 19, "total": 351, "por": {"AMELS": 99, "RAISE": 74, "SL91": 43, "MHC": 37, "QUINDTECH": 56, "F FURTADO": 42}}, {"dia": 20, "total": 316, "por": {"QUINDTECH": 55, "SL91": 36, "AMELS": 66, "RAISE": 81, "F FURTADO": 41, "MHC": 36, "OUTRAS": 1}}, {"dia": 21, "total": 484, "por": {"QUINDTECH": 83, "F FURTADO": 73, "AMELS": 125, "MHC": 40, "RAISE": 107, "SL91": 56}}, {"dia": 22, "total": 469, "por": {"AMELS": 110, "QUINDTECH": 87, "RAISE": 114, "SL91": 50, "MHC": 42, "F FURTADO": 66}}, {"dia": 23, "total": 467, "por": {"QUINDTECH": 89, "F FURTADO": 51, "SL91": 42, "AMELS": 121, "MHC": 46, "RAISE": 118}}, {"dia": 24, "total": 443, "por": {"QUINDTECH": 66, "RAISE": 108, "AMELS": 107, "MHC": 49, "SL91": 58, "F FURTADO": 55}}, {"dia": 25, "total": 402, "por": {"F FURTADO": 55, "RAISE": 110, "SL91": 33, "QUINDTECH": 69, "AMELS": 95, "MHC": 40}}, {"dia": 26, "total": 325, "por": {"RAISE": 82, "AMELS": 91, "SL91": 33, "QUINDTECH": 48, "F FURTADO": 39, "MHC": 32}}, {"dia": 27, "total": 304, "por": {"MHC": 26, "QUINDTECH": 45, "F FURTADO": 42, "AMELS": 76, "SL91": 32, "RAISE": 83}}, {"dia": 28, "total": 357, "por": {"RAISE": 91, "QUINDTECH": 55, "AMELS": 97, "F FURTADO": 39, "SL91": 35, "MHC": 40}}, {"dia": 29, "total": 2, "por": {"RAISE": 1, "MHC": 1}}, {"dia": 30, "total": 2, "por": {"AMELS": 1, "QUINDTECH": 1}}]}, "OUTUBRO": {"total": 3365, "porCorretora": {"RAISE": 1059, "QUINDTECH": 900, "FJS": 633, "F FURTADO": 419, "AMELS": 198, "MHC": 70, "SL91": 31, "CLINIPAM": 55}, "porDia": [{"dia": 1, "total": 258, "por": {"RAISE": 113, "QUINDTECH": 52, "AMELS": 41, "MHC": 20, "SL91": 21, "F FURTADO": 11}}, {"dia": 2, "total": 211, "por": {"RAISE": 89, "QUINDTECH": 76, "FJS": 41, "SL91": 2, "AMELS": 1, "F FURTADO": 1, "MHC": 1}}, {"dia": 3, "total": 256, "por": {"RAISE": 98, "QUINDTECH": 88, "FJS": 59, "SL91": 4, "AMELS": 3, "F FURTADO": 2, "MHC": 2}}, {"dia": 4, "total": 183, "por": {"F FURTADO": 3, "QUINDTECH": 61, "RAISE": 79, "FJS": 32, "MHC": 4, "AMELS": 2, "SL91": 2}}, {"dia": 5, "total": 607, "por": {"QUINDTECH": 187, "RAISE": 218, "FJS": 129, "AMELS": 28, "F FURTADO": 38, "SL91": 2, "MHC": 5}}, {"dia": 6, "total": 983, "por": {"FJS": 248, "F FURTADO": 133, "QUINDTECH": 252, "RAISE": 255, "AMELS": 73, "MHC": 18, "CLINIPAM": 4}}, {"dia": 7, "total": 808, "por": {"QUINDTECH": 179, "FJS": 119, "F FURTADO": 219, "AMELS": 50, "RAISE": 186, "MHC": 20, "CLINIPAM": 35}}, {"dia": 8, "total": 59, "por": {"CLINIPAM": 16, "F FURTADO": 12, "FJS": 5, "QUINDTECH": 5, "RAISE": 21}}]}}};
+// === FIM HAPON_LEADS ===
 
 (function montaTrimestre(){
   const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
