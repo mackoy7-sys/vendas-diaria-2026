@@ -10767,5 +10767,51 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   #mainKpis .kpi-sub{ font-size: 10.5px; }
 }
 </style>
+
+<!-- CHART MESES 2026 — resultado mês a mês (HapON Interno + Sintro + Corretoras) ao lado do gráfico
+     de Vendas Acumuladas (pedido 10/2026). Dados do próprio payload (DADOS_MESES + HAPON_DATA.meses);
+     nada é buscado fora. Auto-contido: se a regeneração remover, reaplicar. -->
+<script>
+(function(){
+  try{
+    var cv=document.getElementById('chartAcumulado'); if(!cv) return;
+    var acCard=cv.closest('.chart-card'); if(!acCard) return;
+    var wrap=document.createElement('div'); wrap.className='chart-grid-2';
+    acCard.parentNode.insertBefore(wrap, acCard); wrap.appendChild(acCard);
+    var card=document.createElement('div'); card.className='chart-card';
+    card.innerHTML='<div class="chart-title">\uD83D\uDCCA Resultado m\u00EAs a m\u00EAs \u2014 2026 <span style="font-weight:400;font-size:11px;color:#64748b">HapON Interno + Sintro + Corretoras \u00B7 total no topo</span></div><div style="position:relative;height:340px"><canvas id="chartMeses2026"></canvas></div>';
+    wrap.appendChild(card);
+
+    var ORD=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
+    var labels=[], interno=[], sintro=[], corr=[];
+    ORD.forEach(function(k){
+      var c=DADOS_MESES[k]; if(!c||c.isTrimestre) return;
+      var g=(c.gestores||{}).TOTAL; if(!g) return;
+      var ac=g.acumulado, vInt=Array.isArray(ac)&&ac.length?ac[ac.length-1]:0;
+      if(!vInt) return;
+      var hm=(typeof HAPON_DATA!=='undefined'&&HAPON_DATA.meses&&HAPON_DATA.meses[k])?HAPON_DATA.meses[k]:null;
+      var vCor=hm&&hm.kpi?(hm.kpi.vidas||0):(g.hapon||0);
+      labels.push((c.mesLabel||k).split(' ')[0].slice(0,3));
+      interno.push(vInt); sintro.push(g.sintro||0); corr.push(vCor);
+    });
+    if(!labels.length) return;
+    var tot=labels.map(function(_,i){return interno[i]+sintro[i]+corr[i];});
+    var fm=function(v){return Number(v).toLocaleString('pt-BR');};
+    new Chart(document.getElementById('chartMeses2026'),{type:'bar',data:{labels:labels,datasets:[
+      {label:'HapON Interno',data:interno,backgroundColor:'#185FA5',stack:'s',
+       datalabels:{display:function(c2){return interno[c2.dataIndex]>tot[c2.dataIndex]*0.18;},color:'#fff',font:{size:10,weight:'700'},formatter:fm}},
+      {label:'Sintro',data:sintro,backgroundColor:'#00a3a3',stack:'s',
+       datalabels:{display:function(c2){return sintro[c2.dataIndex]>tot[c2.dataIndex]*0.12;},color:'#fff',font:{size:10,weight:'700'},formatter:fm}},
+      {label:'Corretoras',data:corr,backgroundColor:'#E8A33D',stack:'s',
+       datalabels:{display:true,anchor:'end',align:'top',color:'#185FA5',font:{size:11,weight:'800'},
+         formatter:function(v,c2){return fm(tot[c2.dataIndex]);}}}
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:11},usePointStyle:true}},
+        tooltip:{callbacks:{footer:function(it){return 'Total: '+fm(tot[it[0].dataIndex]);}}}},
+      scales:{x:{stacked:true,ticks:{font:{size:11}}},
+              y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{font:{size:10},callback:function(v){return fm(v);}}}}}});
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
