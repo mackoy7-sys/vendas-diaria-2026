@@ -650,6 +650,7 @@
           <button role="menuitem" data-out="COHORT" onclick="escolheOut('COHORT')"><b>🧭 Cohort</b></button>
           <button role="menuitem" data-out="MVM" onclick="escolheOut('MVM')"><b>🧮 MVM</b></button>
           <button role="menuitem" data-out="ASET" onclick="escolheOut('ASET')"><b>📉 Análise Set</b></button>
+          <button role="menuitem" data-out="AOUT" onclick="escolheOut('AOUT')"><b>📈 Análise Out</b></button>
           <button role="menuitem" data-out="VD2026" onclick="escolheOut('VD2026')"><b>📊 Vendas 2026</b></button>
           <button role="menuitem" data-out="CANCRET" onclick="escolheOut('CANCRET')"><b>🔄 Canc. &amp; Retenção</b></button>
         </div>
@@ -5682,7 +5683,7 @@ function coorteGaranteAba() {
 // CASCA como Orçamentos/Comparar: cada item só chama setView(<view de sempre>); o gatilho (data-view
 // OUTRAS) acende e ganha o sufixo " · <nome>" quando uma delas está na tela.
 const OUT_VIEWS = { PROD: "Produtividade", LEADS: "Leads", COHORT: "Cohort", MVM: "MVM",
-                    ASET: "Análise Set", VD2026: "Vendas 2026", CANCRET: "Canc. & Retenção" };
+                    ASET: "Análise Set", AOUT: "Análise Out", VD2026: "Vendas 2026", CANCRET: "Canc. & Retenção" };
 function fecharOutMenu() {
   const m = document.getElementById("outMenu"); if (m) m.classList.remove("aberto");
   const t = document.getElementById("outTrigger"); if (t) t.setAttribute("aria-expanded", "false");
@@ -10717,6 +10718,35 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       ['prodPanel','leadsPanel','vd2026Panel','cancPanel','mvmPanel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none';});
       painel.style.display='block';pos();
       document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='ASET');});
+      var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      return;
+    }
+    painel.style.display='none';
+    _sv.apply(null, arguments);
+  };
+})();
+</script>
+
+<!-- ABA ANALISE OUT — painel iframe (produtividade-vendas.vercel.app/analise-out.html), patch 08/10/2026.
+     Auto-contido: se a regeneração automática do dashboard remover este bloco, reaplicar. -->
+<script>
+(function(){
+  var painel=document.createElement('div');
+  painel.id='aoutPanel';
+  painel.style.cssText='display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#eef1f5';
+  painel.innerHTML='<iframe id="aoutFrame" style="width:100%;height:100%;border:0" title="Análise Outubro — até o momento × Setembro"></iframe>';
+  document.body.appendChild(painel);
+  function pos(){var nb=document.getElementById('navBar');if(!nb)return;var r=nb.getBoundingClientRect();painel.style.top=Math.max(0,r.bottom)+'px';}
+  window.addEventListener('resize',pos);
+  window.addEventListener('scroll',function(){if(painel.style.display==='block')pos();});
+  var _sv=window.setView;
+  window.setView=function(v){
+    if(v==='AOUT'){
+      var f=document.getElementById('aoutFrame');
+      if(!f.src)f.src='https://produtividade-vendas.vercel.app/analise-out.html';
+      ['prodPanel','leadsPanel','vd2026Panel','cancPanel','mvmPanel','asetPanel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none';});
+      painel.style.display='block';pos();
+      document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='AOUT');});
       var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
       return;
     }
