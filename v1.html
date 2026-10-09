@@ -10784,5 +10784,42 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   setInterval(render,1500);
 })();
 </script>
+
+<!-- PROJ TENDENCIA OVERRIDE — card/tabela de Projeção pela regra da TENDÊNCIA (patch 10/2026, pedido do usuário).
+     A regeneração trocou a projeção p/ fator de dias úteis (projecaoDiasUteisD1), que infla com vendas de datas
+     futuras; aqui projTendencia volta a ser a MESMA regra da linha laranja do gráfico Vendas Acumuladas
+     (3 últimos dias úteis consolidados, âncora D-2, fds com taxa própria). Auto-contido: reaplicar se sumir. -->
+<script>
+(function(){
+  var MESNUM={janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  window.projTendencia=function(gKey){
+    try{
+      var parts=(CONFIG.mesLabel||"").toLowerCase().split(" ");
+      var mIdx=MESNUM[parts[0]], ano=parseInt(parts[1])||(new Date()).getFullYear();
+      var hoje=new Date();
+      var isCorrente=(mIdx!==undefined&&mIdx===hoje.getMonth()&&ano===hoje.getFullYear());
+      var anchor=Math.max(2,Math.min(CONFIG.diasNoMes,isCorrente?(hoje.getDate()-2):(CONFIG.diaAtual||CONFIG.diasNoMes)));
+      var wd=function(d){return (new Date(ano,(mIdx===undefined?hoje.getMonth():mIdx),d)).getDay();};
+      var inc=function(d){return acum(gKey,d)-acum(gKey,d-1);};
+      var uteis=[],fds=[];
+      for(var d=anchor;d>=2&&d>=anchor-9&&(uteis.length<3||fds.length<2);d--){
+        var w=wd(d);
+        if(w>=1&&w<=5){ if(uteis.length<3)uteis.push(inc(d)); }
+        else if(fds.length<2)fds.push(inc(d));
+      }
+      var tU=uteis.length?uteis.reduce(function(a,b){return a+b;},0)/uteis.length:0;
+      var tF=fds.length?fds.reduce(function(a,b){return a+b;},0)/fds.length:tU*0.35;
+      var run=acum(gKey,anchor);
+      for(var d2=anchor+1;d2<=CONFIG.diasNoMes;d2++){var w2=wd(d2);run+=(w2===0||w2===6)?tF:tU;}
+      return Math.round(run);
+    }catch(e){
+      try{return projecaoDiasUteisD1().valores[gKey]||0;}catch(e2){return 0;}
+    }
+  };
+  // re-render do que já está na tela
+  try{if(typeof renderKPIs==="function")renderKPIs();}catch(e){}
+  try{if(typeof hapKpiConsolidado==="function")hapKpiConsolidado();}catch(e){}
+})();
+</script>
 </body>
 </html>
