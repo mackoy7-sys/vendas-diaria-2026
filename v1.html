@@ -10818,44 +10818,61 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
 })();
 </script>
 
-<!-- PPO PROJECAO — aba NotreDame Saúde: no lugar do gráfico 'Vidas por Dia' entra o gráfico de
-     PROJEÇÃO (acumulado + tracejada até o fim do mês, tendência dos dias com venda — mesma conta
-     que já aparecia na nota). Pedido 10/2026. Auto-contido: se a regeneração remover, reaplicar. -->
+
+<!-- PPO PROJECAO v2 — aba NotreDame Saúde: gráfico de PROJEÇÃO no lugar do 'Vidas por Dia'.
+     v2 (09/10): a série diária TRAZ VENDAS AGENDADAS COM DATA FUTURA — o realizado corta em HOJE
+     (mês corrente), e a projeção = tendência dos dias com venda decorridos + agendadas futuras
+     (mesma regra pedida na Análise de Outubro). Auto-contido: se a regeneração remover, reaplicar. -->
 <script>
 (function(){
+  var MESNUM={janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
   var _orig = window.renderPpoAcum;
   window.renderPpoAcum = function(md){
     try{
       destroyChart("ppoAcum");
       var g = gestorAtivo;
       var serie = md ? (md.porDia[g] || []) : [];
-      // a serie vem com o mes inteiro (zeros nos dias futuros): o realizado vai ate o ULTIMO dia com venda
-      var diasComDado = 0;
-      for (var li = 0; li < serie.length; li++){ if (serie[li] > 0) diasComDado = li + 1; }
-      var diasNoMes = CONFIG.diasNoMes || diasComDado || 30;
-      var ac = 0, acReal = [];
-      for (var i = 0; i < serie.length; i++){ ac += serie[i]; acReal.push(ac); }
-      var total = ac, dcv = ppoDiasComVenda(serie);
-      var projMes = dcv > 0 ? Math.round((total / dcv) * diasNoMes) : total;
+      var diasNoMes = CONFIG.diasNoMes || serie.length || 30;
+      var parts=(CONFIG.mesLabel||"").toLowerCase().split(" ");
+      var mIdx=MESNUM[parts[0]], ano=parseInt(parts[1])||(new Date()).getFullYear();
+      var agora=new Date();
+      var isCorrente=(mIdx!==undefined&&mIdx===agora.getMonth()&&ano===agora.getFullYear());
+      var hoje = isCorrente ? Math.min(agora.getDate(), diasNoMes) : diasNoMes;
+
+      var total=0, i;
+      for (i = 0; i < serie.length; i++) total += serie[i];
+      var realizado=0, dcvP=0, diasComDado=0;
+      for (i = 0; i < Math.min(hoje, serie.length); i++){
+        realizado += serie[i];
+        if (serie[i] > 0){ dcvP++; diasComDado = i + 1; }
+      }
+      var agendadas = Math.max(0, total - realizado);
+      var projMes = isCorrente
+        ? (dcvP > 0 ? Math.round((realizado / dcvP) * diasNoMes) : realizado) + agendadas
+        : total;
 
       var tg = document.getElementById("ppoDiaToggle"); if (tg) tg.style.display = "none";
       var ttl = document.getElementById("ppoDiaTitle");
       if (ttl) ttl.textContent = "\uD83D\uDCC8 Proje\u00E7\u00E3o de Vendas \u2014 acumulado \u00D7 fim do m\u00EAs";
       var nota = document.getElementById("ppoDiaNota");
-      if (nota) nota.textContent = diasComDado > 0
-        ? ("acumulado: " + fmt(total) + " vidas \u00B7 proje\u00E7\u00E3o fim do m\u00EAs (tend\u00EAncia dos dias com venda): " + fmt(projMes) + " vidas")
-        : "";
+      if (nota) nota.textContent = !isCorrente
+        ? ("m\u00EAs encerrado: " + fmt(total) + " vidas")
+        : ("realizado at\u00E9 o dia " + hoje + ": " + fmt(realizado) + " vidas \u00B7 +" + fmt(agendadas) +
+           " j\u00E1 agendadas p/ dias futuros \u00B7 proje\u00E7\u00E3o fim do m\u00EAs: " + fmt(projMes) +
+           " (tend\u00EAncia dos dias com venda + agendadas)");
 
+      var acReal = [], ac2 = 0;
+      for (i = 0; i < diasComDado; i++){ ac2 += serie[i]; acReal.push(ac2); }
       var labels = []; for (var d = 1; d <= diasNoMes; d++) labels.push("Dia " + d);
-      var dataReal = labels.map(function(_, i){ return i < diasComDado ? acReal[i] : null; });
+      var dataReal = labels.map(function(_, j){ return j < diasComDado ? acReal[j] : null; });
       var ultimo = diasComDado > 0 ? acReal[diasComDado - 1] : 0;
       var rest = Math.max(1, diasNoMes - diasComDado);
-      var dataProj = labels.map(function(_, i){
-        if (diasComDado === 0 || i < diasComDado - 1) return null;
-        if (i === diasComDado - 1) return ultimo;
-        return Math.round(ultimo + (projMes - ultimo) * ((i + 1 - diasComDado) / rest));
+      var dataProj = labels.map(function(_, j){
+        if (!isCorrente || diasComDado === 0 || j < diasComDado - 1) return null;
+        if (j === diasComDado - 1) return ultimo;
+        return Math.round(ultimo + (projMes - ultimo) * ((j + 1 - diasComDado) / rest));
       });
-      var yMax = _ppoHeadroom(Math.max(projMes, ultimo, 1));
+      var yMax = _ppoHeadroom(Math.max(projMes, ultimo, total, 1));
 
       charts["ppoAcum"] = new Chart(document.getElementById("chartPpoAcum"), {
         type: "line",
@@ -10865,9 +10882,9 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
             datalabels: { display: function(c){ return c.dataIndex === diasComDado - 1; },
               align: "top", anchor: "top", font: { size: 10, weight: "700" }, color: "#6c4ed8", clip: false,
               formatter: function(v){ return fmt(v); } } },
-          { label: "Proje\u00E7\u00E3o", data: dataProj, borderColor: "#E8623A", borderDash: [5, 3],
+          { label: "Proje\u00E7\u00E3o (tend\u00EAncia + agendadas)", data: dataProj, borderColor: "#E8623A", borderDash: [5, 3],
             borderWidth: 1.8, pointRadius: 0, fill: false,
-            datalabels: { display: function(c){ return c.dataIndex === diasNoMes - 1; },
+            datalabels: { display: function(c){ return c.dataIndex === diasNoMes - 1 && isCorrente; },
               align: "left", anchor: "end", font: { size: 10, weight: "700" }, color: "#E8623A", clip: false,
               formatter: function(v){ return "Proj: " + fmt(v); } } }
         ]},
