@@ -10757,5 +10757,15 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
 </script>
 
 
+
+<!-- KPIS UMA LINHA — os 7 cards do Consolidado numa linha só no desktop (pedido 10/2026).
+     Só aperta o mínimo do grid #mainKpis (auto-fit segue valendo: trimestre com cards escondidos
+     e telas estreitas continuam fluindo normalmente). Auto-contido: reaplicar se sumir. -->
+<style>
+@media (min-width: 900px){
+  #mainKpis{ grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+  #mainKpis .kpi-sub{ font-size: 10.5px; }
+}
+</style>
 </body>
 </html>
