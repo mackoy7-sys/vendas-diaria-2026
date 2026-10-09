@@ -10755,5 +10755,34 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   };
 })();
 </script>
+
+<!-- RECON CONSOLIDADO × ANALISE OUT — card dinamico abaixo dos KPIs do Consolidado (patch 08/10/2026).
+     Busca recon-out.json do produtividade-vendas (gerado pelo build_analise_out.py; CORS via vercel.json).
+     Auto-contido: se a regeneração automática remover este bloco, reaplicar. Só aparece no mês do JSON. -->
+<script>
+(function(){
+  var grid=document.getElementById('mainKpis');
+  if(!grid) return;
+  var card=document.createElement('div');
+  card.id='reconOutCard';
+  card.style.cssText='display:none;background:#fff;border:1px solid #dde4ea;border-left:4px solid #185FA5;border-radius:12px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;line-height:1.6;color:#12263A';
+  grid.parentNode.insertBefore(card, grid.nextSibling);
+  var R=null, pt=function(v){return String(v).replace('.',',');}, fm=function(v){return Number(v).toLocaleString('pt-BR');};
+  function render(){
+    if(!R || typeof CONFIG==='undefined' || !CONFIG || CONFIG.mesLabel!==R.mesLabel){card.style.display='none';return;}
+    if(card.style.display!=='block'){
+      card.innerHTML='<div style="font-weight:800;margin-bottom:4px">🔗 Consolidado × Análise de Outubro — mesma carga ('+R.dt+')</div>'
+        +'· <b>HapON Interno '+fm(R.digAll)+'</b> = <b>'+fm(R.digJanela)+'</b> vendas fechadas nos dias 1–'+R.n+' + <b>'+fm(R.digFuturas)+'</b> já registradas com data APÓS o dia '+R.n+' (assinaturas agendadas — entram na janela quando o dia chegar).<br>'
+        +'· <b>Conversão '+pt(R.convCons)+'%</b> = vendas do mês inteiro ÷ leads de '+R.n+' dias; na MESMA janela 1–'+R.n+' a conversão é <b>'+pt(R.convJanela)+'%</b> (setembro no mesmo período: '+pt(R.convJanelaRef)+'%).<br>'
+        +'· <b>Projeção</b>: o card acima projeta o TOTAL (Sintro + corretoras + vendas de datas futuras); a tendência comparável do digital na janela é ≈<b>'+fm(R.projAnalise)+'</b> — em setembro essa regra conservadora subestimou o fechamento em ~7%. '
+        +'<a href="javascript:void(0)" onclick="try{escolheOut(\'AOUT\')}catch(e){}" style="color:#185FA5;font-weight:700">Abrir a Análise de Outubro completa →</a>';
+      card.style.display='block';
+    }
+  }
+  fetch('https://produtividade-vendas.vercel.app/recon-out.json?nc='+Date.now())
+    .then(function(r){return r.json();}).then(function(j){R=j;render();}).catch(function(){});
+  setInterval(render,1500);
+})();
+</script>
 </body>
 </html>
