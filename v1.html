@@ -10829,7 +10829,9 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       destroyChart("ppoAcum");
       var g = gestorAtivo;
       var serie = md ? (md.porDia[g] || []) : [];
-      var diasComDado = serie.length;
+      // a serie vem com o mes inteiro (zeros nos dias futuros): o realizado vai ate o ULTIMO dia com venda
+      var diasComDado = 0;
+      for (var li = 0; li < serie.length; li++){ if (serie[li] > 0) diasComDado = li + 1; }
       var diasNoMes = CONFIG.diasNoMes || diasComDado || 30;
       var ac = 0, acReal = [];
       for (var i = 0; i < serie.length; i++){ ac += serie[i]; acReal.push(ac); }
