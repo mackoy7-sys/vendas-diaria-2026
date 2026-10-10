@@ -10907,5 +10907,75 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   try{ if (charts && charts["ppoAcum"]) window.renderPpoAcum(ppoMd()); }catch(e){}
 })();
 </script>
+
+<!-- COHORT COMP — card comparativo mês ativo × mês anterior na aba Cohort (pedido 10/10/2026).
+     Usa os mesmos agregados do bloco 1 (COORTE_DATA.crm). Auto-contido: reaplicar se sumir. -->
+<script>
+(function(){
+  function renderCoorteComp(){
+    var D = (typeof COORTE_DATA !== "undefined") ? COORTE_DATA : null;
+    var nota = document.getElementById("ckCompNota");
+    if (!D || !D.crm || !D.crm.m || !nota) return;
+    var card = document.getElementById("ckMesComp");
+    if (!card){
+      card = document.createElement("div");
+      card.id = "ckMesComp";
+      card.style.cssText = "background:#fff;border:1px solid #e2e8f1;border-left:4px solid #1539AA;border-radius:12px;padding:14px 16px;margin:14px 0";
+      nota.parentNode.insertBefore(card, nota.nextSibling);
+    }
+    var M = D.meses, n = M.length, C = D.crm.m;
+    var nomes = ["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
+    var r = nomes.indexOf(String(mesAtivo).toUpperCase().replace("MARCO","MARÇO"));
+    if (r < 0 || r >= n) r = n - 1;
+    if (r < 1){ card.style.display = "none"; return; }
+    var z5 = [0,0,0,0,0];
+    function sid(q){ return q.semIdades || q.idades.map(function(){ return z5; }); }
+    function res(q){ var S = sid(q); return q.idades.map(function(g,i){ return g.map(function(v,j){ return v + S[i][j]; }); })
+      .reduce(function(a,g){ return a.map(function(v,i){ return v + g[i]; }); }, z5); }
+    function pc(a,b,d){ return b ? (a/b*100).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d})+"%" : "–"; }
+    var xA = C[r], xB = C[r-1], RA = res(xA), RB = res(xB);
+    var rows = [
+      ["Vidas vendidas no mês", xB.tot, xA.tot, "n"],
+      ["Vidas com lead vinculado", xB.cas, xA.cas, "n"],
+      ["Vidas de leads do mês", xB.novo[1], xA.novo[1], "n"],
+      ["Conversão de leads do mês", xB.novo[0] ? xB.novo[1]/xB.novo[0]*100 : 0, xA.novo[0] ? xA.novo[1]/xA.novo[0]*100 : 0, "p"],
+      ["Vidas resgatadas (1º contato em mês anterior)", RB[1], RA[1], "n"],
+      ["Conversão de resgatadas", RB[0] ? RB[1]/RB[0]*100 : 0, RA[0] ? RA[1]/RA[0]*100 : 0, "p"],
+      ["— resgatadas sem nova conversa no mês", xB.sem[1], xA.sem[1], "n"],
+      ["% de resgatadas nas vidas com lead", xB.cas ? RB[1]/xB.cas*100 : 0, xA.cas ? RA[1]/xA.cas*100 : 0, "p"]
+    ];
+    function cell(v,t){ return t === "p" ? v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : fmt(v); }
+    function delta(a,b,t){
+      if (t === "p"){ var d = b - a; return (d>=0?"+":"−") + Math.abs(d).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "pp"; }
+      if (!a) return "–";
+      var p = (b-a)/a*100; return (p>=0?"+":"−") + Math.abs(p).toLocaleString("pt-BR",{maximumFractionDigits:1}) + "%";
+    }
+    var est = function(j){ return (j === n-1 && D.ate) ? M[j] + "*" : M[j]; };
+    var html = '<div style="font-weight:800;font-size:14px;margin-bottom:2px">\u2696\uFE0F ' + est(r) + ' \u00D7 ' + est(r-1) + ' \u2014 comparativo do cohort</div>'
+      + '<div style="font-size:11px;color:#64748b;margin-bottom:8px">' + (r === n-1 && D.ate ? est(r).replace("*","") + ' PARCIAL (at\u00E9 ' + D.ate + ') contra ' + M[r-1] + ' fechado \u2014 a base do cohort \u00E9 mensal, sem quebra di\u00E1ria; as CONVERS\u00D5ES (%) s\u00E3o o comparativo mais justo entre os dois.' : 'dois meses fechados.') + '</div>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr>'
+      + '<th style="text-align:left;font-size:10.5px;text-transform:uppercase;color:#64748b;padding:5px 8px;border-bottom:2px solid #e2e8f1">Indicador</th>'
+      + '<th style="text-align:right;font-size:10.5px;text-transform:uppercase;color:#64748b;padding:5px 8px;border-bottom:2px solid #e2e8f1">' + est(r-1) + '</th>'
+      + '<th style="text-align:right;font-size:10.5px;text-transform:uppercase;color:#64748b;padding:5px 8px;border-bottom:2px solid #e2e8f1">' + est(r) + '</th>'
+      + '<th style="text-align:right;font-size:10.5px;text-transform:uppercase;color:#64748b;padding:5px 8px;border-bottom:2px solid #e2e8f1">\u0394</th></tr></thead><tbody>';
+    rows.forEach(function(rw){
+      var d = delta(rw[1], rw[2], rw[3]);
+      var melhor = rw[3] === "p" ? (rw[2] >= rw[1]) : (rw[2] >= rw[1]);
+      html += '<tr><td style="padding:5px 8px;border-bottom:1px solid #f1f5f9">' + rw[0] + '</td>'
+        + '<td style="padding:5px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-variant-numeric:tabular-nums">' + cell(rw[1],rw[3]) + '</td>'
+        + '<td style="padding:5px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-variant-numeric:tabular-nums;font-weight:700">' + cell(rw[2],rw[3]) + '</td>'
+        + '<td style="padding:5px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:800;color:' + (melhor ? "#1D9E75" : "#D85A30") + '">' + d + '</td></tr>';
+    });
+    card.innerHTML = html + '</tbody></table>';
+    card.style.display = "";
+  }
+  var _rca = window.renderCoorteAba;
+  window.renderCoorteAba = function(){
+    _rca.apply(null, arguments);
+    try{ renderCoorteComp(); }catch(e){}
+  };
+  try{ var p = document.getElementById("cohortPanel"); if (p && p.style.display === "block") renderCoorteComp(); }catch(e){}
+})();
+</script>
 </body>
 </html>
