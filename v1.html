@@ -653,6 +653,7 @@
           <button role="menuitem" data-out="AOUT" onclick="escolheOut('AOUT')"><b>📈 Análise Out</b></button>
           <button role="menuitem" data-out="VD2026" onclick="escolheOut('VD2026')"><b>📊 Vendas 2026</b></button>
           <button role="menuitem" data-out="CANCRET" onclick="escolheOut('CANCRET')"><b>🔄 Canc. &amp; Retenção</b></button>
+          <button role="menuitem" data-out="QUARTIS" onclick="escolheOut('QUARTIS')"><b>🏆 Quartis</b></button>
         </div>
       </div>
     </div>
@@ -5695,7 +5696,7 @@ function coorteGaranteAba() {
 // CASCA como Orçamentos/Comparar: cada item só chama setView(<view de sempre>); o gatilho (data-view
 // OUTRAS) acende e ganha o sufixo " · <nome>" quando uma delas está na tela.
 const OUT_VIEWS = { PROD: "Produtividade", LEADS: "Leads", COHORT: "Cohort", MVM: "MVM",
-                    ASET: "Análise Set", AOUT: "Análise Out", VD2026: "Vendas 2026", CANCRET: "Canc. & Retenção" };
+                    ASET: "Análise Set", AOUT: "Análise Out", VD2026: "Vendas 2026", CANCRET: "Canc. & Retenção", QUARTIS: "Quartis" };
 function fecharOutMenu() {
   const m = document.getElementById("outMenu"); if (m) m.classList.remove("aberto");
   const t = document.getElementById("outTrigger"); if (t) t.setAttribute("aria-expanded", "false");
@@ -10769,6 +10770,38 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
 </script>
 
 
+<!-- ABA QUARTIS — painel iframe (produtividade-vendas.vercel.app/quartis.html), patch 13/10/2026.
+     Dash Quartis & Fila: fotografia dos Qs, paradoxo da fila, conversão fila×mão, ritmo diário,
+     destino por fila e matriz dia×fila — com filtro por Q. Fonte única = Extrato do Vendedor.
+     Auto-contido: se a regeneração automática do dashboard remover este bloco, reaplicar. -->
+<script>
+(function(){
+  var painel=document.createElement('div');
+  painel.id='quartisPanel';
+  painel.style.cssText='display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#eef1f5';
+  painel.innerHTML='<iframe id="quartisFrame" style="width:100%;height:100%;border:0" title="Quartis & Fila — Vendas Digital"></iframe>';
+  document.body.appendChild(painel);
+  function pos(){var nb=document.getElementById('navBar');if(!nb)return;var r=nb.getBoundingClientRect();painel.style.top=Math.max(0,r.bottom)+'px';}
+  window.addEventListener('resize',pos);
+  window.addEventListener('scroll',function(){if(painel.style.display==='block')pos();});
+  var _sv=window.setView;
+  window.setView=function(v){
+    if(v==='QUARTIS'){
+      var f=document.getElementById('quartisFrame');
+      if(!f.src)f.src='https://produtividade-vendas.vercel.app/quartis.html';
+      ['funilPfPanel','funilPmePanel','prodPanel','leadsPanel','vd2026Panel','cancPanel','mvmPanel','asetPanel','aoutPanel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none';});
+      painel.style.display='block';pos();
+      document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='QUARTIS');});
+      if(typeof syncOrcTab==='function')syncOrcTab(null);
+      var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      var gg=document.getElementById('gestorGroup');if(gg)gg.style.display='none';
+      return;
+    }
+    painel.style.display='none';
+    _sv.apply(null, arguments);
+  };
+})();
+</script>
 
 <!-- KPIS UMA LINHA — os 7 cards do Consolidado numa linha só no desktop (pedido 10/2026).
      Só aperta o mínimo do grid #mainKpis (auto-fit segue valendo: trimestre com cards escondidos
