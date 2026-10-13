@@ -10822,7 +10822,10 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   try{
     var cv=document.getElementById('chartAcumulado'); if(!cv) return;
     var acCard=cv.closest('.chart-card'); if(!acCard) return;
-    var wrap=document.createElement('div'); wrap.className='chart-grid-2';
+    var wrap=document.createElement('div'); wrap.className='chart-grid-2'; wrap.id='mesesGrid2026';
+    var st=document.createElement('style');
+    st.textContent='@media(min-width:901px){#mesesGrid2026{grid-template-columns:1fr 1.45fr}}';
+    document.head.appendChild(st);
     acCard.parentNode.insertBefore(wrap, acCard); wrap.appendChild(acCard);
     var card=document.createElement('div'); card.className='chart-card';
     card.innerHTML='<div class="chart-title">\uD83D\uDCCA Resultado m\u00EAs a m\u00EAs \u2014 2026 <span style="font-weight:400;font-size:11px;color:#64748b">HapON Interno + Sintro + Corretoras \u00B7 total no topo</span></div><div style="position:relative;height:340px"><canvas id="chartMeses2026"></canvas></div>';
