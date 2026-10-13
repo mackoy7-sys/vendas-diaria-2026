@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "run_id": "daily-20261013T111603",
+  "run_id": "daily-20261013T160631",
   "component": "vendas_diaria",
   "status": "UPDATED",
   "core_status": "PUBLISHED",
   "optional_status": "OK",
   "source": "datalake",
   "as_of": "2026-10-13",
-  "generated_at": "2026-10-13T11:45:48-03:00",
+  "generated_at": "2026-10-13T16:55:30-03:00",
   "warnings": []
 }
