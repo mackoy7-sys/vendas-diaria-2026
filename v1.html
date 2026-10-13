@@ -10828,12 +10828,20 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
     wrap.appendChild(card);
 
     var ORD=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
+    // jan–mar/26 não estão no payload (dash começa em Abr) — totais informados 12/10/2026
+    var PRE_MESES={JANEIRO:8310,FEVEREIRO:7621,"MARÇO":10822};
     var labels=[], interno=[], sintro=[], corr=[];
     ORD.forEach(function(k){
-      var c=DADOS_MESES[k]; if(!c||c.isTrimestre) return;
-      var g=(c.gestores||{}).TOTAL; if(!g) return;
-      var ac=g.acumulado, vInt=Array.isArray(ac)&&ac.length?ac[ac.length-1]:0;
-      if(!vInt) return;
+      var c=DADOS_MESES[k];
+      var g=(c&&!c.isTrimestre)?((c.gestores||{}).TOTAL||null):null;
+      var ac=g?g.acumulado:null, vInt=Array.isArray(ac)&&ac.length?ac[ac.length-1]:0;
+      if(!vInt){
+        if(PRE_MESES[k]){
+          labels.push(k.charAt(0)+k.slice(1,3).toLowerCase());
+          interno.push(PRE_MESES[k]); sintro.push(0); corr.push(0);
+        }
+        return;
+      }
       var hm=(typeof HAPON_DATA!=='undefined'&&HAPON_DATA.meses&&HAPON_DATA.meses[k])?HAPON_DATA.meses[k]:null;
       var vCor=hm&&hm.kpi?(hm.kpi.vidas||0):(g.hapon||0);
       labels.push((c.mesLabel||k).split(' ')[0].slice(0,3));
