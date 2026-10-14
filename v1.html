@@ -10997,8 +10997,15 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   var ORD=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
   function dados(){
     var labels=[], interno=[], sintro=[], corr=[];
+    // jan–mar/26 não estão no payload (dash começa em Abr) — totais informados pelo usuário em 12/10/2026
+    var PRE_MESES={JANEIRO:8310,FEVEREIRO:7621,"MARÇO":10822};
     ORD.forEach(function(k){
-      var c=DADOS_MESES[k]; if(!c||c.isTrimestre) return;
+      var c=DADOS_MESES[k];
+      if((!c||c.isTrimestre) && PRE_MESES[k]){
+        labels.push(k.charAt(0)+k.slice(1,3).toLowerCase());
+        interno.push(PRE_MESES[k]); sintro.push(0); corr.push(0); return;
+      }
+      if(!c||c.isTrimestre) return;
       var g=(c.gestores||{}).TOTAL; if(!g) return;
       var ac=g.acumulado, vInt=Array.isArray(ac)&&ac.length?ac[ac.length-1]:0;
       if(!vInt) return;
