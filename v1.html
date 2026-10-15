@@ -11330,5 +11330,41 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
 })();
 // === FIM PPO_VINCULO_FRONT ===
 </script>
+
+<!-- PROJ DIAS UTEIS + AGENDADAS — card Projeção Mensal, KPIs por gestor e coluna Projeção do Ranking
+     (pedido do usuário 15/10): proj = (consolidado até D-2 ÷ dias úteis passados) × dias úteis do mês
+     + vendas JÁ REGISTRADAS para depois da âncora (agendadas). A âncora avança a cada dia, então as
+     agendadas descem conforme as vendas vigenciam — sem dupla contagem permanente. Mês não corrente:
+     âncora = CONFIG.diaAtual (projeção = realizado). Auto-contido: reaplicar se sumir. -->
+<script>
+(function(){
+  var MESNUM={janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  window.projTendencia=function(gKey){
+    try{
+      var parts=(CONFIG.mesLabel||"").toLowerCase().split(" ");
+      var mIdx=MESNUM[parts[0]], ano=parseInt(parts[1])||(new Date()).getFullYear();
+      var hoje=new Date();
+      var isCorrente=(mIdx!==undefined&&mIdx===hoje.getMonth()&&ano===hoje.getFullYear());
+      var anc=Math.max(1,Math.min(CONFIG.diasNoMes,isCorrente?(hoje.getDate()-2):(CONFIG.diaAtual||CONFIG.diasNoMes)));
+      var chave=function(d){return ano+"-"+String(mIdx+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");};
+      var temFer=(typeof FERIADOS_NACIONAIS_2026!=="undefined");
+      var util=function(d){var w=(new Date(ano,(mIdx===undefined?hoje.getMonth():mIdx),d)).getDay();
+        return w>=1&&w<=5&&!(temFer&&FERIADOS_NACIONAIS_2026.has(chave(d)));};
+      var uPass=0,uTot=0;
+      for(var d=1;d<=CONFIG.diasNoMes;d++){ if(util(d)){ uTot++; if(d<=anc)uPass++; } }
+      var acAnc=acum(gKey,anc), acFim=acum(gKey,CONFIG.diasNoMes);
+      var agendadas=Math.max(0,acFim-acAnc);
+      if(!uPass) return Math.round(acFim);
+      return Math.round(acAnc/uPass*uTot + agendadas);
+    }catch(e){
+      try{return projecaoDiasUteisD1().valores[gKey]||0;}catch(e2){return 0;}
+    }
+  };
+  // re-render do que já está na tela (card, KPIs e Ranking)
+  try{if(typeof renderKPIs==="function")renderKPIs();}catch(e){}
+  try{if(typeof hapKpiConsolidado==="function")hapKpiConsolidado();}catch(e){}
+  try{if(typeof setView==="function")setView('CONS');}catch(e){}
+})();
+</script>
 </body>
 </html>
