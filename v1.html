@@ -11077,7 +11077,16 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
           projCor=uP?Math.round(acC/uP*uT+Math.max(0,totC-acC)):totC;
         }
         idxProj=D.labels.indexOf((cCor.mesLabel||nomeCor).split(' ')[0].slice(0,3));
-        if(idxProj>=0) projLinha=D.labels.map(function(_,i){return i===idxProj?(projInt+projCor):(D.interno[i]+D.corr[i]);});
+        // ponto do mês corrente IGUAL ao card Projeção Mensal: projTendencia(TOTAL) + proj de corretoras do Ranking
+        var cardProj=null;
+        try{
+          var pT=(typeof projTendencia==='function')?projTendencia('TOTAL'):0;
+          var ddp=projCor;
+          try{ var dd0=hapRankingDados(); if(dd0&&dd0.proj!=null) ddp=dd0.proj; }catch(e5){}
+          if(pT) cardProj=pT+ddp;
+        }catch(e6){}
+        if(idxProj>=0) projLinha=D.labels.map(function(_,i){
+          return i===idxProj?(cardProj!=null?cardProj:(projInt+projCor)):(D.interno[i]+D.corr[i]+D.sintro[i]);});
       }
     }catch(e){}
     var old=Chart.getChart(cv); if(old) old.destroy();
@@ -11089,7 +11098,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       {label:'Corretoras',data:D.corr,backgroundColor:'#E8A33D',stack:'s',
        datalabels:{display:true,anchor:'end',align:'top',color:'#185FA5',font:{size:11,weight:'800'},
          formatter:function(v,c2){return fm(tot[c2.dataIndex]);}}}
-    ].concat(projLinha?[{type:'line',label:'Time próprio + Corretoras (mês atual = projeção)',data:projLinha,
+    ].concat(projLinha?[{type:'line',label:'Total realizado (c/ Sintro) · mês atual = Projeção do card',data:projLinha,
        borderColor:'#D85A30',borderDash:[6,4],borderWidth:2.2,pointRadius:3,pointBackgroundColor:'#D85A30',
        tension:.25,order:0,
        datalabels:{display:function(c2){return c2.dataIndex===idxProj;},anchor:'end',align:'top',offset:16,
