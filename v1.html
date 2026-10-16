@@ -11366,5 +11366,42 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   try{if(typeof setView==="function")setView('CONS');}catch(e){}
 })();
 </script>
+
+<!-- PROJ GRAFICO ALINHADO — linha de Projeção do gráfico Vendas Acumuladas na MESMA régua do card/tabela
+     (dias úteis + agendadas, via projTendencia). Wrapper pós-render: recalcula o dataset 'Projeção' com a
+     âncora D-2 e interpola até projTendencia(gestorAtivo) no fim do mês. Auto-contido: reaplicar se sumir. -->
+<script>
+(function(){
+  var MESNUM={janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  function ajustaProj(){
+    try{
+      var ch=charts && charts["acumulado"]; if(!ch) return;
+      var ds=ch.data.datasets.find(function(d){return /Proje/.test(d.label||"");}); if(!ds) return;
+      var g=gestorAtivo||"TOTAL";
+      var projMes=(typeof projTendencia==="function")?projTendencia(g):0; if(!projMes) return;
+      var parts=(CONFIG.mesLabel||"").toLowerCase().split(" ");
+      var mIdx=MESNUM[parts[0]], ano=parseInt(parts[1])||(new Date()).getFullYear();
+      var hoje=new Date();
+      var isCorrente=(mIdx!==undefined&&mIdx===hoje.getMonth()&&ano===hoje.getFullYear());
+      var anc=Math.max(1,Math.min(CONFIG.diasNoMes,isCorrente?(hoje.getDate()-2):(CONFIG.diaAtual||CONFIG.diasNoMes)));
+      var acAnc=acum(g,anc);
+      var ini=(typeof diaIni!=="undefined")?diaIni:1;
+      var rest=Math.max(1,CONFIG.diasNoMes-anc);
+      ds.data=ch.data.labels.map(function(_,i){
+        var d=ini+i;
+        if(d<=anc) return acum(g,d);
+        return Math.round(acAnc+(projMes-acAnc)*((d-anc)/rest));
+      });
+      ch.update('none');
+    }catch(e){}
+  }
+  var _ra=window.renderAcumulado;
+  if(typeof _ra==="function"){
+    window.renderAcumulado=function(){ _ra.apply(this,arguments); ajustaProj(); };
+  }
+  ajustaProj();
+  setTimeout(ajustaProj, 1500);
+})();
+</script>
 </body>
 </html>
