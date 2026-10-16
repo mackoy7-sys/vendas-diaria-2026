@@ -3915,6 +3915,12 @@ function hapGaranteAba() {
       <div id="hpDiaVazio" style="display:none;padding:40px 4px;text-align:center;color:#999;font-size:12.5px"></div>
     </div>
   </div>
+  <div class="chart-grid-2" id="hpLdDiaSec" style="display:none">
+    <div class="chart-card full">
+      <div class="ppo-card-head"><div class="chart-title" id="hpLdDiaTitle" style="margin-bottom:0">📥 Entrada de Leads por Corretora por Dia</div></div>
+      <div style="overflow-x:auto"><table id="hpLdDiaTab" style="font-size:11px;white-space:nowrap;width:100%;border-collapse:collapse;color:#000"><thead id="hpLdDiaHead"></thead><tbody id="hpLdDiaBody"></tbody></table></div>
+    </div>
+  </div>
   <div class="chart-grid-2" id="hpLdSec">
     <div class="chart-card full">
       <div class="ppo-card-head"><div class="chart-title" id="hpLdTitle" style="margin-bottom:0">🎯 Conversão por corretora</div></div>
@@ -4295,6 +4301,34 @@ const HAP_MES_ROTULO = { JANEIRO: "Janeiro", FEVEREIRO: "Fevereiro", MARCO: "Mar
   AGOSTO: "Agosto", SETEMBRO: "Setembro", OUTUBRO: "Outubro", NOVEMBRO: "Novembro", DEZEMBRO: "Dezembro" };
 const HAP_MES_ORDEM = Object.keys(HAP_MES_ROTULO);
 function hapSetCmp(s) { hapCmpSerie = s; hapToggle("hpCmpToggle", s); renderHaponCorr(); }
+function hapTabelaLeadsDia(ml, ks, mesNome) {
+  const sec = document.getElementById("hpLdDiaSec");
+  if (!ml || !ks.length) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("hpLdDiaTitle").textContent = "📥 Entrada de Leads por Corretora por Dia · " + mesNome;
+  const nDias = Math.max(1, ...ml.porDia.map(d => d.dia));
+  const linhas = ks.map(k => {
+    const dias = Array.from({ length: nDias }, (_, i) => { const d = ml.porDia.find(x => x.dia === i + 1); return d && d.por ? (d.por[k] || 0) : 0; });
+    return { k, dias, total: dias.reduce((a, b) => a + b, 0) };
+  }).sort((a, b) => b.total - a.total);
+  const totalGeral = linhas.reduce((s, l) => s + l.total, 0);
+  const porDia = Array.from({ length: nDias }, (_, i) => linhas.reduce((s, l) => s + l.dias[i], 0));
+  const td = "padding:6px 8px;text-align:right;color:#000;border-bottom:1px solid #eef0f4;";
+  let h = '<tr><th style="position:sticky;left:0;background:#185FA5;color:#000;text-align:left;padding:6px 10px">Corretora</th>';
+  for (let d = 1; d <= nDias; d++) h += '<th style="' + td + 'font-weight:600">' + d + "</th>";
+  h += '<th style="' + td + 'background:#0d4a85">Total</th><th style="' + td + 'background:#0d4a85">% do Total</th></tr>';
+  document.getElementById("hpLdDiaHead").innerHTML = h;
+  let b = "";
+  linhas.forEach(l => {
+    b += '<tr><td style="position:sticky;left:0;background:#fff;color:#000;font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid #eef0f4"><i class="hp-sw" style="background:' + HAP_COR[l.k] + '"></i>' + HAP_NOME[l.k] + "</td>";
+    l.dias.forEach(v => { b += '<td style="' + td + (v ? "background:rgba(24,95,165," + Math.min(0.55, v / 300).toFixed(3) + ')">' + hapFmt(v) : '">–') + "</td>"; });
+    b += '<td style="' + td + 'font-weight:700;background:#eef4fb">' + hapFmt(l.total) + '</td><td style="' + td + 'font-weight:700;background:#eef4fb">' + (totalGeral ? hapPct1(l.total, totalGeral) : "0,0") + "%</td></tr>";
+  });
+  b += '<tr style="font-weight:700;border-top:2px solid #185FA5"><td style="position:sticky;left:0;background:#eef4fb;color:#000;text-align:left;padding:6px 10px">Total geral</td>';
+  porDia.forEach(v => { b += '<td style="' + td + 'background:#eef4fb">' + hapFmt(v) + "</td>"; });
+  b += '<td style="' + td + 'background:#185FA5">' + hapFmt(totalGeral) + '</td><td style="' + td + 'background:#185FA5">100,0%</td></tr>';
+  document.getElementById("hpLdDiaBody").innerHTML = b;
+}
 function hapDiasMes(src, key) { return (src && src.meses && src.meses[key]) ? src.meses[key].porDia : []; }
 function hapSomaAte(dias, ks, n) { return dias.reduce((s, d) => d.dia <= n ? s + ks.reduce((t, k) => t + ((d.por && d.por[k]) || 0), 0) : s, 0); }
 function hapDelta(atual, ant) { if (!ant) return "—"; const d = (atual - ant) / ant * 100; return (d >= 0 ? "+" : "−") + Math.abs(d).toFixed(0) + "%"; }
@@ -4367,7 +4401,7 @@ function renderHaponCorr() {
   const kp = document.getElementById("hpKpis"), chipsEl = document.getElementById("hpChips");
   ["hapDia", "hapEmp", "hapVend", "hapCmp"].forEach(hapDestroy);
   const vazio = txt => {
-    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none"; document.getElementById("hpCmpSec").style.display = "none";
+    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none"; document.getElementById("hpLdDiaSec").style.display = "none"; document.getElementById("hpCmpSec").style.display = "none";
     kp.innerHTML = '<div class="kpi-card cinza" style="grid-column:1/-1"><div class="kpi-sub">' + txt + "</div></div>";
   };
   if (!D || !D.meses) { vazio("Os dados de HapON Corretoras ainda não foram carregados nesta versão do painel."); return; }
@@ -4417,6 +4451,9 @@ function renderHaponCorr() {
   // grafico principal: Vidas OU Leads
   if (hapSerie === "vidas") hapGraficoDia(m.porDia, selV.filter(k => vid[k] > 0));
   else hapGraficoDia(ml ? ml.porDia : [], sel.filter(k => ld[k] > 0));
+
+  // tabela: leads por corretora x dia (mesmo molde da tabela de Origem; segue o filtro de corretora)
+  hapTabelaLeadsDia(ml, sel.filter(k => ld[k] > 0), mesNome);
 
   // demais graficos seguem o filtro
   hapGraficoEmpresa({ porCorretora: m.porCorretora.filter(x => hapOn(x.nome)) }, mesNome);
