@@ -11151,6 +11151,28 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       }
       if(cv2 && !Chart.getChart(cv2)) desenha(cv2);
       else if(!cv2){ var c3=document.getElementById('chartMeses2026'); if(c3) desenha(c3); }
+      // sincroniza o ponto do mês corrente com o card Projeção Mensal (hapRankingDados pode não
+      // estar pronto no primeiro draw) — só quando o mês ativo do dash É o mês corrente do calendário
+      try{
+        var cv4=document.getElementById('chartMeses2026'); var ch4=cv4&&Chart.getChart(cv4);
+        var ln4=ch4&&ch4.data.datasets.filter(function(d){return d.type==='line';})[0];
+        if(ln4){
+          var ag=new Date(), nomeC=ORD[ag.getMonth()], cC=DADOS_MESES[nomeC];
+          var ativoEhCorrente=(typeof CONFIG!=="undefined")&&cC&&CONFIG.mesLabel===cC.mesLabel;
+          if(ativoEhCorrente){
+            var lbl4=(cC.mesLabel||nomeC).split(' ')[0].slice(0,3);
+            var idx4=ch4.data.labels.indexOf(lbl4);
+            if(idx4>=0){
+              var pT4=(typeof projTendencia==='function')?projTendencia('TOTAL'):0;
+              var dd4=null; try{ dd4=hapRankingDados(); }catch(e7){}
+              if(pT4&&dd4&&dd4.proj!=null){
+                var alvo=pT4+dd4.proj;
+                if(ln4.data[idx4]!==alvo){ ln4.data[idx4]=alvo; ch4.update('none'); }
+              }
+            }
+          }
+        }
+      }catch(e8){}
     }catch(e){ window.__mesesErr=String(e); }
   }
   garante();
