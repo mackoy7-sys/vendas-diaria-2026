@@ -1144,6 +1144,7 @@
       <button class="fpf-subtab" type="button" data-fpfsub="REC" onclick="setFpfSubView('REC')">Vendedores Administrativos</button>
       <button class="fpf-subtab" type="button" data-fpfsub="TABELA" onclick="setFpfSubView('TABELA')">Tabela de Orçamentos</button>
       <button class="fpf-subtab" type="button" data-fpfsub="PROD" onclick="setFpfSubView('PROD')">Produção</button>
+      <button class="fpf-subtab" type="button" data-fpfsub="CORR" onclick="setFpfSubView('CORR')">Corretoras HapON</button>
     </div>
     <div class="kpi-row" id="fpfAtuacoesKpis" data-fpf-subpanel="REC">
       <!-- 1º KPI (07/09/2026): o ESTOQUE que a Recuperação tem para atacar, antes de
@@ -1521,6 +1522,45 @@
         <div style="color:#888;font-size:11px;margin-top:8px;line-height:1.5" id="fpfPrVNota"></div>
       </div>
     </div>
+
+    <!-- === FPF_CORRETORAS_PAINEL === -->
+    <!-- SUB-ABA CORRETORAS HAPON (16/10/2026): espelho do waterfall "Funil por fase" + produção por dia, só das
+         corretoras HapON. NÃO segue a Gestão do topo (as corretoras são a gestão HAPON CORRETORAS, à parte);
+         segue o Mês do topo e o MESMO toggle Por CPF / Bruto (fpfGrao) das outras sub-abas.
+         Dado: const FPF_CORRETORAS (funil_pf_corretoras.py) -- datalake por código de área, não o REL_PROPOSTAS. -->
+    <div data-fpf-subpanel="CORR" style="display:none">
+      <div class="kpi-row">
+        <div class="kpi-card" style="border-left-color:#D85A30"><div class="kpi-label">Vidas negociadas</div>
+          <div class="kpi-value" id="fpfCoKNeg">—</div><div class="kpi-sub" id="fpfCoKNegSub"></div></div>
+        <div class="kpi-card" style="border-left-color:#f0ad4e"><div class="kpi-label" title="Vidas que não implantaram nem foram canceladas — ainda dá para trabalhar.">Em aberto</div>
+          <div class="kpi-value" id="fpfCoKAb">—</div><div class="kpi-sub" id="fpfCoKAbSub"></div></div>
+        <div class="kpi-card laranja"><div class="kpi-label">Canceladas</div>
+          <div class="kpi-value" id="fpfCoKPerd">—</div><div class="kpi-sub" id="fpfCoKPerdSub"></div></div>
+        <div class="kpi-card verde"><div class="kpi-label">Implantadas</div>
+          <div class="kpi-value" id="fpfCoKImp">—</div><div class="kpi-sub" id="fpfCoKImpSub"></div></div>
+        <div class="kpi-card verde"><div class="kpi-label">Conversão</div>
+          <div class="kpi-value" id="fpfCoKConv">—</div><div class="kpi-sub" id="fpfCoKConvSub"></div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:var(--gap)">
+        <div class="ppo-card-head">
+          <div class="chart-title" style="margin-bottom:0">🔻 Funil por fase — corretoras HapON</div>
+          <div class="ppo-toggle">
+            <button class="ppo-tg-btn active" data-fpfgrao="caso" onclick="setFpfGrao('caso')">Por CPF</button>
+            <button class="ppo-tg-btn" data-fpfgrao="bruto" onclick="setFpfGrao('bruto')">Bruto</button>
+          </div>
+        </div>
+        <div style="color:#888;font-size:11px;margin:-4px 0 8px" id="fpfCoFunilNota"></div>
+        <div style="position:relative;height:400px;width:100%" id="fpfCoFunilWrap"><canvas id="chartFpfCoFunil"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:var(--gap)">
+        <div class="chart-title" id="fpfCoPrTit">Vidas negociadas por dia</div>
+        <div class="fpf-pr-leg" id="fpfCoPrLeg"></div>
+        <div style="position:relative;height:300px;width:100%"><canvas id="chartFpfCoProd"></canvas></div>
+        <div style="color:#888;font-size:11px;margin-top:6px;line-height:1.5" id="fpfCoPrNota"></div>
+      </div>
+      <div style="color:#888;font-size:11px;line-height:1.5;margin:0 0 var(--gap)" id="fpfCoRodape"></div>
+    </div>
+    <!-- === FIM FPF_CORRETORAS_PAINEL === -->
 
   </div>
 
@@ -8307,6 +8347,7 @@ function setFpfSubView(visao) {
   syncFpfSubTabs();
   // o canvas nasce escondido; redesenha ao abrir para o Chart.js medir a largura real
   if (visao === "PROD") renderFpfProducao();
+  if (visao === "CORR") renderFpfCorretoras();
 }
 
 let FPF_ATUACAO_EQUIPE = "TOTAL";
@@ -9194,6 +9235,184 @@ function fpfPrExpandeTudo() {
   renderFpfProducao();
 }
 
+// === FPF_CORRETORAS_FRONT (aplicar_front_fpf_corretoras.py -- NAO editar a mao) ===
+// ============================================================
+// SUB-ABA "Corretoras HapON" do Funil PF (16/10/2026) -- espelho do waterfall + produção por dia.
+// Dado: const FPF_CORRETORAS (funil_pf_corretoras.py). Segue o Mês e o toggle Por CPF/Bruto (fpfGrao) do topo;
+// NÃO segue a Gestão (as corretoras são uma gestão à parte). A página é em VIDAS; a contagem é secundária.
+// ============================================================
+const FPFC_COR = { RAISE: "#3D65E7", COMPLETO: "#FF8800", QUINDTECH: "#eda100", FJS: "#0F297B",
+                   "F FURTADO": "#1D9E75", CLINIPAM: "#B5539B", QIP: "#E5484D" };
+const FPFC_NOME = { RAISE: "RAISE TECH", COMPLETO: "COMPLETO", QUINDTECH: "QUINDTECH", FJS: "FJS APOIO",
+                    "F FURTADO": "F FURTADO CARNEIRO", CLINIPAM: "CALL LINK", QIP: "QIP SAÚDE" };   // chave interna CLINIPAM = CALL LINK
+
+function renderFpfCorretoras() {
+  destroyChart("fpfCoFunil");
+  destroyChart("fpfCoProd");
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  if (!document.getElementById("fpfCoFunilNota")) return;
+  const D = (typeof FPF_CORRETORAS !== "undefined") ? FPF_CORRETORAS : null;
+  const m = D && D.meses && D.meses[mesAtivo];
+  const wrap = document.getElementById("fpfCoFunilWrap");
+  if (!m) {
+    ["fpfCoKNeg", "fpfCoKAb", "fpfCoKPerd", "fpfCoKImp", "fpfCoKConv"].forEach(id => { set(id, "—"); set(id + "Sub", ""); });
+    set("fpfCoFunilNota", !D
+      ? "Sem dados de orçamentos PF das corretoras (a extração por área de venda não veio neste build)."
+      : "Sem orçamentos PF de corretoras em " + fpfMesLabel() + ". O PF das corretoras só existe a partir de " + D.fonte.inicio + ".");
+    if (wrap) wrap.style.display = "none";
+    document.getElementById("fpfCoPrLeg").innerHTML = "";
+    set("fpfCoPrNota", ""); set("fpfCoRodape", "");
+    return;
+  }
+  if (wrap) wrap.style.display = "";
+  const bruto = fpfGrao === "bruto" && !!m.bruto;
+  const bloco = bruto ? m.bruto : m.caso;
+  const un = bruto ? "orçamentos" : "negociações";
+
+  // ---- KPIs (mesma régua do Funil PF: Em aberto + Canceladas + Implantadas = Vidas negociadas)
+  const tot = bloco.totCasos, totV = bloco.totVidas;
+  const soma = (nomes, campo) => bloco.classes.filter(c => nomes.indexOf(c.nome) >= 0).reduce((a, c) => a + c[campo], 0);
+  const GAN = ["Implantado", "Implantado c/ Erro"];
+  const impl = soma(GAN, "casos"), implV = soma(GAN, "vidas");
+  const aberto = soma(FPF_ABERTAS, "casos"), abertoV = soma(FPF_ABERTAS, "vidas");
+  const perd = soma(["CANCELADO"], "casos"), perdV = soma(["CANCELADO"], "vidas");
+  const kp = (id, v, sub) => { set(id, v); set(id + "Sub", sub || ""); };
+  kp("fpfCoKNeg", fmt(totV), fmt(tot) + " " + un);
+  kp("fpfCoKAb", fmt(abertoV), fmt(aberto) + " " + un + " · ainda em jogo");
+  kp("fpfCoKPerd", fmt(perdV), totV ? fmtDec(100 * perdV / totV, 1) + "% das vidas" : "");
+  kp("fpfCoKImp", fmt(implV), fmt(impl) + " " + un);
+  kp("fpfCoKConv", totV ? fmtDec(100 * implV / totV, 1) + "%" : "—", "vidas implantadas ÷ vidas negociadas");
+  set("fpfCoFunilNota", bruto
+    ? "Grão BRUTO: 1 orçamento = 1 linha. Infla o cancelado, porque a re-digitação do mesmo CPF conta de novo."
+    : "Grão CASO: 1 CPF = 1 negociação, valendo o orçamento mais recente. " + fmt(bloco.orcs) + " orçamentos viraram " + fmt(tot) + " negociações.");
+
+  // ---- waterfall (espelho do Funil por fase): criadas -> o que parou em cada fase -> implantado
+  const porNome = {};
+  bloco.classes.forEach(c => { porNome[c.nome] = c; });
+  const pega = nome => porNome[nome] || { casos: 0, vidas: 0 };
+  let corrida = totV;
+  const passos = [{ label: bruto ? "Orçamentos criados" : "Negociações criadas", tipo: "total", valor: totV, casos: tot, cor: "#4b4a5a" }];
+  ["CANCELADO", "Em Negociacao", "Em Implantacao", "Ag. Pgto"].forEach(nome => {
+    const c = pega(nome), de = corrida;
+    corrida -= c.vidas;
+    passos.push({ label: FPF_LABEL[nome], tipo: "queda", valor: c.vidas, casos: c.casos, de: de, para: corrida, cor: FPF_CORES[nome] });
+  });
+  passos.push({ label: "Implantado", tipo: "total", valor: implV, casos: impl, cor: FPF_CORES["Implantado"] });
+  charts["fpfCoFunil"] = new Chart(document.getElementById("chartFpfCoFunil"), {
+    type: "bar",
+    data: {
+      labels: passos.map(p => p.label),
+      datasets: [{ data: passos.map(p => p.tipo === "total" ? p.valor : [p.para, p.de]),
+                   backgroundColor: passos.map(p => p.cor), borderRadius: 4, barPercentage: 0.6, categoryPercentage: 0.8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: { top: 28 } },
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: "end", align: "end", offset: 4, clip: false, font: { size: 11, weight: "700" }, color: "#333",
+          formatter: (v, c) => { const p = passos[c.dataIndex]; return fmt(p.valor) + " · " + fmtDec(totV ? 100 * p.valor / totV : 0, 1) + "%"; } },
+        tooltip: { callbacks: {
+          title: it => it.length ? passos[it[0].dataIndex].label : "",
+          label: c => { const p = passos[c.dataIndex];
+            const l = [fmt(p.valor) + " vidas (" + fmtDec(totV ? 100 * p.valor / totV : 0, 1) + "% do total) · " + fmt(p.casos) + " " + un];
+            if (p.tipo === "queda") l.push("Estoque: " + fmt(p.de) + " → " + fmt(p.para));
+            return l; } } }
+      },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "#f0f0f4" }, ticks: { callback: v => fmt(v) } } }
+    },
+    plugins: [{
+      id: "fpfCoConectores",
+      afterDatasetsDraw: chart => {
+        const meta = chart.getDatasetMeta(0), y = chart.scales.y, c2 = chart.ctx;
+        c2.save(); c2.strokeStyle = "#c9c5d8"; c2.setLineDash([4, 3]); c2.lineWidth = 1;
+        for (let i = 0; i < passos.length - 1; i++) {
+          const nivel = passos[i].tipo === "total" ? passos[i].valor : passos[i].para;
+          const b1 = meta.data[i], b2 = meta.data[i + 1];
+          if (!b1 || !b2) continue;
+          const py = y.getPixelForValue(nivel);
+          c2.beginPath(); c2.moveTo(b1.x + b1.width / 2, py); c2.lineTo(b2.x - b2.width / 2, py); c2.stroke();
+        }
+        c2.restore();
+      }
+    }]
+  });
+
+  // ---- vidas por dia, empilhadas por corretora (espelho da Produção)
+  const P = m.prod, corrs = P.corr.slice(), dados = P[bruto ? "bruto" : "caso"];
+  const snap = (D.snap || "").split("/");
+  const snapNoMes = (+snap[1] === m.mesNum && +snap[2] === m.ano);
+  const diaParcial = snapNoMes ? +snap[0] : 0;
+  const n = snapNoMes ? Math.min(m.dias, diaParcial) : m.dias;
+  const dias = [];
+  for (let d = 1; d <= n; d++) {
+    const dw = new Date(m.ano, m.mesNum - 1, d).getDay();
+    dias.push({ d: d, fds: dw === 0 || dw === 6, parcial: d === diaParcial });
+  }
+  const uteis = dias.filter(x => !x.fds && !x.parcial).map(x => x.d - 1);
+  const arr = (c, campo) => dados[c][campo].slice(0, n);
+  const total = new Array(n).fill(0), totalC = new Array(n).fill(0);
+  corrs.forEach(c => arr(c, "a").forEach((x, i) => { total[i] += x; }));
+  corrs.forEach(c => arr(c, "c").forEach((x, i) => { totalC[i] += x; }));
+  const somaTot = total.reduce((a, b) => a + b, 0);
+  const med = uteis.length ? uteis.reduce((s, i) => s + total[i], 0) / uteis.length : 0;
+  set("fpfCoPrTit", bruto ? "Vidas por dia — todos os orçamentos (bruto)" : "Vidas negociadas por dia");
+  const cor = c => FPFC_COR[c] || "#B4B2A9";
+  document.getElementById("fpfCoPrLeg").innerHTML = corrs.map(c =>
+    '<span><i style="background:' + cor(c) + '"></i>' + (FPFC_NOME[c] || c) + "</span>").join("")
+    + '<span style="color:#999">faixa cinza = fim de semana · linha tracejada = média do dia útil</span>';
+  const labels = dias.map(x => String(x.d).padStart(2, "0") + (x.parcial ? "*" : ""));
+  const faixaFds = {
+    id: "fpfCoFds",
+    beforeDatasetsDraw(c) {
+      const { ctx: g2, chartArea: a, scales: { x } } = c;
+      const w = n > 1 ? x.getPixelForValue(1) - x.getPixelForValue(0) : 20;
+      g2.save(); g2.fillStyle = "rgba(136,135,128,.10)";
+      dias.forEach((d, i) => { if (d.fds) g2.fillRect(x.getPixelForValue(i) - w / 2, a.top, w, a.bottom - a.top); });
+      g2.restore();
+    }
+  };
+  const ds = corrs.map((c, i) => ({ type: "bar", label: FPFC_NOME[c] || c, data: arr(c, "a"), backgroundColor: cor(c),
+    borderWidth: 0, stack: "p", order: 2,
+    datalabels: i < corrs.length - 1 ? { display: false } : {
+      display: x => total[x.dataIndex] > 0, anchor: "end", align: "end", offset: 2, clamp: true,
+      font: { size: 10.5, weight: "700" }, color: "#0B3D6B", formatter: (v, x) => fmt(total[x.dataIndex]) } }));
+  ds.push({ type: "line", label: "Média do dia útil", data: new Array(n).fill(Math.round(med)), borderColor: "#5F5E5A",
+            borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, order: 1, datalabels: { display: false } });
+  charts["fpfCoProd"] = new Chart(document.getElementById("chartFpfCoProd"), {
+    data: { labels: labels, datasets: ds }, plugins: [faixaFds],
+    options: {
+      maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false }, layout: { padding: { top: 18 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          filter: it => it.dataset.type !== "line" && it.raw > 0, itemSort: (a, b) => b.raw - a.raw,
+          callbacks: {
+            title: it => { const d = dias[it[0].dataIndex];
+              return labels[it[0].dataIndex].replace("*", "") + "/" + String(m.mesNum).padStart(2, "0")
+                + (d.fds ? " · fim de semana" : "") + (d.parcial ? " · parcial" : ""); },
+            label: it => " " + it.dataset.label + ": " + fmt(it.raw) + " vidas",
+            footer: it => "Total: " + fmt(total[it[0].dataIndex]) + " vidas · " + fmt(totalC[it[0].dataIndex]) + " " + un
+          }
+        }
+      },
+      scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+                y: { stacked: true, beginAtZero: true, ticks: { font: { size: 11 } } } }
+    }
+  });
+  set("fpfCoPrNota", fmt(somaTot) + " vidas em " + n + " dias · média de " + fmt(Math.round(med)) + " por dia útil fechado. "
+    + (bruto ? "Bruto: cada orçamento digitado conta uma vez. " : "Por CPF: 1 CPF = 1 negociação, no dia do orçamento vigente. ")
+    + "Data = DATA DIGITAÇÃO."
+    + (diaParcial && dias.some(x => x.parcial) ? " O dia " + String(diaParcial).padStart(2, "0") + "* ainda está em digitação e fica fora da média." : ""));
+  set("fpfCoRodape", "Esta sub-aba não segue o filtro de Gestão do topo: as corretoras HapON são uma gestão à parte (HAPON CORRETORAS). "
+    + "Fonte: datalake por código de área de venda (extraído em " + D.fonte.extraidoEm + "); o PF das corretoras só existe a partir de "
+    + D.fonte.inicio + ". Não reconcilia com o REL_PROPOSTAS do time interno.");
+}
+// === FIM FPF_CORRETORAS_FRONT ===
+
+// === FPF_CORRETORAS (gerado por funil_pf_corretoras.py -- NAO editar a mao) ===
+const FPF_CORRETORAS = {"ano":2026,"snap":"16/10/2026","escopo":["RAISE","COMPLETO","QUINDTECH","FJS","F FURTADO","CLINIPAM"],"fonte":{"arquivo":"_pf_hapon_orcamentos_lake.csv","extraidoEm":"16/10/2026 12:12","inicio":"24/08/2026"},"meses":{"AGOSTO":{"ano":2026,"mesNum":8,"dias":31,"diaIni":24,"diaFim":31,"caso":{"totCasos":33,"totVidas":34,"classes":[{"nome":"Implantado","casos":10,"vidas":10},{"nome":"Implantado c/ Erro","casos":0,"vidas":0},{"nome":"Ag. Pgto","casos":0,"vidas":0},{"nome":"Em Implantacao","casos":0,"vidas":0},{"nome":"Em Negociacao","casos":0,"vidas":0},{"nome":"CANCELADO","casos":23,"vidas":24}],"orcs":46},"bruto":{"totCasos":46,"totVidas":46,"classes":[{"nome":"Implantado","casos":10,"vidas":10},{"nome":"Implantado c/ Erro","casos":0,"vidas":0},{"nome":"Ag. Pgto","casos":0,"vidas":0},{"nome":"Em Implantacao","casos":0,"vidas":0},{"nome":"Em Negociacao","casos":0,"vidas":0},{"nome":"CANCELADO","casos":36,"vidas":36}],"orcs":46},"prod":{"corr":["RAISE","COMPLETO"],"caso":{"RAISE":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,7,6,1,0,13],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,7,6,1,0,12]},"COMPLETO":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}},"bruto":{"RAISE":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,5,9,8,1,0,19],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,5,10,8,1,0,18]},"COMPLETO":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}}}},"SETEMBRO":{"ano":2026,"mesNum":9,"dias":30,"diaIni":1,"diaFim":30,"caso":{"totCasos":112,"totVidas":130,"classes":[{"nome":"Implantado","casos":76,"vidas":92},{"nome":"Implantado c/ Erro","casos":0,"vidas":0},{"nome":"Ag. Pgto","casos":0,"vidas":0},{"nome":"Em Implantacao","casos":6,"vidas":6},{"nome":"Em Negociacao","casos":4,"vidas":4},{"nome":"CANCELADO","casos":26,"vidas":28}],"orcs":164},"bruto":{"totCasos":164,"totVidas":186,"classes":[{"nome":"Implantado","casos":77,"vidas":93},{"nome":"Implantado c/ Erro","casos":0,"vidas":0},{"nome":"Ag. Pgto","casos":0,"vidas":0},{"nome":"Em Implantacao","casos":7,"vidas":7},{"nome":"Em Negociacao","casos":13,"vidas":13},{"nome":"CANCELADO","casos":67,"vidas":73}],"orcs":164},"prod":{"corr":["RAISE","COMPLETO","QUINDTECH"],"caso":{"RAISE":{"a":[3,4,1,3,0,0,0,6,7,7,5,0,0,9,9,3,6,2,0,0,9,2,2,5,1,1,0,19,14,8],"c":[2,4,1,3,0,0,0,5,6,7,5,0,0,7,6,3,6,2,0,0,8,2,2,5,1,1,0,15,12,5]},"COMPLETO":{"a":[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"QUINDTECH":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0]}},"bruto":{"RAISE":{"a":[5,7,1,3,0,0,0,8,9,7,6,0,0,17,9,3,7,5,0,0,11,5,2,6,3,1,0,24,16,12],"c":[4,7,1,3,0,0,0,7,8,7,6,0,0,11,6,3,7,5,0,0,10,5,2,6,3,1,0,20,14,9]},"COMPLETO":{"a":[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"QUINDTECH":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,2,0,0,0,3,2,5,0,0,0,0,0,0],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,2,0,0,0,3,2,5,0,0,0,0,0,0]}}}},"OUTUBRO":{"ano":2026,"mesNum":10,"dias":31,"diaIni":1,"diaFim":16,"caso":{"totCasos":171,"totVidas":183,"classes":[{"nome":"Implantado","casos":75,"vidas":82},{"nome":"Implantado c/ Erro","casos":2,"vidas":2},{"nome":"Ag. Pgto","casos":25,"vidas":28},{"nome":"Em Implantacao","casos":45,"vidas":47},{"nome":"Em Negociacao","casos":6,"vidas":6},{"nome":"CANCELADO","casos":18,"vidas":18}],"orcs":251},"bruto":{"totCasos":251,"totVidas":268,"classes":[{"nome":"Implantado","casos":78,"vidas":85},{"nome":"Implantado c/ Erro","casos":2,"vidas":2},{"nome":"Ag. Pgto","casos":25,"vidas":28},{"nome":"Em Implantacao","casos":49,"vidas":51},{"nome":"Em Negociacao","casos":9,"vidas":9},{"nome":"CANCELADO","casos":88,"vidas":93}],"orcs":251},"prod":{"corr":["RAISE","QUINDTECH","FJS","F FURTADO","CLINIPAM"],"caso":{"RAISE":{"a":[5,6,0,0,5,3,3,3,6,1,0,0,7,4,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[5,4,0,0,5,2,3,3,6,1,0,0,7,4,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"QUINDTECH":{"a":[0,0,0,0,0,3,3,0,3,0,0,0,2,3,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,3,3,0,3,0,0,0,2,3,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"FJS":{"a":[0,0,0,0,0,0,1,2,1,0,0,0,2,0,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,0,1,2,1,0,0,0,2,0,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"F FURTADO":{"a":[0,1,0,0,9,9,10,16,14,0,3,1,13,14,4,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,1,0,0,9,9,10,16,12,0,3,1,10,13,4,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"CLINIPAM":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,2,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}},"bruto":{"RAISE":{"a":[6,8,0,0,5,9,3,5,7,3,0,0,8,4,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[6,6,0,0,5,8,3,5,7,3,0,0,8,4,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"QUINDTECH":{"a":[0,0,0,0,0,3,5,0,5,0,0,0,2,7,1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,3,5,0,5,0,0,0,2,7,1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"FJS":{"a":[0,0,0,0,0,0,1,6,1,0,0,0,2,3,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,0,1,5,1,0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"F FURTADO":{"a":[0,1,0,0,19,14,11,16,14,0,3,1,13,16,12,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,1,0,0,19,14,11,16,12,0,3,1,10,15,9,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"CLINIPAM":{"a":[0,0,0,0,0,0,0,0,0,0,0,0,0,20,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"c":[0,0,0,0,0,0,0,0,0,0,0,0,0,20,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}}}}}};
+// === FIM FPF_CORRETORAS ===
+
 function renderFunilPf() {
   const ctx = fpfEscopo();
   const nota = document.getElementById("fpfFunilNota");
@@ -9202,6 +9421,7 @@ function renderFunilPf() {
   const prChave = mesAtivo + "|" + (gestorAtivo || "TOTAL");
   if (renderFunilPf._prChave !== prChave) { fpfPrAbertos = null; renderFunilPf._prChave = prChave; }
   renderFpfProducao();
+  renderFpfCorretoras();
   renderFpfAdm();
   renderFpfAtuacoes();
   renderFpfMesesOrc();
