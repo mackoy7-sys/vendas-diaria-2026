@@ -3894,9 +3894,9 @@ const HAP_NOME = { RAISE: "RAISE TECH", COMPLETO: "COMPLETO", QUINDTECH: "QUINDT
 // Escopo de LEADS (David, 08/10/2026): RAISE, QUINDTECH, FJS, F FURTADO e CLINIPAM (hapon_leads.ORDEM). COMPLETO tem venda mas fica fora dos leads.
 Object.assign(HAP_COR, { "F FURTADO": "#1D9E75", CLINIPAM: "#B5539B" });
 Object.assign(HAP_NOME, { "F FURTADO": "F FURTADO CARNEIRO", CLINIPAM: "CALL LINK" });   // chave interna segue CLINIPAM (hapon_leads); so' o nome exibido mudou (08/10/2026)
-Object.assign(HAP_COR, { DRV: "#E5484D" });
-Object.assign(HAP_NOME, { DRV: "DRV DIGITAL" });
-const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "DRV"];
+Object.assign(HAP_COR, { QIP: "#E5484D" });   // 16/10/2026: DRV foi incorporada na F FURTADO; entrou a QIP (mesma cor livre)
+Object.assign(HAP_NOME, { QIP: "QIP SAÚDE" });
+const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "CLINIPAM", "QIP"];   // CLINIPAM = CALL LINK (16/10/2026: ganhou areas de venda)
 let hapSel = {};           // filtro global de corretora (vazio = todas)
 let hapSerie = "vidas";    // grafico principal: "vidas" | "leads"
 let hapCmpSerie = "leads"; // comparativo mes x mes: "leads" | "vidas"
