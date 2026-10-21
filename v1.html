@@ -3899,7 +3899,16 @@ let hapCmpSerie = "leads"; // comparativo mes x mes: "leads" | "vidas"
     '#haponPanel .hp-tb td { text-align:right; padding:7px 8px; border-bottom:1px solid #eef1f8; }' +
     '#haponPanel .hp-tb th:first-child, #haponPanel .hp-tb td:first-child { text-align:left; }' +
     '#haponPanel .hp-tb tr.off td { opacity:.35; }' +
-    '#haponPanel .hp-cb { display:inline-block; height:8px; border-radius:2px; background:#3D65E7; vertical-align:middle; margin-right:6px; }';
+    '#haponPanel .hp-cb { display:inline-block; height:8px; border-radius:2px; background:#3D65E7; vertical-align:middle; margin-right:6px; }' +
+    '#haponPanel .hp-tb tbody tr:last-child td { font-weight:400; background:transparent; }' +      // o CSS global pinta a ultima linha como TOTAL; estas tabelas nao tem total
+    '#haponPanel .hp-orc-row { display:grid; grid-template-columns:150px minmax(0,1fr) 190px; gap:10px; align-items:center; margin:6px 0; font-size:12.5px; }' +
+    '#haponPanel .hp-orc-row .l { text-align:right; color:#555; }' +
+    '#haponPanel .hp-orc-row .r { color:#888; font-size:11.5px; }' +
+    '#haponPanel .hp-orc-trk { display:flex; align-items:center; gap:8px; }' +
+    '#haponPanel .hp-orc-bar { height:26px; border-radius:4px; min-width:3px; }' +
+    '#haponPanel .hp-orc-trk b { font-size:13px; color:#0F297B; }' +
+    '#haponPanel .hp-orc-sb { display:flex; height:14px; border-radius:3px; overflow:hidden; gap:2px; min-width:180px; }' +
+    '#haponPanel .hp-orc-tit { font-size:12px; font-weight:600; color:#666; margin:16px 0 2px; }';
   document.head.appendChild(st);
 })();
 function hapGaranteAba() {
@@ -3946,6 +3955,24 @@ function hapGaranteAba() {
       <div class="ppo-card-head"><div class="chart-title" id="hpLdTitle" style="margin-bottom:0">🎯 Conversão por corretora</div></div>
       <table class="hp-tb"><thead><tr><th>Corretora</th><th>Leads</th><th>Vidas</th><th>Conversão</th></tr></thead><tbody id="hpLdTb"></tbody></table>
       <div class="hp-nota" id="hpLdNota" style="margin:8px 0 0"></div>
+    </div>
+  </div>
+  <div class="chart-grid-2" id="hpOrcSec" style="display:none">
+    <div class="chart-card full">
+      <div class="ppo-card-head"><div class="chart-title" id="hpOrcTitle" style="margin-bottom:0">🧾 Orçamentos criados</div>
+        <div class="ppo-toggle" id="hpOrcToggle">
+          <button class="ppo-tg-btn active" data-m="caso" onclick="hapSetOrcModo('caso')" title="Um CPF que refez o orçamento conta uma vez só">1 CPF = 1 orçamento</button>
+          <button class="ppo-tg-btn" data-m="bruto" onclick="hapSetOrcModo('bruto')" title="Cada orçamento digitado conta, inclusive as redigitações do mesmo CPF">Orçamentos brutos</button>
+        </div></div>
+      <div class="kpi-row" id="hpOrcKpis"></div>
+      <div class="hp-orc-tit">Para onde foi cada orçamento criado</div>
+      <div id="hpOrcCasc"></div>
+      <div class="hp-orc-tit" id="hpOrcDiaTit">Criados por dia</div>
+      <div class="hp-leg" id="hpOrcDiaLeg"></div>
+      <div id="hpOrcDiaBox" style="position:relative;height:260px;width:100%"><canvas id="chartHapOrcDia"></canvas></div>
+      <div class="hp-orc-tit">Funil por corretora</div>
+      <table class="hp-tb"><thead><tr><th>Corretora</th><th>Leads</th><th id="hpOrcThCriados">Criados</th><th><i class="hp-sw" style="background:#1D9E75"></i>Implantados</th><th><i class="hp-sw" style="background:#6F9BEA"></i>Em andamento</th><th><i class="hp-sw" style="background:#FF8800"></i>Em negociação</th><th><i class="hp-sw" style="background:#C0392B"></i>Perdidos</th><th>Conversão</th></tr></thead><tbody id="hpOrcTb"></tbody></table>
+      <div class="hp-nota" id="hpOrcNota" style="margin:8px 0 0"></div>
     </div>
   </div>
   <div class="chart-grid-2">
@@ -4412,6 +4439,101 @@ function hapComparativo(D, L, sel, selV, selC) {
     " e vidas por data de cadastro até " + (D.ref || "?") + ". A conversão dos primeiros dias é distorcida: as vendas desse período vêm em boa parte de leads do mês anterior, por isso o mês fechado aparece ao lado.";
 }
 
+// ---- Orcamentos criados (David, 09/10/2026) -------------------------------------------------------------
+// HAPON_ORC (hapon_orcamentos.py): orcamentos PF (datalake, todos os status, por area de venda) + propostas PME (portal NDI),
+// em 4 destinos que fecham em `criados`: implantado | em andamento | em negociacao | perdido. Cascata (B) segue o filtro
+// de corretora; a tabela (C) lista todas, com as nao selecionadas esmaecidas. Nao e' lead a lead: leads entram so' como contexto.
+const HAP_ORC_COR = { impl: "#1D9E75", curso: "#6F9BEA", neg: "#FF8800", perd: "#C0392B" };
+const HAP_ORC_NOME = { impl: "Implantado", curso: "Em andamento", neg: "Em negociação", perd: "Perdido" };
+let hapOrcModo = "caso";   // Orcamentos criados: "caso" (1 CPF = 1 caso, padrao) | "bruto" (cada orcamento digitado)
+function hapSetOrcModo(m) { hapOrcModo = m; hapToggle("hpOrcToggle", m); renderHaponCorr(); }
+const HAP_ORC_ZERO = () => ({ criados: 0, pf: 0, pme: 0, vidas: 0, impl: 0, curso: 0, neg: 0, perd: 0, vImpl: 0, pfRep: 0 });
+function hapOrcamentos(O, key, mesNome, ld, emLeads) {
+  const sec = document.getElementById("hpOrcSec");
+  const m0 = O && O.meses ? O.meses[key] : null;
+  if (!m0) { sec.style.display = "none"; hapDestroy("hapOrcDia"); return; }
+  const caso = hapOrcModo === "caso" && !!m0.caso;                 // payload antigo (sem `caso`) cai no bruto
+  const m = caso ? Object.assign({}, m0, m0.caso) : m0;
+  const nCr = "Orçamentos criados";
+  sec.style.display = "";
+  const ks = Object.keys(m.porCorretora), on = ks.filter(hapOn);
+  const T = HAP_ORC_ZERO();
+  on.forEach(k => Object.keys(T).forEach(f => T[f] += m.porCorretora[k][f] || 0));
+  document.getElementById("hpOrcTitle").textContent = "🧾 Orçamentos criados · " + mesNome;
+  const pc = (v, t) => t ? (100 * v / t).toFixed(1).replace(".", ",") + "%" : "—";
+  const card = (cor, rot, val, sub) => '<div class="kpi-card" style="border-left-color:' + cor + '"><div class="kpi-label">' + rot +
+    '</div><div class="kpi-value">' + val + '</div><div class="kpi-sub">' + sub + "</div></div>";
+  const casc = document.getElementById("hpOrcCasc");
+  if (!T.criados) {
+    document.getElementById("hpOrcKpis").innerHTML = "";
+    casc.innerHTML = '<div style="padding:24px 4px;text-align:center;color:#999;font-size:12.5px">Sem orçamentos para este filtro.</div>';
+  } else {
+    document.getElementById("hpOrcKpis").innerHTML =
+      card("#3D65E7", nCr, hapFmt(T.criados), (O.incluiPme ? "PF " + hapFmt(T.pf) + " · PME " + hapFmt(T.pme) + " · " : "") + hapFmt(T.vidas) + " vidas") +
+      card(HAP_ORC_COR.impl, "Implantados", hapFmt(T.impl), hapFmt(T.vImpl) + " vidas") +
+      card("#1D9E75", "Conversão criado → implantado", pc(T.impl, T.criados), "ainda abertos: " + hapFmt(T.curso + T.neg)) +
+      card(HAP_ORC_COR.perd, "Perdidos", hapFmt(T.perd), pc(T.perd, T.criados) + " dos criados");
+    const linhas = [
+      ["Criados", T.criados, "#3D65E7", O.incluiPme ? "PF " + hapFmt(T.pf) + " · PME " + hapFmt(T.pme) : hapFmt(T.vidas) + " vidas"],
+      ["− Em negociação", T.neg, HAP_ORC_COR.neg, "PF, ainda sem assinar · " + pc(T.neg, T.criados)],
+      ["− Perdidos", T.perd, HAP_ORC_COR.perd, "cancelado ou recusado · " + pc(T.perd, T.criados)],
+      ["− Em andamento", T.curso, HAP_ORC_COR.curso, "assinado, falta implantar · " + pc(T.curso, T.criados)],
+      ["= Implantados", T.impl, HAP_ORC_COR.impl, hapFmt(T.vImpl) + " vidas · " + pc(T.impl, T.criados)]];
+    casc.innerHTML = linhas.map(l => '<div class="hp-orc-row"><span class="l">' + l[0] + '</span><div class="hp-orc-trk"><div class="hp-orc-bar" style="width:' +
+      (l[1] ? Math.max(1.2, 100 * l[1] / T.criados) : 0) + '%;background:' + l[2] + '"></div><b>' + hapFmt(l[1]) + '</b></div><span class="r">' + l[3] + "</span></div>").join("");
+  }
+  document.getElementById("hpOrcThCriados").textContent = "Orçamentos";
+  hapGraficoOrcDia(m0, key, caso, !!O.incluiPme);
+  const celulas = c => ["impl", "curso", "neg", "perd"].map(b => "<td>" + hapFmt(c[b]) + "</td>").join("");
+  document.getElementById("hpOrcTb").innerHTML = ks.map(k => {
+    const c = m.porCorretora[k], off = hapOn(k) ? "" : ' class="off"', dot = '<i class="hp-sw" style="background:' + (HAP_COR[k] || "#999") + '"></i>';
+    return "<tr" + off + "><td>" + dot + (HAP_NOME[k] || k) + "</td><td>" + (ld && emLeads(k) ? hapFmt(ld[k] || 0) : "—") + "</td><td>" + hapFmt(c.criados) + "</td>" +
+      celulas(c) + "<td>" + pc(c.impl, c.criados) + "</td></tr>";
+  }).join("") + (on.length > 1 ? '<tr style="border-top:2px solid #c9d5f7"><td style="font-weight:700">Total</td><td>—</td><td style="font-weight:700">' + hapFmt(T.criados) + "</td>" +
+    ["impl", "curso", "neg", "perd"].map(b => '<td style="font-weight:700">' + hapFmt(T[b]) + "</td>").join("") + '<td style="font-weight:700">' + pc(T.impl, T.criados) + "</td></tr>" : "");
+  const rep = Object.keys(m0.porCorretora).reduce((s, k) => s + (m0.porCorretora[k].pfRep || 0), 0), pfT = Object.keys(m0.porCorretora).reduce((s, k) => s + (m0.porCorretora[k].pf || 0), 0);
+  const r = O.ref || {};
+  document.getElementById("hpOrcNota").innerHTML =
+    "<b>Criado</b> = negociação aberta antes de virar vida. <b>PF</b>: orçamentos do datalake nas áreas de venda das corretoras, mês pela data de digitação (até " + (r.pf || "?") + "). " +
+    (O.incluiPme ? "<b>PME</b>: propostas do portal NDI, que já nascem assinadas; mês pela assinatura (até " + (r.pme || "?") + "). O status do PME é o do portal, que atrasa: parte do “em andamento” pode já estar implantada. " : "<b>Somente PF</b> por enquanto; o PME ainda não entra aqui. ") +
+    (caso ? "<b>1 CPF = 1 orçamento</b> (como no Funil PF): o PF conta uma vez por CPF e corretora no mês — data da 1ª digitação, destino do orçamento mais recente; " + hapFmt(rep) + " redigitações ficam de fora (veja <b>Orçamentos brutos</b>). " + (O.incluiPme ? "O PME conta propostas assinadas. " : "")
+          : "O PF conta <b>orçamentos</b>: " + hapFmt(rep) + " de " + hapFmt(pfT) + " repetem o CPF de outro no mês (cliente digitado de novo) e engordam os perdidos — veja <b>1 CPF = 1 orçamento</b>. ") +
+    "F FURTADO inclui as áreas ex-DRV (desde 16/10). CALL LINK e QIP: áreas de venda desde 16/10. A coluna Leads é contexto — lead e orçamento não são os mesmos clientes, não há taxa entre eles.";
+}
+
+// Criados por dia, empilhado por corretora (filtro global hapOn). Dia = digitacao (PF; no caso, a 1a do CPF) ou assinatura (PME).
+function hapGraficoOrcDia(m0, key, caso, incluiPme) {
+  hapDestroy("hapOrcDia");
+  const box = document.getElementById("hpOrcDiaBox");
+  const src = m0.dias ? m0.dias[caso ? "caso" : "bruto"] : null;
+  const tit = document.getElementById("hpOrcDiaTit"), leg = document.getElementById("hpOrcDiaLeg");
+  const ativas = Object.keys(m0.porCorretora).filter(hapOn);
+  const soma = d => ativas.reduce((s, c) => s + ((src && src[d] && src[d][c]) || 0), 0);
+  const dd = src ? Object.keys(src).filter(d => soma(d) > 0).map(Number) : [];
+  if (!dd.length) { box.style.display = "none"; leg.innerHTML = ""; tit.textContent = "Criados por dia — sem dados para este filtro"; return; }
+  box.style.display = ""; hapLegenda("hpOrcDiaLeg", ativas);
+  tit.textContent = "Orçamentos criados por dia — por data de digitação" + (caso ? " (1ª do CPF)" : "") + (incluiPme ? ", PME pela assinatura" : "");
+  const ultimo = Math.max(...dd), labels = [], tot = [], ser = {};
+  ativas.forEach(c => ser[c] = []);
+  for (let d = 1; d <= ultimo; d++) {
+    const k = ("0" + d).slice(-2);
+    labels.push("Dia " + d);
+    tot.push(soma(k));
+    ativas.forEach(c => ser[c].push((src[k] && src[k][c]) || 0));
+  }
+  const yMax = hapHeadroom(Math.max(...tot));
+  charts["hapOrcDia"] = new Chart(document.getElementById("chartHapOrcDia"), {
+    type: "bar",
+    data: { labels, datasets: ativas.map(c => ({ type: "bar", label: HAP_NOME[c] || c, data: ser[c], backgroundColor: HAP_COR[c] || "#999", stack: "s", maxBarThickness: 40, datalabels: { display: false } }))
+      .concat([hapTotalDs(tot, "bar", () => true)]) },
+    options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 18, right: 14 } },
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, datalabels: {} },
+      scales: { y: { stacked: true, beginAtZero: true, suggestedMax: yMax, ticks: { font: { size: 10 }, precision: 0 } },
+                x: { stacked: true, ticks: { font: { size: 10 }, maxTicksLimit: 31 } } } }
+  });
+}
+
 function renderHaponCorr() {
   hapGaranteAba();
   const D = typeof HAPON_DATA !== "undefined" ? HAPON_DATA : null;
@@ -4419,9 +4541,9 @@ function renderHaponCorr() {
   const key = String(mesAtivo).toUpperCase();
   const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : key;
   const kp = document.getElementById("hpKpis"), chipsEl = document.getElementById("hpChips");
-  ["hapDia", "hapEmp", "hapVend", "hapCmp"].forEach(hapDestroy);
+  ["hapDia", "hapEmp", "hapVend", "hapCmp", "hapOrcDia"].forEach(hapDestroy);
   const vazio = txt => {
-    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none"; document.getElementById("hpLdDiaSec").style.display = "none"; document.getElementById("hpCmpSec").style.display = "none";
+    chipsEl.innerHTML = ""; document.getElementById("hpLdSec").style.display = "none"; document.getElementById("hpLdDiaSec").style.display = "none"; document.getElementById("hpOrcSec").style.display = "none"; document.getElementById("hpCmpSec").style.display = "none";
     kp.innerHTML = '<div class="kpi-card cinza" style="grid-column:1/-1"><div class="kpi-sub">' + txt + "</div></div>";
   };
   if (!D || !D.meses) { vazio("Os dados de HapON Corretoras ainda não foram carregados nesta versão do painel."); return; }
@@ -4504,6 +4626,7 @@ function renderHaponCorr() {
       "Distribuição em rodízio: uma corretora pode ficar dias sem receber. Leads contados só de RAISE, QUINDTECH, FJS, F FURTADO e CALL LINK; fora da conta: Notre Dame, testes, leads sem corretora e demais corretoras (" +
       hapFmt((ex.notreDame || 0) + (ex.teste || 0) + (ex.semCorretora || 0) + (ex.foraDoEscopo || 0)) + " linhas). F FURTADO CARNEIRO = FELIPE FURTADO + F FURTADO CARNEIRO LTDA.";
   }
+  hapOrcamentos(typeof HAPON_ORC !== "undefined" ? HAPON_ORC : null, key, mesNome, ml ? ld : null, emLeads);
   hapComparativo(D, L, sel, selV, selC);
   const alias = Object.keys(D.aliasVendedor || {}).length;
   const f = (D.fontes || []).map(x => x.tipo + " " + x.extraidoEm).join(" · ");
@@ -4526,6 +4649,10 @@ const HAPON_LEADS = {"escopo": ["RAISE", "QUINDTECH", "FJS", "F FURTADO", "CLINI
 // === RANKING_LEADS (gerado por ranking_leads.py -- NAO editar a mao) ===
 const RANKING_LEADS = {"mes":"OUTUBRO","ate":"20/10/2026","total":61627,"semCadastro":2185,"gestao":{"FABIO":29221,"JOSY":29492,"ACTIONLINE":707,"TREINAMENTO":22},"promotor":{"MURILO VASSAO":643,"PAULA LOURENCO":320,"CAROLINE EGIDIO":373,"LUANA ARAUJO":665,"FELIPE SOUZA":1249,"ANDREZZA MACCHINI":917,"CARINA CORTEZ":475,"MARIANA FELIX":871,"TAISSE MACARIO":364,"PATRICIA JORGE":426,"TATI SILVA - VENDEDOR ADM":41,"THIAGO ABELO":333,"RAISSA BURIN":438,"MIRIAM FERREIRA":871,"GABRIELA REIS":361,"EBOLY NEVES":414,"ROBSON SOUZA":385,"KEILA OLIVEIRA - VENDEDOR ADM":163,"GIOVANNA RAGONEZI":301,"RAIANE LIMA":674,"REBECA MOURA":418,"ALANA DOS SANTOS":240,"JULIANA NUNES":1299,"MARAISA FERNANDA":164,"UNILDO FERREIRA":589,"THAIS SANTOS":289,"DANIELLE MUZELL":534,"VIVIANE GUMBIO":245,"VLADIA SOARES":599,"CAMILA MOREIRA":375,"PAULO LEVI":348,"ALINE RIBEIRO":453,"BRUNA CAMPASSI":884,"JADY QUEIROZ":590,"LARISSA MACHADO":434,"LUANA RIBEIRO":427,"MARIA EDUARDA":376,"NATHALY VIEIRA":679,"VANESSA MOURA":272,"LARISSY RAMOS":356,"TAIZA RIBEIRO":524,"JAQUELINE SILVA":579,"BEATRIZ GIGLIO":399,"KAYKY BERNARDO":600,"JAQUELINE BEZERRA":564,"INGRYD SILVA":437,"RENAN OLIVEIRA":375,"ANGELO RIBEIRO":590,"KAUAN PEREIRA":49,"MONICA VERONEZ":227,"GIOVANNA FERREIRA":619,"MIRELLA PEREIRA":700,"KAMILA GLAYR":904,"BRUNA SOARES":910,"EDUARDO NAUMANN":672,"GUSTAVO BARROS":834,"FABIO ANDRADE":30,"JOCILANE BATISTA":1,"WENDEL ANDRADE":831,"EDUARDA FRANCA":289,"FRANCINE CORREA":165,"ARLYSON SILVA":143,"ROMARIO SOUZA":550,"LIVIA GABRIELA":290,"TIAGO DOMICIANO":313,"JENIFER IRENO":211,"ANA CAROLINA ANTUNES":949,"GIOVANNA SANTANA - VENDEDOR ADM":245,"WESLEY BACOCCINI":458,"ISABELLA MATTOS":629,"JONATAS QUARESMA":657,"ATILEY CAMPOS":350,"GILSON SILVEIRA":307,"VICTOR MARTINS":515,"BRUNO FERREIRA":297,"JULIA MARQUES":404,"ROGERIO STIVANELLO":624,"BEATRIZ BRAIDO":343,"SOFIA LUNGA":355,"ANTONIO NOBRE":532,"ANDREIA CHAVES":453,"DELIANE GOMES":822,"RAFAELA SANTOS":233,"ALAN KELBER LEAL":388,"THAISA ALMEIDA":718,"TAIS COLARES":281,"FELIPE PERES":303,"VANIA SILVA":546,"THAMIRIS FRANCISQUELLI":8,"TAIS AMANDA CARDOSO":374,"BEATRIZ SILVA":526,"LUAN RIBEIRO":605,"ANA BEATRIZ MACHUCA":541,"VICTOR FREITAS":247,"KAMILA KUNER":298,"GABRIEL GUIMARAES":350,"HELENA RIBEIRO":477,"DAVI ASSUNCAO":501,"EDILZA SILVA":319,"ALINE GUNELLO":543,"FRANCISCO THIAGO":303,"DAVI MAGALHAES":232,"GISELE OLIVEIRA":316,"KETHELYN GUIDO":37,"JULIA SILVA":582,"LEIA FERREIRA":419,"MARIANA PRADO":516,"LENILSON GOMES":452,"VANESSA ANDRIOTI":319,"THIAGO VALLADA":88,"TREINAMENTO":22,"CLEBSON ALVES":541,"GIOVANNA BARBIERI":421,"LARISSA BIZELI":387,"RONI SEA":273,"RIQUELMY SANTOS":249,"FLAVIA ROMBACH":54,"LEIDIANE PAULINO":2,"ANDRE BRITO":376,"MONALISA CREVISAN":44,"PATRICIA LIMA - VENDEDOR ADM":169,"THAINA BERCHELI":538,"ISAQUE FERREIRA":369,"NATALIA LOURENCO":1,"ELISA NASCIMENTO":156,"MARIA INGRID MARREIRA":10,"JENNIFER FARIAS":412,"SUELEN DORNELES":285,"HERIKA ZAKARQUIM":185,"MARIA MAGALHAES":889,"ISABELLA SOUZA":217,"LILIANE RIBEIRO":324,"FELIPE HABERSTOCK GOMES":84,"PAULA REIS":415,"JHONATAN KAIQUE":79,"JOAO DEL NERO":250,"JONATHAS REIS":218,"KAROL BUENO":248,"LUIZ ROBERTO AUGUSTO":158,"CAMILA GOMES":710,"RAIANE CARDOSO":193,"FELIPE SOARES":4,"ANDRESSA BARBOZA":231,"NATASHA TOLEDO":179,"ADRIANI DZIERVA":290,"YGOR OLIVEIRA":1,"SHEILA PINTO":11,"EDINALDO JUNIOR":3,"KAUAN REGIS":125,"MIKAELLY CAMILY":1,"ELIZANGELA MELO":9,"GLEIRE VALERIO":15,"LUCIANA QUADRADO":1,"BARBARA MELO":21,"ALINE ARAUJO":39,"CASSIA BEATRIS":70,"HUMBERTO BANQUERI":4,"JOSSIANE GAUZE":32,"THAIANNY BASILIO":4}};
 // === FIM RANKING_LEADS ===
+// === HAPON_ORC (gerado por hapon_orcamentos.py -- NAO editar a mao) ===
+const HAPON_ORC = {"incluiPme": false, "escopo": ["RAISE", "QUINDTECH", "FJS", "F FURTADO", "CLINIPAM", "COMPLETO", "QIP"], "ref": {"pf": "20/10/2026", "pme": null}, "fontes": {"pf": {"arquivo": "2026_REL_PROPOSTAS_T01B2C_DATALAKE.CSV", "extraidoEm": "21/10/2026 07:23", "inicio": "24/08/2026"}, "pme": {"arquivos": []}}, "meses": {"AGOSTO": {"total": {"criados": 46, "pf": 46, "pme": 0, "vidas": 46, "impl": 10, "curso": 0, "neg": 0, "perd": 36, "vImpl": 10, "pfRep": 13}, "porCorretora": {"RAISE": {"criados": 45, "pf": 45, "pme": 0, "vidas": 45, "impl": 10, "curso": 0, "neg": 0, "perd": 35, "vImpl": 10, "pfRep": 13}, "COMPLETO": {"criados": 1, "pf": 1, "pme": 0, "vidas": 1, "impl": 0, "curso": 0, "neg": 0, "perd": 1, "vImpl": 0, "pfRep": 0}}, "caso": {"total": {"criados": 33, "pf": 33, "pme": 0, "vidas": 34, "impl": 10, "curso": 0, "neg": 0, "perd": 23, "vImpl": 10, "pfRep": 13}, "porCorretora": {"RAISE": {"criados": 32, "pf": 32, "pme": 0, "vidas": 33, "impl": 10, "curso": 0, "neg": 0, "perd": 22, "vImpl": 10, "pfRep": 13}, "COMPLETO": {"criados": 1, "pf": 1, "pme": 0, "vidas": 1, "impl": 0, "curso": 0, "neg": 0, "perd": 1, "vImpl": 0, "pfRep": 0}}}, "dias": {"bruto": {"24": {"RAISE": 1}, "25": {"RAISE": 2}, "26": {"RAISE": 5}, "27": {"RAISE": 10}, "28": {"RAISE": 8}, "29": {"RAISE": 1}, "31": {"RAISE": 18, "COMPLETO": 1}}, "caso": {"24": {"RAISE": 1}, "25": {"RAISE": 2}, "26": {"RAISE": 3}, "27": {"RAISE": 7}, "28": {"RAISE": 7}, "31": {"RAISE": 12, "COMPLETO": 1}}}}, "SETEMBRO": {"total": {"criados": 164, "pf": 164, "pme": 0, "vidas": 186, "impl": 77, "curso": 0, "neg": 9, "perd": 78, "vImpl": 93, "pfRep": 52}, "porCorretora": {"RAISE": {"criados": 145, "pf": 145, "pme": 0, "vidas": 167, "impl": 76, "curso": 0, "neg": 9, "perd": 60, "vImpl": 92, "pfRep": 37}, "QUINDTECH": {"criados": 18, "pf": 18, "pme": 0, "vidas": 18, "impl": 1, "curso": 0, "neg": 0, "perd": 17, "vImpl": 1, "pfRep": 15}, "COMPLETO": {"criados": 1, "pf": 1, "pme": 0, "vidas": 1, "impl": 0, "curso": 0, "neg": 0, "perd": 1, "vImpl": 0, "pfRep": 0}}, "caso": {"total": {"criados": 112, "pf": 112, "pme": 0, "vidas": 130, "impl": 76, "curso": 0, "neg": 5, "perd": 31, "vImpl": 92, "pfRep": 52}, "porCorretora": {"RAISE": {"criados": 108, "pf": 108, "pme": 0, "vidas": 126, "impl": 75, "curso": 0, "neg": 5, "perd": 28, "vImpl": 91, "pfRep": 37}, "QUINDTECH": {"criados": 3, "pf": 3, "pme": 0, "vidas": 3, "impl": 1, "curso": 0, "neg": 0, "perd": 2, "vImpl": 1, "pfRep": 15}, "COMPLETO": {"criados": 1, "pf": 1, "pme": 0, "vidas": 1, "impl": 0, "curso": 0, "neg": 0, "perd": 1, "vImpl": 0, "pfRep": 0}}}, "dias": {"bruto": {"01": {"RAISE": 4}, "02": {"RAISE": 7}, "03": {"RAISE": 1}, "04": {"RAISE": 3}, "08": {"RAISE": 7}, "09": {"RAISE": 8, "COMPLETO": 1}, "10": {"RAISE": 7}, "11": {"RAISE": 6}, "14": {"RAISE": 11}, "15": {"RAISE": 6}, "16": {"RAISE": 3, "QUINDTECH": 1}, "17": {"RAISE": 7, "QUINDTECH": 5}, "18": {"QUINDTECH": 2, "RAISE": 5}, "21": {"RAISE": 10}, "22": {"RAISE": 5, "QUINDTECH": 3}, "23": {"RAISE": 2, "QUINDTECH": 2}, "24": {"RAISE": 6, "QUINDTECH": 5}, "25": {"RAISE": 3}, "26": {"RAISE": 1}, "28": {"RAISE": 20}, "29": {"RAISE": 14}, "30": {"RAISE": 9}}, "caso": {"01": {"RAISE": 4}, "02": {"RAISE": 3}, "04": {"RAISE": 3}, "08": {"RAISE": 7}, "09": {"RAISE": 6, "COMPLETO": 1}, "10": {"RAISE": 7}, "11": {"RAISE": 5}, "14": {"RAISE": 9}, "15": {"RAISE": 4}, "16": {"RAISE": 3, "QUINDTECH": 1}, "17": {"RAISE": 7, "QUINDTECH": 1}, "18": {"RAISE": 4}, "21": {"RAISE": 7}, "22": {"QUINDTECH": 1, "RAISE": 1}, "23": {"RAISE": 2}, "24": {"RAISE": 5}, "25": {"RAISE": 2}, "26": {"RAISE": 1}, "28": {"RAISE": 15}, "29": {"RAISE": 9}, "30": {"RAISE": 4}}}}, "OUTUBRO": {"total": {"criados": 326, "pf": 326, "pme": 0, "vidas": 351, "impl": 124, "curso": 29, "neg": 62, "perd": 111, "vImpl": 140, "pfRep": 90}, "porCorretora": {"RAISE": {"criados": 80, "pf": 80, "pme": 0, "vidas": 87, "impl": 33, "curso": 5, "neg": 20, "perd": 22, "vImpl": 39, "pfRep": 19}, "QUINDTECH": {"criados": 31, "pf": 31, "pme": 0, "vidas": 31, "impl": 9, "curso": 3, "neg": 8, "perd": 11, "vImpl": 9, "pfRep": 9}, "FJS": {"criados": 20, "pf": 20, "pme": 0, "vidas": 23, "impl": 8, "curso": 4, "neg": 2, "perd": 6, "vImpl": 8, "pfRep": 5}, "F FURTADO": {"criados": 160, "pf": 160, "pme": 0, "vidas": 172, "impl": 69, "curso": 16, "neg": 29, "perd": 46, "vImpl": 77, "pfRep": 31}, "CLINIPAM": {"criados": 35, "pf": 35, "pme": 0, "vidas": 38, "impl": 5, "curso": 1, "neg": 3, "perd": 26, "vImpl": 7, "pfRep": 26}}, "caso": {"total": {"criados": 236, "pf": 236, "pme": 0, "vidas": 256, "impl": 122, "curso": 28, "neg": 61, "perd": 25, "vImpl": 138, "pfRep": 90}, "porCorretora": {"RAISE": {"criados": 61, "pf": 61, "pme": 0, "vidas": 68, "impl": 32, "curso": 5, "neg": 20, "perd": 4, "vImpl": 38, "pfRep": 19}, "QUINDTECH": {"criados": 22, "pf": 22, "pme": 0, "vidas": 22, "impl": 8, "curso": 3, "neg": 8, "perd": 3, "vImpl": 8, "pfRep": 9}, "FJS": {"criados": 15, "pf": 15, "pme": 0, "vidas": 16, "impl": 8, "curso": 4, "neg": 2, "perd": 1, "vImpl": 8, "pfRep": 5}, "F FURTADO": {"criados": 129, "pf": 129, "pme": 0, "vidas": 138, "impl": 69, "curso": 15, "neg": 29, "perd": 16, "vImpl": 77, "pfRep": 31}, "CLINIPAM": {"criados": 9, "pf": 9, "pme": 0, "vidas": 12, "impl": 5, "curso": 1, "neg": 2, "perd": 1, "vImpl": 7, "pfRep": 26}}}, "dias": {"bruto": {"01": {"RAISE": 6}, "02": {"RAISE": 6, "F FURTADO": 1}, "05": {"RAISE": 5, "F FURTADO": 19}, "06": {"QUINDTECH": 3, "F FURTADO": 14, "RAISE": 8}, "07": {"QUINDTECH": 5, "RAISE": 3, "F FURTADO": 11, "FJS": 1}, "08": {"F FURTADO": 16, "RAISE": 5, "FJS": 5}, "09": {"F FURTADO": 12, "RAISE": 7, "QUINDTECH": 5, "FJS": 1}, "10": {"RAISE": 3}, "11": {"F FURTADO": 3}, "12": {"F FURTADO": 1}, "13": {"F FURTADO": 10, "RAISE": 8, "QUINDTECH": 2, "FJS": 2}, "14": {"F FURTADO": 15, "QUINDTECH": 7, "RAISE": 4, "FJS": 2, "CLINIPAM": 20}, "15": {"F FURTADO": 9, "CLINIPAM": 11, "FJS": 2, "QUINDTECH": 1, "RAISE": 1}, "16": {"QUINDTECH": 6, "FJS": 2, "RAISE": 3, "F FURTADO": 17}, "18": {"F FURTADO": 3}, "19": {"F FURTADO": 10, "CLINIPAM": 1, "FJS": 1, "RAISE": 5}, "20": {"F FURTADO": 19, "RAISE": 16, "FJS": 4, "QUINDTECH": 2, "CLINIPAM": 3}}, "caso": {"01": {"RAISE": 6}, "02": {"RAISE": 4, "F FURTADO": 1}, "05": {"RAISE": 5, "F FURTADO": 12}, "06": {"QUINDTECH": 3, "F FURTADO": 9, "RAISE": 2}, "07": {"QUINDTECH": 4, "RAISE": 3, "F FURTADO": 9, "FJS": 1}, "08": {"F FURTADO": 14, "RAISE": 3, "FJS": 4}, "09": {"F FURTADO": 12, "RAISE": 5, "QUINDTECH": 3, "FJS": 1}, "10": {"RAISE": 2}, "11": {"F FURTADO": 3}, "12": {"F FURTADO": 1}, "13": {"F FURTADO": 10, "RAISE": 6, "QUINDTECH": 2, "FJS": 2}, "14": {"F FURTADO": 13, "QUINDTECH": 2, "RAISE": 4, "CLINIPAM": 3}, "15": {"F FURTADO": 6, "QUINDTECH": 1, "FJS": 1, "CLINIPAM": 2, "RAISE": 1}, "16": {"QUINDTECH": 5, "RAISE": 3, "F FURTADO": 10, "FJS": 1}, "18": {"F FURTADO": 3}, "19": {"F FURTADO": 10, "CLINIPAM": 1, "FJS": 1, "RAISE": 5}, "20": {"F FURTADO": 16, "RAISE": 12, "FJS": 4, "QUINDTECH": 2, "CLINIPAM": 3}}}}}};
+// === FIM HAPON_ORC ===
+
 (function montaTrimestre(){
   const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
   const labels = { TOTAL:"Total geral", FABIO:"Fabio", JOSY:"Josy", ADMINISTRATIVO:"Administrativo", ACTIONLINE:"Actionline" };
