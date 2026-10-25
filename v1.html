@@ -11732,5 +11732,75 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   setTimeout(ajustaProj, 1500);
 })();
 </script>
+
+<!-- BOLETIM HAPON CORRETORAS — impressão da visão filtrada como boletim (pedido 25/10/2026).
+     O botão 🖨️ entra na barra de filtros; a impressão isola o #haponPanel, esconde filtros e
+     toggles e ganha um cabeçalho com corretora(s) selecionada(s), mês e referência dos dados.
+     Nenhuma métrica é recalculada: o boletim é a própria visão. Auto-contido: reaplicar se sumir. -->
+<style>
+#hpBoletimHead{display:none}
+@media print{
+  body.hp-print > :not(#haponPanel){display:none!important}
+  body.hp-print #haponPanel{display:block!important;position:static!important;top:auto!important;
+    overflow:visible!important;height:auto!important;background:#fff!important;z-index:auto!important}
+  body.hp-print #hpBoletimHead{display:block!important}
+  body.hp-print #hpFiltro,body.hp-print .ppo-toggle,body.hp-print .hp-noprint{display:none!important}
+  body.hp-print #haponPanel .tbl-scroll{overflow:visible!important}
+  body.hp-print #haponPanel table{font-size:9px}
+  body.hp-print #haponPanel .chart-card,body.hp-print #haponPanel .kpi-card{break-inside:avoid;box-shadow:none}
+  body.hp-print #haponPanel canvas{max-width:100%!important;height:auto!important}
+}
+</style>
+<script>
+(function(){
+  function cabecalho(){
+    var p=document.getElementById('haponPanel'); if(!p) return null;
+    var cont=p.querySelector('.container'); if(!cont) return null;
+    var hd=document.getElementById('hpBoletimHead');
+    if(!hd){ hd=document.createElement('div'); hd.id='hpBoletimHead'; cont.prepend(hd); }
+    var sel=(typeof hapSel!=='undefined')?Object.keys(hapSel):[];
+    var corTxt=sel.length?sel.join(' · '):'Todas as corretoras';
+    var mesTxt='';
+    var vt=document.getElementById('hpVendTitle');
+    if(vt&&vt.textContent.indexOf('·')>=0) mesTxt=vt.textContent.split('·')[1].trim();
+    var ref=(document.getElementById('hpRef')||{textContent:''}).textContent.trim();
+    var agora=new Date();
+    var dh=('0'+agora.getDate()).slice(-2)+'/'+('0'+(agora.getMonth()+1)).slice(-2)+'/'+agora.getFullYear()
+      +' '+('0'+agora.getHours()).slice(-2)+':'+('0'+agora.getMinutes()).slice(-2);
+    hd.innerHTML='<div style="border:2px solid #0F297B;border-left:10px solid #3D65E7;border-radius:10px;'
+      +'padding:14px 18px;margin-bottom:14px;background:#fff">'
+      +'<div style="font-size:19px;font-weight:800;color:#0F297B">\uD83C\uDFE2 Boletim HapON Corretoras</div>'
+      +'<div style="font-size:13px;color:#1e293b;margin-top:4px"><b>Corretora:</b> '+corTxt
+      +(mesTxt?' &nbsp;\u00B7&nbsp; <b>M\u00EAs:</b> '+mesTxt:'')+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-top:2px">'+(ref?ref+' \u00B7 ':'')
+      +'boletim gerado em '+dh+' \u00B7 Dashboard de Vendas \u2014 Vendas Digital</div></div>';
+    return hd;
+  }
+  window.boletimHap=function(){
+    if(!cabecalho()) return;
+    document.body.classList.add('hp-print');
+    setTimeout(function(){ try{window.print();}finally{
+      setTimeout(function(){document.body.classList.remove('hp-print');},400);
+    } },120);
+  };
+  window.addEventListener('afterprint',function(){document.body.classList.remove('hp-print');});
+  function garanteBtn(){
+    try{
+      var f=document.getElementById('hpFiltro');
+      if(!f||document.getElementById('hpBtnBoletim')) return;
+      var b=document.createElement('button');
+      b.id='hpBtnBoletim'; b.className='hp-noprint';
+      b.style.cssText='margin-left:auto;padding:6px 14px;border-radius:8px;border:1.5px solid #3D65E7;'
+        +'background:#3D65E7;color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap';
+      b.textContent='\uD83D\uDDA8\uFE0F Boletim';
+      b.title='imprime o boletim da corretora selecionada (use Salvar como PDF para enviar)';
+      b.onclick=window.boletimHap;
+      f.appendChild(b);
+    }catch(e){}
+  }
+  garanteBtn();
+  setInterval(garanteBtn, 2000);
+})();
+</script>
 </body>
 </html>
