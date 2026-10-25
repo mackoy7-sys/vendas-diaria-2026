@@ -11747,6 +11747,9 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   body.hp-print #hpBoletimHead{display:block!important}
   body.hp-print #hpFiltro,body.hp-print .ppo-toggle,body.hp-print .hp-noprint{display:none!important}
   body.hp-print .hp-meta-hide{display:none!important}
+  /* quadros do boletim só com a(s) corretora(s) selecionada(s): as linhas fora da
+     seleção já saem com class="off" (esmaecidas na tela) — na impressão, somem */
+  body.hp-print #haponPanel tr.off{display:none!important}
   body.hp-print #haponPanel .tbl-scroll{overflow:visible!important}
   body.hp-print #haponPanel table{font-size:9px}
   body.hp-print #haponPanel .chart-card,body.hp-print #haponPanel .kpi-card{break-inside:avoid;box-shadow:none}
