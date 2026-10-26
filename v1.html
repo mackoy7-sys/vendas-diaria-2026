@@ -4663,7 +4663,8 @@ function renderHaponCorr() {
 // David, 26/10/2026: os graficos do Consolidado mostravam so' o HapON Interno. Agora, em gestao "Total geral" e mes com meta da
 // HapON (a MESMA regra dos cards do topo e do Ranking), eles somam Interno + HapON Corretoras:
 //   Volume por Dia e Total por Produto -> vidas das Corretoras DILUIDAS em PF e PME (sem 4a serie);
-//   Taxa de Conversao Diaria           -> (vidas interno + Corretoras) / (leads interno + leads Corretoras do portal NDI); dias depois
+//   Vendas Acumuladas por Dia          -> acumulado e projecao (Interno + Corretoras), meta inalterada;
+//   Taxa de Conversao Diaria          -> (vidas interno + Corretoras) / (leads interno + leads Corretoras do portal NDI); dias depois
 //                                          do ultimo lead do portal (export atrasa) ficam so' com o Interno;
 //   Entrada de Leads por Dia / Conversao por Origem -> linha propria "HapON Corretoras" (o grafico Leads por Origem fica sem ela).
 // Nao mexe em CONFIG: cada render e' ENVOLVIDO, troca o dado so' durante a chamada e restaura (mesmo padrao do renderProjetos).
@@ -4695,6 +4696,17 @@ function hapLeadsDia(key, n) {
   L.porDia.forEach(x => { if (x.dia >= 1 && x.dia <= n) a[x.dia - 1] += x.total; });
   return a;
 }
+// Vendas Acumuladas por Dia (26/10/2026): serie acumulada das Corretoras (PF+PME por dia) + projecao do Ranking (dd.proj, a mesma do card).
+// A linha "Projecao" do grafico e' recalculada FORA do render pelo bloco PROJ GRAFICO ALINHADO (ajustaProj), que consulta este gancho.
+// A meta do Total geral (13.300) ja' contem a HapON, entao a linha de meta nao muda.
+function hapAcumConsolidado() {
+  const dd = hapGrafDados();
+  if (!dd) return null;
+  const n = CONFIG.diasNoMes, s = hapSerieDia(dd, n), cum = [];
+  let run = 0;
+  for (let i = 0; i < n; i++) { run += s.pf[i] + s.pme[i]; cum.push(run); }
+  return { dd, cum, proj: dd.proj, acumDia: d => (d < 1 ? 0 : cum[Math.min(d, n) - 1] || 0) };
+}
 (function () {
   const marca = (canvasId, txt) => {                // nota discreta no titulo do card, idempotente
     const cv = document.getElementById(canvasId), t = cv && cv.closest(".chart-card, .leads-card");
@@ -4717,6 +4729,15 @@ function hapLeadsDia(key, n) {
     const r = _rv.apply(this, arguments);
     marca("chartVolume", hapGrafDados() ? "· inclui HapON Corretoras (diluída em PF e PME)" : "");
     return r;
+  };
+  const _ra = window.renderAcumulado;
+  if (typeof _ra === "function") window.renderAcumulado = function () {
+    const h = hapAcumConsolidado(), g = CONFIG.gestores.TOTAL;
+    if (!h) { marca("chartAcumulado", ""); return _ra.apply(this, arguments); }
+    const a0 = g.acumulado;
+    g.acumulado = a0.map((v, i) => v + (h.cum[Math.min(i, h.cum.length - 1)] || 0));
+    try { return _ra.apply(this, arguments); }
+    finally { g.acumulado = a0; marca("chartAcumulado", "· inclui HapON Corretoras"); }
   };
   const _rp = window.renderProduto;
   if (typeof _rp === "function") window.renderProduto = function () {
@@ -11819,18 +11840,18 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       var ch=charts && charts["acumulado"]; if(!ch) return;
       var ds=ch.data.datasets.find(function(d){return /Proje/.test(d.label||"");}); if(!ds) return;
       var g=gestorAtivo||"TOTAL";
-      var projMes=(typeof projTendencia==="function")?projTendencia(g):0; if(!projMes) return;
+      var H=(typeof hapAcumConsolidado==="function")?hapAcumConsolidado():null; var ac=function(d){return acum(g,d)+(H?H.acumDia(d):0);}; var projMes=((typeof projTendencia==="function")?projTendencia(g):0)+(H?H.proj:0); if(!projMes) return;
       var parts=(CONFIG.mesLabel||"").toLowerCase().split(" ");
       var mIdx=MESNUM[parts[0]], ano=parseInt(parts[1])||(new Date()).getFullYear();
       var hoje=new Date();
       var isCorrente=(mIdx!==undefined&&mIdx===hoje.getMonth()&&ano===hoje.getFullYear());
       var anc=Math.max(1,Math.min(CONFIG.diasNoMes,isCorrente?(hoje.getDate()-2):(CONFIG.diaAtual||CONFIG.diasNoMes)));
-      var acAnc=acum(g,anc);
+      var acAnc=ac(anc);
       var ini=(typeof diaIni!=="undefined")?diaIni:1;
       var rest=Math.max(1,CONFIG.diasNoMes-anc);
       ds.data=ch.data.labels.map(function(_,i){
         var d=ini+i;
-        if(d<=anc) return acum(g,d);
+        if(d<=anc) return ac(d);
         return Math.round(acAnc+(projMes-acAnc)*((d-anc)/rest));
       });
       ch.update('none');
