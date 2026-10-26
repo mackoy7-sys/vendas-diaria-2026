@@ -4665,10 +4665,9 @@ function renderHaponCorr() {
 //   Volume por Dia e Total por Produto -> vidas das Corretoras DILUIDAS em PF e PME (sem 4a serie);
 //   Taxa de Conversao Diaria           -> (vidas interno + Corretoras) / (leads interno + leads Corretoras do portal NDI); dias depois
 //                                          do ultimo lead do portal (export atrasa) ficam so' com o Interno;
-//   Entrada de Leads por Dia / Conversao por Origem -> linha propria "HapON Corretoras" (o grafico Leads por Origem fica sem ela).
+//   Leads por Origem / Entrada de Leads por Dia / Conversao por Origem -> SEM a HapON Corretoras (pedido do David, 26/10/2026).
 // Nao mexe em CONFIG: cada render e' ENVOLVIDO, troca o dado so' durante a chamada e restaura (mesmo padrao do renderProjetos).
 // Depende de hapRankingDados / rlHapLeads (HAPON_FRONT e template). SINTRO continua fora, como no resto do Consolidado.
-const HAP_ORIGEM_ROTULO = "HapON Corretoras";
 function hapGrafDados() {
   if (typeof gestorAtivo === "undefined" || gestorAtivo !== "TOTAL") return null;
   if (typeof hapRankingDados !== "function") return null;
@@ -4745,38 +4744,8 @@ function hapLeadsDia(key, n) {
     finally { g.conv = conv0; marca("chartConv", "· inclui HapON Corretoras" + (ult >= 0 && ult < conv0.filter(v => v != null).length - 1 ? " até o dia " + (ult + 1) + " (portal NDI)" : "")); }
   };
   // (o grafico "Leads por Origem (mes)" NAO recebe a HapON: David, 26/10/2026, "nao ficou legal" -- ela virava a maior barra)
-  const _rd = window.renderLeadsDia;
-  if (typeof _rd === "function") window.renderLeadsDia = function () {
-    const dd = hapGrafDados(), orig = CONFIG.leadsOrigemDia;
-    const ld = dd && orig && Array.isArray(orig.origens) ? hapLeadsDia(dd.key, orig.dias) : null;
-    if (!ld || !ld.some(v => v > 0)) return _rd.apply(this, arguments);
-    CONFIG.leadsOrigemDia = Object.assign({}, orig, { origens: orig.origens.concat([{ origem: HAP_ORIGEM_ROTULO, dias: ld }]) });
-    try { return _rd.apply(this, arguments); } finally { CONFIG.leadsOrigemDia = orig; }
-  };
-  // Conversao por Origem: GUP traz MQL/Improdutivo/SQL, a HapON Corretoras nao tem essa classificacao -> so' Leads, Vidas e Conv. (vidas).
-  // Total Geral: leads e vidas somam a HapON; % SQL e Conv. SQL seguem so' sobre os leads GUP (sao os unicos classificados).
-  const _rcv = window.renderConversao;
-  if (typeof _rcv === "function") window.renderConversao = function () {
-    const r = _rcv.apply(this, arguments);
-    try {
-      const dd = hapGrafDados(), lh = dd ? rlHapLeads(dd.key) : null, base = CONFIG.classificacaoComercial;
-      const tb = document.getElementById("tabelaConversao");
-      if (!lh || !Array.isArray(base) || !tb || !tb.lastElementChild || tb.querySelector(".hap-origem")) return r;
-      const vidas = dd.vidasMes, tL = base.reduce((s, d) => s + d.total, 0), tV = base.reduce((s, d) => s + d.vidas, 0);
-      const td = v => '<td class="td-right num">' + v + "</td>", tdp = v => '<td class="td-right">' + v + "</td>";
-      const tr = document.createElement("tr");
-      tr.className = "hap-origem";
-      tr.title = "Leads do portal NDI; vidas das Corretoras no mês. Sem classificação MQL/SQL.";
-      tr.innerHTML = "<td>" + HAP_ORIGEM_ROTULO + "</td>" + td(fmt(lh)) + td("—") + td("—") + td("—") + tdp("—") + td(fmt(vidas)) + tdp(fmtDec(vidas / lh * 100) + "%") + tdp("—");
-      const tot = tb.lastElementChild;
-      tb.insertBefore(tr, tot);
-      tot.children[1].textContent = fmt(tL + lh);
-      tot.children[6].textContent = fmt(tV + vidas);
-      tot.children[7].textContent = fmtDec((tV + vidas) / (tL + lh) * 100) + "%";
-      tot.title = "Leads e vidas incluem HapON Corretoras; % SQL e Conv. SQL consideram só os leads classificados (GUP).";
-    } catch (e) { console.warn("[hapon] conversao por origem:", e); }
-    return r;
-  };
+  // Leads por Origem (grafico), Entrada de Leads por Dia e Conversao por Origem (tabelas) NAO recebem a HapON Corretoras:
+  // David, 26/10/2026 ("nao ficou legal"). Os leads das Corretoras entram so' na Taxa de Conversao Diaria.
 })();
 // === FIM HAPON_GRAFICOS ===
 // === HAPON_DATA (gerado por hapon_corretoras.py -- NAO editar a mao) ===
