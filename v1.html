@@ -12206,7 +12206,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
           var pT=(typeof projTendencia==='function')?projTendencia('TOTAL'):0;
           var ddp=projCor;
           try{ var dd0=hapRankingDados(); if(dd0&&dd0.proj!=null) ddp=dd0.proj; }catch(e5){}
-          if(pT) cardProj=pT+ddp;
+          if(pT) cardProj=pT+ddp+((gCor&&gCor.sintro)||0);
         }catch(e6){}
         if(idxProj>=0) projLinha=D.labels.map(function(_,i){
           return i===idxProj?(cardProj!=null?cardProj:(projInt+projCor)):(D.interno[i]+D.corr[i]+D.sintro[i]);});
@@ -12289,7 +12289,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
               var pT4=(typeof projTendencia==='function')?projTendencia('TOTAL'):0;
               var dd4=null; try{ dd4=hapRankingDados(); }catch(e7){}
               if(pT4&&dd4&&dd4.proj!=null){
-                var alvo=pT4+dd4.proj;
+                var alvo=pT4+dd4.proj+((cC.gestores&&cC.gestores.TOTAL&&cC.gestores.TOTAL.sintro)||0);
                 if(ln4.data[idx4]!==alvo){ ln4.data[idx4]=alvo; ch4.update('none'); }
               }
             }
@@ -12676,6 +12676,52 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   }
   garanteBtn();
   setInterval(garanteBtn, 2000);
+})();
+</script>
+
+<!-- PROJ TOTAL C/ SINTRO — correção 03/11 (relato do usuário: outubro fechado mostrava Projeção 9.511 <
+     Total 9.765; a diferença era o Sintro, que a regra herdada não somava nem como realizado). O card
+     Projeção Mensal passa a somar o SINTRO REALIZADO (segue sem projetar Sintro) e ganha o invariante
+     projeção ≥ total realizado; o VAR vs mês anterior compara na mesma base (com o sintro dos dois meses).
+     Auto-contido: reaplicar se sumir. -->
+<script>
+(function(){
+  var ORDM=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
+  var MESNUM={janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+  var _hk=window.hapKpiConsolidado;
+  window.hapKpiConsolidado=function(){
+    var r=(typeof _hk==='function')?_hk.apply(this,arguments):undefined;
+    try{
+      if(typeof gestorAtivo==='undefined'||gestorAtivo!=='TOTAL')return r;
+      var g=CONFIG.gestores&&CONFIG.gestores.TOTAL; if(!g||g.meta==null)return r;
+      var dd=null; try{dd=hapRankingDados();}catch(e){}
+      if(!dd||dd.meta==null)return r;
+      var el=function(id){return document.getElementById(id);};
+      var sintro=g.sintro||0;
+      var proj=projTendencia('TOTAL')+(dd.proj||0)+sintro;
+      var realTot=vendas('TOTAL',diaIni,diaFim)+(dd.real||0)+sintro;
+      if(proj<realTot)proj=realTot;   // invariante: nunca abaixo do realizado
+      if(el('kProj')){el('kProj').textContent=fmt(proj);
+        el('kProj').title='Projeção do Total: time próprio + HapON Corretoras + Sintro REALIZADO (o Sintro não é projetado; em mês fechado a projeção é o próprio realizado).';}
+      if(el('kProjSub'))el('kProjSub').innerHTML=fmtDec(100*proj/g.meta)+'% da meta';
+      var sintroAnt=0;
+      try{
+        var parts=(CONFIG.mesLabel||'').toLowerCase().split(' ');
+        var mi=MESNUM[parts[0]];
+        if(mi>0){var cAnt=DADOS_MESES[ORDM[mi-1]];
+          sintroAnt=(cAnt&&cAnt.gestores&&cAnt.gestores.TOTAL&&cAnt.gestores.TOTAL.sintro)||0;}
+      }catch(e2){}
+      var antT=(g.vendas_ant||0)+(dd.ant||0)+sintroAnt;
+      if(antT>0&&el('kAbr')){
+        var v=(proj/antT-1)*100;
+        el('kAbr').textContent=(v>=0?'+':'')+fmtDec(v)+'%';
+        el('kAbr').style.color=v>=0?'#1D9E75':'#D85A30';
+        if(el('kAbrSub'))el('kAbrSub').textContent='vs '+CONFIG.mesAnteriorLabel+' ('+fmt(antT)+')';
+      }
+    }catch(e){}
+    return r;
+  };
+  try{window.hapKpiConsolidado();}catch(e){}
 })();
 </script>
 </body>
