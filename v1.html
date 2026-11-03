@@ -11998,23 +11998,23 @@ function checkLogin(){
     return '<tr>' + (extra || '') + cols.map(function(c){ var a = s.k === c[0]; return '<th class="' + (c[2] ? 'l ' : '') + (a ? 'a' : '') + '" data-k="' + c[0] + '">' + c[1] + (a ? (s.d < 0 ? ' ▼' : ' ▲') : '') + '</th>'; }).join('') + '</tr>';
   }
   function filaRows(d){
-    var mk = function(r){ return {n:r[0], l:r[1], q:r[2], v:r[3], c:r[4], ag:r[5], vpf:r[6], vpme:r[7], pq:pc(r[2], r[1]), cv:pc(r[3], r[1])}; };
+    var mk = function(r){ return {n:r[0], l:r[1], q:r[2], v:r[3], c:r[4], ag:r[5], vpf:r[6], vpme:r[7], pq:pc(r[2], r[1]), cv:pc(r[3], r[1]), pfc:pc(r[6], r[1]), pmc:pc(r[7], r[1])}; };
     var s = st.srt.fil, cmp = sorter(s);
     var topo = d.filas.map(mk).sort(cmp);
     var ref = Math.max.apply(null, d.filas.concat(d.resto).map(function(r){ return pc(r[3], r[1]); }).concat([1])) * 1.4;
     var mx = Math.max.apply(null, d.filas.map(function(r){ return r[1]; }).concat([1]));
     var linha = function(r, cls){ return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="l">' + (cls === 'ch' ? '&nbsp;&nbsp;&nbsp;' : '') + esc(r.n) + '</td>' +
-      '<td class="' + (s.k === 'l' ? 'a' : '') + '"><span class="br" style="width:' + Math.max(2, r.l / mx * 70) + 'px"></span>' + nf(r.l) + '</td>' +
-      '<td class="' + (s.k === 'pq' ? 'a' : '') + '">' + f1(r.pq) + '</td><td class="' + (s.k === 'v' ? 'a' : '') + '">' + nf(r.v) + '</td><td class="' + (s.k === 'vpf' ? 'a' : '') + '">' + nf(r.vpf) + '</td><td class="' + (s.k === 'vpme' ? 'a' : '') + '">' + nf(r.vpme) + '</td><td class="' + (s.k === 'c' ? 'a' : '') + '">' + nf(r.c) + '</td>' +
-      '<td class="' + (s.k === 'cv' ? 'a' : '') + '">' + cvCell(r.cv, ref) + '</td><td class="' + (s.k === 'ag' ? 'a' : '') + '">' + (r.ag == null ? '—' : r.ag) + '</td></tr>'; };
-    var h = thead([['n', 'Fila (Session Team)', 1], ['l', 'Leads'], ['pq', '% SQL'], ['v', 'Vidas'], ['vpf', 'PF Vidas'], ['vpme', 'PME Vidas'], ['c', 'Contratos'], ['cv', 'Conv.'], ['ag', 'Vendedores']], s);
+      '<td class="' + (s.k === 'ag' ? 'a' : '') + '">' + (r.ag == null ? '—' : r.ag) + '</td><td class="' + (s.k === 'l' ? 'a' : '') + '"><span class="br" style="width:' + Math.max(2, r.l / mx * 70) + 'px"></span>' + nf(r.l) + '</td>' +
+      '<td class="' + (s.k === 'pq' ? 'a' : '') + '">' + f1(r.pq) + '</td><td class="' + (s.k === 'v' ? 'a' : '') + '">' + nf(r.v) + '</td><td class="' + (s.k === 'cv' ? 'a' : '') + '">' + cvCell(r.cv, ref) + '</td>' +
+      '<td class="' + (s.k === 'vpf' ? 'a' : '') + '">' + nf(r.vpf) + '</td><td class="' + (s.k === 'pfc' ? 'a' : '') + '">' + f1(r.pfc) + '</td><td class="' + (s.k === 'vpme' ? 'a' : '') + '">' + nf(r.vpme) + '</td><td class="' + (s.k === 'pmc' ? 'a' : '') + '">' + f1(r.pmc) + '</td></tr>'; };
+    var h = thead([['n', 'Fila (Session Team)', 1], ['ag', 'Vendedores'], ['l', 'Leads'], ['pq', '% SQL'], ['v', 'Vidas'], ['cv', 'Conv.'], ['vpf', 'PF Vidas'], ['pfc', 'PF Conv.'], ['vpme', 'PME Vidas'], ['pmc', 'PME Conv.']], s);
     h += topo.map(function(r){ return linha(r); }).join('');
     if (d.demais){
       var dm = mk(d.demais);
-      h += '<tr class="dm"><td class="l">' + (st.demais ? '▾ ' : '▸ ') + esc(dm.n) + '</td><td>' + nf(dm.l) + '</td><td>' + f1(dm.pq) + '</td><td>' + nf(dm.v) + '</td><td>' + nf(dm.vpf) + '</td><td>' + nf(dm.vpme) + '</td><td>' + nf(dm.c) + '</td><td>' + cvCell(dm.cv, ref) + '</td><td>' + dm.ag + '</td></tr>';
+      h += '<tr class="dm"><td class="l">' + (st.demais ? '▾ ' : '▸ ') + esc(dm.n) + '</td><td>' + dm.ag + '</td><td>' + nf(dm.l) + '</td><td>' + f1(dm.pq) + '</td><td>' + nf(dm.v) + '</td><td>' + cvCell(dm.cv, ref) + '</td><td>' + nf(dm.vpf) + '</td><td>' + f1(dm.pfc) + '</td><td>' + nf(dm.vpme) + '</td><td>' + f1(dm.pmc) + '</td></tr>';
       if (st.demais) h += d.resto.map(mk).sort(cmp).map(function(r){ return linha(r, 'ch'); }).join('');
     }
-    h += '<tr class="tot"><td class="l">Total do segmento</td><td>' + nf(d.leadsAll) + '</td><td>' + f1(pc(d.sqlAll, d.leadsAll)) + '</td><td>' + nf(d.vidasAll) + '</td><td>' + nf(d.vpfAll) + '</td><td>' + nf(d.vpmeAll) + '</td><td>' + nf(d.ctAll) + '</td><td>' + f1(pc(d.vidasAll, d.leadsAll)) + '</td><td></td></tr>';
+    h += '<tr class="tot"><td class="l">Total do segmento</td><td></td><td>' + nf(d.leadsAll) + '</td><td>' + f1(pc(d.sqlAll, d.leadsAll)) + '</td><td>' + nf(d.vidasAll) + '</td><td>' + f1(pc(d.vidasAll, d.leadsAll)) + '</td><td>' + nf(d.vpfAll) + '</td><td>' + f1(pc(d.vpfAll, d.leadsAll)) + '</td><td>' + nf(d.vpmeAll) + '</td><td>' + f1(pc(d.vpmeAll, d.leadsAll)) + '</td></tr>';
     return '<table>' + h + '</table>';
   }
   function fila(){
@@ -12022,24 +12022,24 @@ function checkLogin(){
     var sortRows = function(rows){ return rows.sort(sorter(s)); };
     if (st.vis === 'ven'){
       var maxv = Math.max.apply(null, d.ven.map(function(r){ return r[5]; }).concat([1]));
-      var rows = sortRows(d.ven.map(function(r){ return {g:r[0], n:r[1], sp:r[2], l:r[3], q:r[4], v:r[5], c:r[6], vpf:r[7], vpme:r[8], cv:pc(r[5], r[3]), pq:pc(r[4], r[3])}; })).slice(0, 20);
+      var rows = sortRows(d.ven.map(function(r){ return {g:r[0], n:r[1], sp:r[2], l:r[3], q:r[4], v:r[5], c:r[6], vpf:r[7], vpme:r[8], cv:pc(r[5], r[3]), pfc:pc(r[7], r[3]), pmc:pc(r[8], r[3]), pq:pc(r[4], r[3])}; })).slice(0, 20);
       var refv = Math.max.apply(null, d.ven.map(function(r){ return pc(r[5], r[3]); }).concat([1])) * 1.4;
-      html = '<p class="d">Top 20 de ' + d.ven.length + ' vendedores com ao menos ' + d.min + ' leads no segmento. Clique no título de uma coluna para ordenar. Vidas e contratos = vendidos pelo próprio dono do lead.</p><div class="lp-tb"><table>' +
-        thead([['n', 'Gestão | Vendedor', 1], ['sp', 'Supervisor direto', 1], ['l', 'Leads'], ['pq', '% SQL'], ['v', 'Vidas'], ['vpf', 'PF Vidas'], ['vpme', 'PME Vidas'], ['c', 'Contratos'], ['cv', 'Conversão']], s, '<th class="l" style="cursor:default">#</th>') +
+      html = '<p class="d">Top 20 de ' + d.ven.length + ' vendedores com ao menos ' + d.min + ' leads no segmento. Clique no título de uma coluna para ordenar. Vidas = vendidas pelo próprio dono do lead. Conv. = vidas ÷ leads.</p><div class="lp-tb"><table>' +
+        thead([['n', 'Gestão | Vendedor', 1], ['sp', 'Supervisor direto', 1], ['l', 'Leads'], ['pq', '% SQL'], ['v', 'Vidas'], ['cv', 'Conv.'], ['vpf', 'PF Vidas'], ['pfc', 'PF Conv.'], ['vpme', 'PME Vidas'], ['pmc', 'PME Conv.']], s, '<th class="l" style="cursor:default">#</th>') +
         rows.map(function(r, i){ return '<tr><td class="l sm">' + (i + 1) + '</td><td class="l">' + gpill(r.g) + esc(r.n) + '</td><td class="g">' + esc(r.sp) + '</td><td class="' + (s.k === 'l' ? 'a' : '') + '">' + nf(r.l) + '</td><td class="' + (s.k === 'pq' ? 'a' : '') + '">' + f1(r.pq) + '</td>' +
-          '<td class="' + (s.k === 'v' ? 'a' : '') + '"><b style="font-weight:700;color:' + NAVY + '">' + r.v + '</b></td><td class="' + (s.k === 'vpf' ? 'a' : '') + '">' + nf(r.vpf) + '</td><td class="' + (s.k === 'vpme' ? 'a' : '') + '">' + nf(r.vpme) + '</td><td class="' + (s.k === 'c' ? 'a' : '') + '">' + r.c + '</td><td class="' + (s.k === 'cv' ? 'a' : '') + '">' + cvCell(r.cv, refv) + '</td></tr>'; }).join('') + '</table></div>';
+          '<td class="' + (s.k === 'v' ? 'a' : '') + '"><b style="font-weight:700;color:' + NAVY + '">' + r.v + '</b></td><td class="' + (s.k === 'cv' ? 'a' : '') + '">' + cvCell(r.cv, refv) + '</td><td class="' + (s.k === 'vpf' ? 'a' : '') + '">' + nf(r.vpf) + '</td><td class="' + (s.k === 'pfc' ? 'a' : '') + '">' + f1(r.pfc) + '</td><td class="' + (s.k === 'vpme' ? 'a' : '') + '">' + nf(r.vpme) + '</td><td class="' + (s.k === 'pmc' ? 'a' : '') + '">' + f1(r.pmc) + '</td></tr>'; }).join('') + '</table></div>';
     } else {
-      var rs = sortRows(d.sup.map(function(r){ return {g:r[0], n:r[1], na:r[2], l:r[3], q:r[4], v:r[5], c:r[6], vpf:r[7], vpme:r[8], cv:pc(r[5], r[3]), pq:pc(r[4], r[3])}; }));
+      var rs = sortRows(d.sup.map(function(r){ return {g:r[0], n:r[1], na:r[2], l:r[3], q:r[4], v:r[5], c:r[6], vpf:r[7], vpme:r[8], cv:pc(r[5], r[3]), pfc:pc(r[7], r[3]), pmc:pc(r[8], r[3]), pq:pc(r[4], r[3])}; }));
       var refs = Math.max.apply(null, d.sup.map(function(r){ return pc(r[5], r[3]); }).concat([1])) * 1.4;
       html = '<p class="d">Soma de todos os vendedores de cada supervisor no segmento. Clique na linha para ver os vendedores com ao menos ' + d.min + ' leads; os demais ficam agrupados.</p><div class="lp-tb"><table>' +
-        thead([['n', 'Gestão | Supervisor direto', 1], ['na', 'Vendedores'], ['l', 'Leads'], ['pq', '% SQL'], ['v', 'Vidas'], ['vpf', 'PF Vidas'], ['vpme', 'PME Vidas'], ['c', 'Contratos'], ['cv', 'Conversão']], s, '<th class="l" style="cursor:default">#</th>') +
+        thead([['n', 'Gestão | Supervisor direto', 1], ['na', 'Vendedores'], ['l', 'Leads'], ['pq', '% SQL'], ['v', 'Vidas'], ['cv', 'Conv.'], ['vpf', 'PF Vidas'], ['pfc', 'PF Conv.'], ['vpme', 'PME Vidas'], ['pmc', 'PME Conv.']], s, '<th class="l" style="cursor:default">#</th>') +
         rs.map(function(r, i){
-          var o = st.open[r.n], out = '<tr class="sup" data-s="' + esc(r.n) + '"><td class="l sm">' + (o ? '▾' : '▸') + ' ' + (i + 1) + '</td><td class="l">' + gpill(r.g) + esc(r.n) + '</td><td>' + r.na + '</td><td>' + nf(r.l) + '</td><td>' + f1(r.pq) + '</td><td class="' + (s.k === 'v' ? 'a' : '') + '">' + r.v + '</td><td class="' + (s.k === 'vpf' ? 'a' : '') + '">' + nf(r.vpf) + '</td><td class="' + (s.k === 'vpme' ? 'a' : '') + '">' + nf(r.vpme) + '</td><td>' + r.c + '</td><td>' + cvCell(r.cv, refs) + '</td></tr>';
+          var o = st.open[r.n], out = '<tr class="sup" data-s="' + esc(r.n) + '"><td class="l sm">' + (o ? '▾' : '▸') + ' ' + (i + 1) + '</td><td class="l">' + gpill(r.g) + esc(r.n) + '</td><td>' + r.na + '</td><td>' + nf(r.l) + '</td><td>' + f1(r.pq) + '</td><td class="' + (s.k === 'v' ? 'a' : '') + '">' + r.v + '</td><td>' + cvCell(r.cv, refs) + '</td><td class="' + (s.k === 'vpf' ? 'a' : '') + '">' + nf(r.vpf) + '</td><td>' + f1(r.pfc) + '</td><td class="' + (s.k === 'vpme' ? 'a' : '') + '">' + nf(r.vpme) + '</td><td>' + f1(r.pmc) + '</td></tr>';
           if (o){
             var vs = d.ven.filter(function(v){ return v[2] === r.n; }).sort(function(a, b){ return b[5] - a[5]; }), sl = 0, sq = 0, sv = 0, sc = 0, sf = 0, sm = 0;
-            vs.forEach(function(v){ sl += v[3]; sq += v[4]; sv += v[5]; sc += v[6]; sf += v[7]; sm += v[8]; out += '<tr class="ch"><td></td><td class="l">&nbsp;&nbsp;&nbsp;' + esc(v[1]) + '</td><td></td><td>' + nf(v[3]) + '</td><td>' + f1(pc(v[4], v[3])) + '</td><td>' + v[5] + '</td><td>' + nf(v[7]) + '</td><td>' + nf(v[8]) + '</td><td>' + v[6] + '</td><td>' + f1(pc(v[5], v[3])) + '</td></tr>'; });
+            vs.forEach(function(v){ sl += v[3]; sq += v[4]; sv += v[5]; sc += v[6]; sf += v[7]; sm += v[8]; out += '<tr class="ch"><td></td><td class="l">&nbsp;&nbsp;&nbsp;' + esc(v[1]) + '</td><td></td><td>' + nf(v[3]) + '</td><td>' + f1(pc(v[4], v[3])) + '</td><td>' + v[5] + '</td><td>' + f1(pc(v[5], v[3])) + '</td><td>' + nf(v[7]) + '</td><td>' + f1(pc(v[7], v[3])) + '</td><td>' + nf(v[8]) + '</td><td>' + f1(pc(v[8], v[3])) + '</td></tr>'; });
             var dl = r.l - sl, dv = r.v - sv;
-            if (dl > 0) out += '<tr class="ch"><td></td><td class="l">&nbsp;&nbsp;&nbsp;demais vendedores (abaixo do mínimo)</td><td></td><td>' + nf(dl) + '</td><td>' + f1(pc(r.q - sq, dl)) + '</td><td>' + dv + '</td><td>' + nf(r.vpf - sf) + '</td><td>' + nf(r.vpme - sm) + '</td><td>' + (r.c - sc) + '</td><td>' + f1(pc(dv, dl)) + '</td></tr>';
+            if (dl > 0) out += '<tr class="ch"><td></td><td class="l">&nbsp;&nbsp;&nbsp;demais vendedores (abaixo do mínimo)</td><td></td><td>' + nf(dl) + '</td><td>' + f1(pc(r.q - sq, dl)) + '</td><td>' + dv + '</td><td>' + f1(pc(dv, dl)) + '</td><td>' + nf(r.vpf - sf) + '</td><td>' + f1(pc(r.vpf - sf, dl)) + '</td><td>' + nf(r.vpme - sm) + '</td><td>' + f1(pc(r.vpme - sm, dl)) + '</td></tr>';
           }
           return out; }).join('') + '</table></div>';
     }
