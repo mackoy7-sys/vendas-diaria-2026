@@ -4263,9 +4263,9 @@ Object.assign(HAP_COR, { "F FURTADO": "#1D9E75", CLINIPAM: "#B5539B" });
 Object.assign(HAP_NOME, { "F FURTADO": "F FURTADO CARNEIRO", CLINIPAM: "CALL LINK" });   // chave interna segue CLINIPAM (hapon_leads); so' o nome exibido mudou (08/10/2026)
 Object.assign(HAP_COR, { QIP: "#E5484D" });   // 16/10/2026: DRV foi incorporada na F FURTADO; entrou a QIP (mesma cor livre)
 Object.assign(HAP_NOME, { QIP: "QIP SAÚDE" });
-Object.assign(HAP_COR, { "W3G OPTAS": "#17A2B8", "VHRC AMELS": "#8C6D46" });   // 21/10/2026: corretoras novas (areas 5A72-5A76 e 5A67-5A6A); 2a rotulada "AMELS" ate 28/10/2026
-Object.assign(HAP_NOME, { "W3G OPTAS": "W3G OPTAS", "VHRC AMELS": "VHRC AMELS" });
-const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "CLINIPAM", "QIP", "W3G OPTAS", "VHRC AMELS"];   // CLINIPAM = CALL LINK (16/10/2026: ganhou areas de venda)
+Object.assign(HAP_COR, { "W3G OPTAS": "#17A2B8", "VHRC AMELS": "#8C6D46", "HAPBIT": "#7B4FB3", "MERIDIAL": "#C2547A" });   // 04/11/2026: HAPBIT e MERIDIAL (areas 611A/6121-6124 e 613A/6141-6144)   // 21/10/2026: corretoras novas (areas 5A72-5A76 e 5A67-5A6A); 2a rotulada "AMELS" ate 28/10/2026
+Object.assign(HAP_NOME, { "W3G OPTAS": "W3G OPTAS", "VHRC AMELS": "VHRC AMELS", "HAPBIT": "HAPBIT", "MERIDIAL": "MERIDIAL" });
+const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "CLINIPAM", "QIP", "W3G OPTAS", "VHRC AMELS", "HAPBIT", "MERIDIAL"];   // CLINIPAM = CALL LINK (16/10/2026: ganhou areas de venda)
 let hapSel = {};           // filtro global de corretora (vazio = todas)
 let hapSerie = "vidas";    // grafico principal: "vidas" | "leads"
 let hapCmpSerie = "leads"; // comparativo mes x mes: "leads" | "vidas"
@@ -4314,7 +4314,7 @@ function hapGaranteAba() {
   p.innerHTML = `
 <div class="container" style="padding-top:14px">
   <div style="background:#eaf0fd;border-left:4px solid #3D65E7;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0F297B;">
-    🏢 <b>HapON Corretoras</b> · RAISE TECH, COMPLETO, QUINDTECH, FJS, F FURTADO, CALL LINK, QIP, W3G OPTAS e VHRC AMELS. Dado dos <b>relatórios de PF e PME</b> por área de venda (não usa a VENDA_DIGITAL); PF e PME somados. Leads: corretoras do escopo que recebem lead do portal NDI (COMPLETO fica fora dos leads). Use os filtros de <b>mês</b> e de <b>corretora</b>. <span id="hpRef" style="opacity:.75"></span>
+    🏢 <b>HapON Corretoras</b> · RAISE TECH, COMPLETO, QUINDTECH, FJS, F FURTADO, CALL LINK, QIP, W3G OPTAS, VHRC AMELS, HAPBIT e MERIDIAL. Dado dos <b>relatórios de PF e PME</b> por área de venda (não usa a VENDA_DIGITAL); PF e PME somados. Leads: corretoras do escopo que recebem lead do portal NDI (COMPLETO fica fora dos leads). Use os filtros de <b>mês</b> e de <b>corretora</b>. <span id="hpRef" style="opacity:.75"></span>
   </div>
   <div class="hp-fb" id="hpFiltro"><span class="hp-fl">Corretora</span><span class="hp-chips" id="hpChips"></span></div>
   <div class="kpi-row" id="hpKpis"></div>
@@ -4474,7 +4474,9 @@ function hapRankingDados() {
   const periodoTodo = diaIni === 1 && diaFim >= CONFIG.diaAtual;      // sem recorte de dias: o mes inteiro (inclui PME de vigencia futura)
   const real = periodoTodo ? vidasMes : m.porDia.filter(d => d.dia >= diaIni && d.dia <= diaFim).reduce((s, d) => s + d.total, 0);
   const ratio = vidasMes ? real / vidasMes : 0;
-  const proj = hapProjecao(vidasMes).proj;
+  const serieMes = new Array(CONFIG.diasNoMes).fill(0);
+  m.porDia.forEach(d => { if (d.dia >= 1 && d.dia <= CONFIG.diasNoMes) serieMes[d.dia - 1] += d.total || 0; });
+  const proj = hapProjecao(vidasMes, serieMes).proj;       // mesma regra do time interno (projAncora)
   const iPrev = HAP_MES_ORDEM.indexOf(key) - 1;
   const ant = iPrev >= 0 && D.meses[HAP_MES_ORDEM[iPrev]] ? D.meses[HAP_MES_ORDEM[iPrev]].kpi.vidas : 0;
   const ref = (diaFim / CONFIG.diasNoMes) * 100;
@@ -4728,7 +4730,40 @@ function hapBarraH(canvasId, chave, linhas, cores) {
 
 // Projecao do mes: MESMA regra do Consolidado (projecaoDiasUteisD1): realizado ate D-1 / dias uteis ate D-1,
 // aplicado aos dias uteis restantes; fim de semana e feriado nacional nao recebem projecao. Mes fechado = realizado.
-function hapProjecao(vidasSel) {
+// REGRA ÚNICA DE PROJEÇÃO (David, 04/11/2026): time interno e corretoras usam o MESMO cálculo quando há cálculo —
+// (realizado até a âncora ÷ dias úteis até a âncora) × dias úteis do mês + vendas já registradas após a âncora (agendadas).
+// Âncora = hoje-2 no mês corrente (CONFIG.diaAtual em mês fechado); enquanto não há dia útil até D-2, usa D-1 (David, 04/11/2026).
+// Se nem até D-1 há dia útil, a projeção é o próprio realizado, para os dois. `acum(d)` = acumulado da série até o dia d.
+function projAncora(acum) {
+  const MES = { janeiro: 0, fevereiro: 1, "março": 2, abril: 3, maio: 4, junho: 5, julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11 };
+  const partes = String(CONFIG.mesLabel || "").toLowerCase().split(" ");
+  const mIdx = MES[partes[0]], ano = parseInt(partes[1]) || new Date().getFullYear(), hoje = new Date();
+  const corrente = mIdx !== undefined && mIdx === hoje.getMonth() && ano === hoje.getFullYear();
+  const lim = a => Math.max(1, Math.min(CONFIG.diasNoMes, a));
+  const chave = d => ano + "-" + String(mIdx + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  const temFer = typeof FERIADOS_NACIONAIS_2026 !== "undefined";
+  const util = d => { const w = new Date(ano, mIdx === undefined ? hoje.getMonth() : mIdx, d).getDay(); return w >= 1 && w <= 5 && !(temFer && FERIADOS_NACIONAIS_2026.has(chave(d))); };
+  const calc = anc => {
+    let ate = 0, tot = 0;
+    for (let d = 1; d <= CONFIG.diasNoMes; d++) if (util(d)) { tot++; if (d <= anc) ate++; }
+    return { ate, tot };
+  };
+  // Âncora D-2; enquanto não há dia útil até D-2 (início de mês com fim de semana/feriado), usa D-1 (04/11/2026, David).
+  let anc = lim(corrente ? hoje.getDate() - 2 : (CONFIG.diaAtual || CONFIG.diasNoMes)), usouD1 = false;
+  let { ate, tot } = calc(anc);
+  if (corrente && !ate) { anc = lim(hoje.getDate() - 1); usouD1 = true; ({ ate, tot } = calc(anc)); }
+  const acAnc = acum(anc), acFim = acum(CONFIG.diasNoMes), agendadas = Math.max(0, acFim - acAnc);
+  const proj = ate ? Math.round(acAnc / ate * tot + agendadas) : Math.round(acFim);
+  return { proj, ate, resta: tot - ate, tot, anc, base: acAnc, acFim, agendadas, usouD1 };
+}
+// `serie` (opcional) = vidas por dia do mês (índice = dia-1) da seleção: usa a regra única acima. Sem `serie`, a regra antiga (D-1).
+function hapProjecao(vidasSel, serie) {
+  if (Array.isArray(serie)) {
+    const cum = []; let run = 0;
+    for (let i = 0; i < CONFIG.diasNoMes; i++) { run += serie[i] || 0; cum.push(run); }
+    const r = projAncora(d => (d < 1 ? 0 : cum[Math.min(d, cum.length) - 1] || 0));
+    return { proj: Math.max(vidasSel, r.proj), ate: r.ate, resta: r.resta, d1: r.anc, base: r.base };
+  }
   const meses = { janeiro: 0, fevereiro: 1, "março": 2, abril: 3, maio: 4, junho: 5, julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11 };
   const partes = String(CONFIG.mesLabel || "").toLowerCase().split(" ");
   const mes = meses[partes[0]], ano = parseInt(partes[1]) || new Date().getFullYear();
@@ -4930,7 +4965,7 @@ function hapOrcamentos(O, key, mesNome, ld, emLeads) {
     (O.incluiPme ? "<b>PME</b>: propostas do portal NDI, que já nascem assinadas; mês pela assinatura (até " + (r.pme || "?") + "). O status do PME é o do portal, que atrasa: parte do “em andamento” pode já estar implantada. " : "<b>Somente PF</b> por enquanto; o PME ainda não entra aqui. ") +
     (caso ? "<b>1 CPF = 1 orçamento</b> (como no Funil PF): o PF conta uma vez por CPF e corretora no mês — data da 1ª digitação, destino do orçamento mais recente; " + hapFmt(rep) + " redigitações ficam de fora (veja <b>Orçamentos brutos</b>). " + (O.incluiPme ? "O PME conta propostas assinadas. " : "")
           : "O PF conta <b>orçamentos</b>: " + hapFmt(rep) + " de " + hapFmt(pfT) + " repetem o CPF de outro no mês (cliente digitado de novo) e engordam os perdidos — veja <b>1 CPF = 1 orçamento</b>. ") +
-    "F FURTADO inclui as áreas ex-DRV (desde 16/10). CALL LINK e QIP: áreas de venda desde 16/10; W3G OPTAS e VHRC AMELS desde 21/10. A coluna Leads é contexto — lead e orçamento não são os mesmos clientes, não há taxa entre eles.";
+    "F FURTADO inclui as áreas ex-DRV (desde 16/10). CALL LINK e QIP: áreas de venda desde 16/10; W3G OPTAS e VHRC AMELS desde 21/10; HAPBIT e MERIDIAL desde 28 e 30/10 (ainda sem vendas). A coluna Leads é contexto — lead e orçamento não são os mesmos clientes, não há taxa entre eles.";
 }
 
 // Criados por dia, empilhado por corretora (filtro global hapOn). Dia = digitacao (PF; no caso, a 1a do CPF) ou assinatura (PME).
@@ -5009,8 +5044,11 @@ function renderHaponCorr() {
   const vidasC = selC.reduce((s, k) => s + (vid[k] || 0), 0);
   const leadsBruSel = () => sel.reduce((s, k) => s + ((ml && ml.brutos ? ml.brutos.porCorretora[k] : ld[k]) || 0), 0), leadsBru = ml ? leadsBruSel() : 0;
   const leads = sel.reduce((s, k) => s + (ld[k] || 0), 0), leadsV = selC.reduce((s, k) => s + (ld[k] || 0), 0);
-  const pj = hapProjecao(vidas);
-  const subProj = pj.resta ? "média de " + String(Math.round(10 * pj.base / pj.ate) / 10).replace(".", ",") + "/dia útil · " + pj.resta + " dia(s) útil(eis) restante(s)" : "mês fechado";
+  const serieSel = new Array(CONFIG.diasNoMes).fill(0);          // vidas/dia da seleção -> mesma regra de projeção do time interno
+  m.porDia.forEach(d => { if (d.dia >= 1 && d.dia <= CONFIG.diasNoMes) serieSel[d.dia - 1] += selV.reduce((s, k) => s + ((d.por && d.por[k]) || 0), 0); });
+  const pj = hapProjecao(vidas, serieSel);
+  const subProj = pj.resta && pj.ate ? "média de " + String(Math.round(10 * pj.base / pj.ate) / 10).replace(".", ",") + "/dia útil · " + pj.resta + " dia(s) útil(eis) restante(s)"
+    : (pj.resta ? "sem dia útil até D-1 · projeção = realizado" : "mês fechado");
   const card = (cor, rot, val, sub) => '<div class="kpi-card" style="border-left-color:' + cor + '"><div class="kpi-label">' + rot +
     '</div><div class="kpi-value">' + val + '</div><div class="kpi-sub">' + sub + "</div></div>";
   const temV = selV.length > 0;
@@ -12497,13 +12535,14 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
 (function(){
   var ORD=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
   function dados(){
-    var labels=[], interno=[], sintro=[], corr=[];
+    var labels=[], interno=[], sintro=[], corr=[], keys=[];
+    var chv=function(k){ return "2026-"+String(ORD.indexOf(k)+1).padStart(2,"0"); };   // chave AAAA-MM do PLANO_VIDAS
     // jan–mar/26 não estão no payload (dash começa em Abr) — totais informados pelo usuário em 12/10/2026
     var PRE_MESES={JANEIRO:8310,FEVEREIRO:7621,"MARÇO":10822};
     ORD.forEach(function(k){
       var c=DADOS_MESES[k];
       if((!c||c.isTrimestre) && PRE_MESES[k]){
-        labels.push(k.charAt(0)+k.slice(1,3).toLowerCase());
+        labels.push(k.charAt(0)+k.slice(1,3).toLowerCase()); keys.push(chv(k));
         interno.push(PRE_MESES[k]); sintro.push(0); corr.push(0); return;
       }
       if(!c||c.isTrimestre) return;
@@ -12511,13 +12550,71 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       var ac=g.acumulado, vInt=Array.isArray(ac)&&ac.length?ac[ac.length-1]:0;
       if(!vInt) return;
       var hm=(typeof HAPON_DATA!=='undefined'&&HAPON_DATA.meses&&HAPON_DATA.meses[k])?HAPON_DATA.meses[k]:null;
-      labels.push((c.mesLabel||k).split(' ')[0].slice(0,3));
+      labels.push((c.mesLabel||k).split(' ')[0].slice(0,3)); keys.push(chv(k));
       interno.push(vInt); sintro.push(g.sintro||0); corr.push(hm&&hm.kpi?(hm.kpi.vidas||0):(g.hapon||0));
     });
-    return {labels:labels, interno:interno, sintro:sintro, corr:corr};
+    return {labels:labels, interno:interno, sintro:sintro, corr:corr, keys:keys};
   }
+  // ---- modo do gráfico (04/11/2026, David): Vidas | Faturamento | Ticket médio ----
+  // Faturamento/ticket = mensalidade contratada (PLANO_VIDAS interno + PLANO_HAPON corretoras, escalonado às vidas do card);
+  // SINTRO fica fora (sem valor no dado). Corretoras sem valor no payload (ago/set) entram só nas vidas, não no ticket.
+  var modo='v';
+  function dadosFT(D){
+    var fI=[], fC=[], vT=[], fT=[], tk=[];
+    D.labels.forEach(function(_,i){
+      var key=D.keys[i], pv=(typeof PLANO_VIDAS!=='undefined'&&PLANO_VIDAS.interno)?PLANO_VIDAS.interno[key]:null;
+      var base=pv&&pv.TOTAL, hap=(typeof PLANO_HAPON!=='undefined'&&PLANO_HAPON.hapon&&PLANO_HAPON.hapon[key])?PLANO_HAPON.hapon[key].TOTAL:null;
+      if(!base||!base.length){ fI.push(null); fC.push(null); vT.push(0); fT.push(null); tk.push(null); return; }
+      var vi=0, fi=0; base.forEach(function(x){ vi+=x.v; fi+=x.f; });
+      var vc=0, fc=0;
+      if(D.corr[i]>0 && hap && hap.length){ plEscala(hap, D.corr[i]).forEach(function(x){ vc+=x.v; fc+=x.f; }); }
+      fI.push(fi/1e6); fC.push(fc/1e6); vT.push(vi+vc); fT.push(fi+fc); tk.push((vi+vc)?(fi+fc)/(vi+vc):null);
+    });
+    return {fI:fI, fC:fC, fT:fT, tk:tk};
+  }
+  function desenhaFT(cv, D){
+    var F=dadosFT(D), brl=function(v,d){ return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}); };
+    var old=Chart.getChart(cv); if(old) old.destroy();
+    var comum={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:11},usePointStyle:true}}}};
+    if(modo==='f'){
+      var tot=F.fI.map(function(v,i){ return v==null?null:v+(F.fC[i]||0); });
+      new Chart(cv,{type:'bar',data:{labels:D.labels,datasets:[
+        {label:'HapON Interno',data:F.fI,backgroundColor:'#185FA5',stack:'s',datalabels:{display:false}},
+        {label:'Corretoras',data:F.fC,backgroundColor:'#E8A33D',stack:'s',
+         datalabels:{display:function(c2){ return tot[c2.dataIndex]!=null; },anchor:'end',align:'top',color:'#185FA5',font:{size:11,weight:'800'},
+           formatter:function(v,c2){ return brl(tot[c2.dataIndex],2); }}}]},
+        options:Object.assign({},comum,{plugins:{legend:comum.plugins.legend,
+          tooltip:{callbacks:{label:function(it){ return ' '+it.dataset.label+': R$ '+brl(it.raw||0,2)+' mi'; },
+                              footer:function(it){ var t=tot[it[0].dataIndex]; return t==null?'':'Total: R$ '+brl(t,2)+' mi'; }}}},
+          scales:{x:{stacked:true,ticks:{font:{size:11}}},
+                  y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{font:{size:10},callback:function(v){ return brl(v,1); }},
+                     title:{display:true,text:'R$ milhões',font:{size:10}}}}})});
+    } else {
+      var vals=F.tk.filter(function(v){ return v!=null; }), mn=Math.floor((Math.min.apply(null,vals)-10)/10)*10, mx=Math.ceil((Math.max.apply(null,vals)+10)/10)*10;
+      new Chart(cv,{type:'line',data:{labels:D.labels,datasets:[
+        {label:'Ticket médio (interno + corretoras)',data:F.tk,borderColor:'#D85A30',backgroundColor:'#D85A30',borderWidth:2.2,pointRadius:4,
+         pointBackgroundColor:'#D85A30',tension:.25,spanGaps:true,
+         datalabels:{display:function(c2){ return F.tk[c2.dataIndex]!=null; },anchor:'end',align:'top',offset:4,color:'#D85A30',font:{size:11,weight:'800'},
+           formatter:function(v){ return brl(v,0); }}}]},
+        options:Object.assign({},comum,{plugins:{legend:comum.plugins.legend,
+          tooltip:{callbacks:{label:function(it){ return ' Ticket: R$ '+brl(it.raw,2); }}}},
+          scales:{x:{ticks:{font:{size:11}}},y:{min:mn,max:mx,ticks:{font:{size:10},callback:function(v){ return 'R$ '+brl(v,0); }}}}})});
+    }
+  }
+  window.cgm2Set=function(m){
+    modo=m;
+    var tg=document.getElementById('cgm2Tg');
+    if(tg) Array.prototype.forEach.call(tg.querySelectorAll('.ppo-tg-btn'),function(b){ b.classList.toggle('active',b.getAttribute('data-m')===m); });
+    var sub=document.getElementById('cgm2Sub');
+    if(sub) sub.textContent=m==='v'?'HapON Interno + Sintro + Corretoras · total no topo'
+      :(m==='f'?'mensalidade contratada · interno + corretoras (sem Sintro) · R$ milhões'
+               :'faturamento ÷ vidas · interno + corretoras (sem Sintro)');
+    var cv=document.getElementById('chartMeses2026'); if(cv) desenha(cv);
+  };
   function desenha(cv){
     var D=dados(); if(!D.labels.length) return;
+    if(modo!=='v') return desenhaFT(cv,D);
     var tot=D.labels.map(function(_,i){return D.interno[i]+D.sintro[i]+D.corr[i];});
     var fm=function(v){return Number(v).toLocaleString('pt-BR');};
     // LINHA PROJ MESES: Interno+Corretoras realizado; mês corrente = projeção DIAS ÚTEIS + AGENDADAS
@@ -12588,7 +12685,9 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       var card=document.getElementById('cardMeses2026');
       if(!card){
         card=document.createElement('div'); card.className='chart-card'; card.id='cardMeses2026';
-        card.innerHTML='<div class="chart-title">\uD83D\uDCCA Resultado m\u00EAs a m\u00EAs \u2014 2026 <span style="font-weight:400;font-size:11px;color:#64748b">HapON Interno + Sintro + Corretoras \u00B7 total no topo</span></div><div style="position:relative;height:340px"><canvas id="chartMeses2026"></canvas></div>';
+        card.innerHTML='<div class="ppo-card-head"><div class="chart-title" style="margin-bottom:0">\uD83D\uDCCA Resultado m\u00EAs a m\u00EAs \u2014 2026 <span id="cgm2Sub" style="font-weight:400;font-size:11px;color:#64748b">HapON Interno + Sintro + Corretoras \u00B7 total no topo</span></div>'
+          +'<div class="ppo-toggle" id="cgm2Tg"><button class="ppo-tg-btn active" data-m="v" onclick="cgm2Set(\'v\')">Vidas</button><button class="ppo-tg-btn" data-m="f" onclick="cgm2Set(\'f\')">Faturamento</button><button class="ppo-tg-btn" data-m="t" onclick="cgm2Set(\'t\')">Ticket m\u00E9dio</button></div></div>'
+          +'<div style="position:relative;height:340px"><canvas id="chartMeses2026"></canvas></div>';
       }
       var cv2=document.getElementById('chartMeses2026');
       var acCv=document.getElementById('chartAcumulado');
@@ -12621,7 +12720,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       // estar pronto no primeiro draw) — só quando o mês ativo do dash É o mês corrente do calendário
       try{
         var cv4=document.getElementById('chartMeses2026'); var ch4=cv4&&Chart.getChart(cv4);
-        var ln4=ch4&&ch4.data.datasets.filter(function(d){return d.type==='line';})[0];
+        var ln4=(modo==='v')&&ch4&&ch4.data.datasets.filter(function(d){return d.type==='line';})[0];
         if(ln4){
           var ag=new Date(), nomeC=ORD[ag.getMonth()], cC=DADOS_MESES[nomeC];
           var ativoEhCorrente=(typeof CONFIG!=="undefined")&&cC&&CONFIG.mesLabel===cC.mesLabel;
@@ -12869,21 +12968,8 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   var MESNUM={janeiro:0,fevereiro:1,"março":2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
   window.projTendencia=function(gKey){
     try{
-      var parts=(CONFIG.mesLabel||"").toLowerCase().split(" ");
-      var mIdx=MESNUM[parts[0]], ano=parseInt(parts[1])||(new Date()).getFullYear();
-      var hoje=new Date();
-      var isCorrente=(mIdx!==undefined&&mIdx===hoje.getMonth()&&ano===hoje.getFullYear());
-      var anc=Math.max(1,Math.min(CONFIG.diasNoMes,isCorrente?(hoje.getDate()-2):(CONFIG.diaAtual||CONFIG.diasNoMes)));
-      var chave=function(d){return ano+"-"+String(mIdx+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");};
-      var temFer=(typeof FERIADOS_NACIONAIS_2026!=="undefined");
-      var util=function(d){var w=(new Date(ano,(mIdx===undefined?hoje.getMonth():mIdx),d)).getDay();
-        return w>=1&&w<=5&&!(temFer&&FERIADOS_NACIONAIS_2026.has(chave(d)));};
-      var uPass=0,uTot=0;
-      for(var d=1;d<=CONFIG.diasNoMes;d++){ if(util(d)){ uTot++; if(d<=anc)uPass++; } }
-      var acAnc=acum(gKey,anc), acFim=acum(gKey,CONFIG.diasNoMes);
-      var agendadas=Math.max(0,acFim-acAnc);
-      if(!uPass) return Math.round(acFim);
-      return Math.round(acAnc/uPass*uTot + agendadas);
+      // regra única (projAncora): a mesma que projeta as corretoras (hapProjecao com série diária)
+      return projAncora(function(d){ return acum(gKey,d); }).proj;
     }catch(e){
       try{return projecaoDiasUteisD1().valores[gKey]||0;}catch(e2){return 0;}
     }
@@ -13036,17 +13122,23 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
     var r=(typeof _hk==='function')?_hk.apply(this,arguments):undefined;
     try{
       if(typeof gestorAtivo==='undefined'||gestorAtivo!=='TOTAL')return r;
-      var g=CONFIG.gestores&&CONFIG.gestores.TOTAL; if(!g||g.meta==null)return r;
+      var g=CONFIG.gestores&&CONFIG.gestores.TOTAL; if(!g)return r;
       var dd=null; try{dd=hapRankingDados();}catch(e){}
-      if(!dd||dd.meta==null)return r;
       var el=function(id){return document.getElementById(id);};
       var sintro=g.sintro||0;
-      var proj=projTendencia('TOTAL')+(dd.proj||0)+sintro;
-      var realTot=vendas('TOTAL',diaIni,diaFim)+(dd.real||0)+sintro;
+      // 04/11/2026 (David): a falta de meta (do gestor ou da HapON) NAO decide a projecao. Antes, sem meta da HapON (dd.meta==null)
+      // ou sem meta do gestor o card ficava so' com o time proprio (nov/26: 663 no card x 1.347 no grafico) e as corretoras
+      // nao eram projetadas. Mes COM meta da HapON segue igual (dd.proj/dd.real); sem meta usa o mesmo calculo (hapProjecao)
+      // sobre as vidas que o card "HapON Corretoras" mostra (g.hapon).
+      var temMetaHap=!!dd&&dd.meta!=null;
+      var realCorr=temMetaHap?(dd.real||0):(g.hapon||0);
+      var projCorr=dd?(dd.proj||0):realCorr;   // dd.proj = regra única (projAncora), igual à do time interno; sem HAPON_DATA = realizado
+      var proj=projTendencia('TOTAL')+projCorr+sintro;
+      var realTot=vendas('TOTAL',diaIni,diaFim)+realCorr+sintro;
       if(proj<realTot)proj=realTot;   // invariante: nunca abaixo do realizado
       if(el('kProj')){el('kProj').textContent=fmt(proj);
-        el('kProj').title='Projeção do Total: time próprio + HapON Corretoras + Sintro REALIZADO (o Sintro não é projetado; em mês fechado a projeção é o próprio realizado).';}
-      if(el('kProjSub'))el('kProjSub').innerHTML=fmtDec(100*proj/g.meta)+'% da meta';
+        el('kProj').title='Projeção do Total: time próprio + HapON Corretoras + Sintro REALIZADO (o Sintro não é projetado; em mês fechado a projeção é o próprio realizado). Não depende de haver meta.';}
+      if(el('kProjSub')&&g.meta)el('kProjSub').innerHTML=fmtDec(100*proj/g.meta)+'% da meta';
       var sintroAnt=0;
       try{
         var parts=(CONFIG.mesLabel||'').toLowerCase().split(' ');
@@ -13054,7 +13146,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
         if(mi>0){var cAnt=DADOS_MESES[ORDM[mi-1]];
           sintroAnt=(cAnt&&cAnt.gestores&&cAnt.gestores.TOTAL&&cAnt.gestores.TOTAL.sintro)||0;}
       }catch(e2){}
-      var antT=(g.vendas_ant||0)+(dd.ant||0)+sintroAnt;
+      var antT=(g.vendas_ant||0)+((dd&&dd.ant)||0)+sintroAnt;
       if(antT>0&&el('kAbr')){
         var v=(proj/antT-1)*100;
         el('kAbr').textContent=(v>=0?'+':'')+fmtDec(v)+'%';
@@ -13065,6 +13157,52 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
     return r;
   };
   try{window.hapKpiConsolidado();}catch(e){}
+})();
+</script>
+<script>
+// === KPIS_AJUSTE v2 (04/11/2026, David): o card "Var. vs mês anterior" dá lugar ao "Ticket médio" (faturamento ÷ vidas).
+// Os demais cards ficam como eram (projeção sem a variação, legendas originais, grade original). Faturamento NÃO vira card.
+// Ticket = mensalidade contratada (PLANO_VIDAS interno + PLANO_HAPON corretoras escalonado às vidas do card) ÷ vidas; SINTRO fora
+// (sem valor no dado). Idempotente: roda depois de renderKPIs e hapKpiConsolidado, que reescrevem o card.
+(function(){
+  if (window.__kpisAjuste) return; window.__kpisAjuste = true;
+  var brl = function(v, d){ return "R$ " + Number(v).toLocaleString("pt-BR", {minimumFractionDigits:d, maximumFractionDigits:d}); };
+  function dadosTicket(){
+    try{
+      if (typeof PLANO_VIDAS === "undefined" || typeof plChave !== "function") return null;
+      var mk = plChave(), mes = PLANO_VIDAS.interno && PLANO_VIDAS.interno[mk], base = mes && mes[gestorAtivo];
+      if (!base || !base.length) return null;
+      var vi = 0, fi = 0; base.forEach(function(x){ vi += x.v; fi += x.f; });
+      // vidas das corretoras = o que o card "HapON Corretoras" mostra (hapKpiConsolidado o reescreve em mês com payload HAPON_DATA)
+      var g = CONFIG.gestores && CONFIG.gestores[gestorAtivo], hv = (g && g.hapon) || 0;
+      var kM = document.getElementById("kMeta");
+      if (gestorAtivo === "TOTAL" && kM && /\d/.test(kM.textContent)) hv = parseInt(kM.textContent.replace(/\D/g, ""), 10) || 0;
+      var hap = (typeof PLANO_HAPON !== "undefined" && PLANO_HAPON.hapon && PLANO_HAPON.hapon[mk]) ? PLANO_HAPON.hapon[mk].TOTAL : null;
+      var fc = 0, vc = 0;
+      if (hv > 0 && gestorAtivo === "TOTAL" && hap && hap.length){ plEscala(hap, hv).forEach(function(x){ fc += x.f; vc += x.v; }); }
+      return {vidas: vi + vc, fat: fi + fc, comCorr: vc > 0};
+    }catch(e){ return null; }
+  }
+  function ajusta(){
+    var ab = document.getElementById("kAbr"); if (!ab) return;
+    if (typeof CONFIG !== "undefined" && CONFIG && CONFIG.isTrimestre) return;     // na visão trimestre o card segue escondido pelo render original
+    var card = ab.closest(".kpi-card"), D = dadosTicket();
+    var lab = document.getElementById("kAbrLabel"), sub = document.getElementById("kAbrSub");
+    if (lab) lab.textContent = "Ticket médio";
+    ab.style.color = "";
+    ab.textContent = D && D.vidas ? brl(D.fat / D.vidas, 2) : "—";
+    if (sub) sub.textContent = D ? "faturamento ÷ vidas · sem SINTRO" : "indisponível neste recorte";
+    if (card){
+      card.style.borderLeftColor = "#6c757d";
+      card.title = D ? "Ticket médio = mensalidade contratada (" + brl(D.fat, 0) + ") ÷ " + D.vidas.toLocaleString("pt-BR") + " vidas. " +
+        (D.comCorr ? "Time próprio + HapON Corretoras" : "Time próprio") + "; a SINTRO não tem valor no dado. Receita contratada, não caixa." : "";
+    }
+  }
+  ["renderKPIs", "hapKpiConsolidado"].forEach(function(n){
+    var o = window[n]; if (typeof o !== "function") return;
+    window[n] = function(){ var r = o.apply(this, arguments); try{ ajusta(); }catch(e){ window.__kpiAjErr = String(e); } return r; };
+  });
+  try{ ajusta(); }catch(e){ window.__kpiAjErr = String(e); }
 })();
 </script>
 </body>
