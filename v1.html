@@ -11668,7 +11668,16 @@ function renderComparativo() {
   const med = real.map(v => v / N);
   const prod = ms.map(m => prodPer(m, g));
   const vTot = ms.map(m => acumM(m, "TOTAL", N));
-  const leadsArr = ms.map(leadsSum);
+  const leadsArr = ms.map(m => { let v = leadsSum(m);
+    /* 05/11 (pedido do usuário): o Volume Leads (Total) soma também os leads entregues ao
+       HapON Corretoras (portal NDI — a mesma base da linha da tabela do Consolidado),
+       na MESMA janela 1–N dos demais; sem a quebra diária, cai no total do mês. */
+    if (gestorAtivo === 'TOTAL') { try {
+      const hd = hapLeadsDia(m, N);
+      if (hd) v += hd.reduce((s, x) => s + x, 0);
+      else v += rlHapLeads(m, null) || 0;
+    } catch (e) {} }
+    return v; });
   const vpcLeadsN = mes => {
     const lod = DADOS_MESES[mes].leadsOrigemDia;
     if (!lod || !Array.isArray(lod.origens)) return 0;
