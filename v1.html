@@ -11815,7 +11815,12 @@ function renderComparativo() {
   if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + comparativos.map(c => `<th class="td-right">${c.label}</th>`).join("");
   // Projetos no comparativo: valores de MÊS COMPLETO, os mesmos dos KPIs do Consolidado.
   const sintroMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.sintro === undefined ? null : (g.sintro || 0); });
-  const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.hapon || 0; });
+  const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {};
+    /* 05/11: g.hapon do payload congela entre releases (outubro ficou em 7 com ~597 reais);
+       no TOTAL, a fonte viva é a apuração própria do HapON (HAPON_DATA), a mesma do card do Consolidado. */
+    if (gestorAtivo === 'TOTAL') { try { const hm = HAPON_DATA.meses && HAPON_DATA.meses[m];
+      if (hm && hm.kpi && hm.kpi.vidas != null) return hm.kpi.vidas; } catch (e) {} }
+    return g.hapon || 0; });
   const digMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; let v = 0; for (const x of (g.acumulado||[])) if (x != null) v = x; return v; });
   const totalMes = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + haponMes[i] + sintroMes[i]);
   // Régua nova da Classificação Comercial (SQL / MQL / Improdutivo; "Fechado incluído em SQL").
