@@ -11686,8 +11686,16 @@ function renderComparativo() {
     let s = 0; for (let i = 0; i < N && i < v.dias.length; i++) s += (v.dias[i] || 0);
     return s;
   };
-  const conv = ms.map((m, i) => { const l = leadsArr[i] - vpcLeadsN(m); return l > 0 ? vTot[i] / l * 100 : 0; });  // conversão exclui leads da VPC
-  const lpv = ms.map((m, i) => vTot[i] > 0 ? leadsArr[i] / vTot[i] : 0);
+  /* 06/11 (pedido do usuário): com os leads das corretoras no denominador, as VIDAS das
+     corretoras entram no numerador — na MESMA janela 1–N (porDia da apuração viva do HapON). */
+  const hvidN = m => { try {
+    const hm = HAPON_DATA.meses && HAPON_DATA.meses[m]; if (!hm) return 0;
+    if (Array.isArray(hm.porDia)) { let s = 0; hm.porDia.forEach(x => { if (x.dia <= N) s += (x.total || 0); }); return s; }
+    return (hm.kpi && hm.kpi.vidas) || 0;
+  } catch (e) { return 0; } };
+  const vConv = ms.map((m, i) => vTot[i] + (gestorAtivo === 'TOTAL' ? hvidN(m) : 0));
+  const conv = ms.map((m, i) => { const l = leadsArr[i] - vpcLeadsN(m); return l > 0 ? vConv[i] / l * 100 : 0; });  // conversão exclui leads da VPC
+  const lpv = ms.map((m, i) => vConv[i] > 0 ? leadsArr[i] / vConv[i] : 0);
 
   const delta = (a, b) => a !== 0 ? ((b - a) / a * 100) : 0;
   const badgeHTML = (a, b, inv) => {
