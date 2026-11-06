@@ -11815,12 +11815,7 @@ function renderComparativo() {
   if (headRow) headRow.innerHTML = `<th>Métrica</th>` + ms.map(m => `<th class="td-right">${full(m)} (1–${N})</th>`).join("") + comparativos.map(c => `<th class="td-right">${c.label}</th>`).join("");
   // Projetos no comparativo: valores de MÊS COMPLETO, os mesmos dos KPIs do Consolidado.
   const sintroMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.sintro === undefined ? null : (g.sintro || 0); });
-  const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {};
-    /* 05/11: g.hapon do payload congela entre releases (outubro ficou em 7 com ~597 reais);
-       no TOTAL, a fonte viva é a apuração própria do HapON (HAPON_DATA), a mesma do card do Consolidado. */
-    if (gestorAtivo === 'TOTAL') { try { const hm = HAPON_DATA.meses && HAPON_DATA.meses[m];
-      if (hm && hm.kpi && hm.kpi.vidas != null) return hm.kpi.vidas; } catch (e) {} }
-    return g.hapon || 0; });
+  const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.hapon || 0; });
   const digMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; let v = 0; for (const x of (g.acumulado||[])) if (x != null) v = x; return v; });
   const totalMes = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + haponMes[i] + sintroMes[i]);
   // Régua nova da Classificação Comercial (SQL / MQL / Improdutivo; "Fechado incluído em SQL").
@@ -13327,6 +13322,36 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
     window[n] = function(){ var r = o.apply(this, arguments); try{ ajusta(); }catch(e){ window.__kpiAjErr = String(e); } return r; };
   });
   try{ ajusta(); }catch(e){ window.__kpiAjErr = String(e); }
+})();
+</script>
+
+<!-- AVISO FILTRO CLASSIF — honestidade do filtro de gestão (05/11, relato do usuário): a tabela
+     Conversão por Origem usa a classificação comercial, que SÓ EXISTE NO TOTAL do mês no payload —
+     com um gestor filtrado ela não recorta. Até o recorte existir, um aviso âmbar diz isso em vez
+     de fingir que obedece. Auto-contido: reaplicar se sumir. -->
+<script>
+(function(){
+  function garante(){
+    try{
+      var sec=document.getElementById('conversaoSection'); if(!sec) return;
+      var filtrado=(typeof gestorAtivo!=='undefined')&&gestorAtivo!=='TOTAL';
+      var av=document.getElementById('convOrigAviso');
+      if(filtrado){
+        if(!av){
+          av=document.createElement('div');
+          av.id='convOrigAviso';
+          av.style.cssText='background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:7px 12px;font-size:12px;margin:0 0 10px;font-weight:600';
+          var tit=sec.querySelector('.chart-title');
+          (tit&&tit.nextElementSibling?tit.nextElementSibling:tit).insertAdjacentElement('afterend',av);
+        }
+        var nome=(typeof SEL_GESTOR_LABEL!=='undefined'&&SEL_GESTOR_LABEL[gestorAtivo])||gestorAtivo;
+        av.textContent='⚠ Esta tabela mostra o TOTAL GERAL do mês — a classificação comercial (MQL/SQL/Improdutivo) ainda não existe recortada por gestão no painel; o filtro "'+nome+'" não se aplica aqui.';
+        av.style.display='block';
+      }else if(av){ av.style.display='none'; }
+    }catch(e){}
+  }
+  garante();
+  setInterval(garante, 2000);
 })();
 </script>
 </body>
