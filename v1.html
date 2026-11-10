@@ -11842,12 +11842,14 @@ function renderComparativo() {
   const sintroMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; return g.sintro === undefined ? null : (g.sintro || 0); });
   const haponMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {};
     /* 06/11 (REAPLICADO — a regeneração removeu em 05/11): g.hapon congela entre releases;
-       no TOTAL, a fonte viva é a apuração própria do HapON (HAPON_DATA), a mesma do card. */
+       no TOTAL, a fonte viva é a apuração própria do HapON (HAPON_DATA), a mesma do card.
+       09/11 (pedido do usuário): janelada nos dias 1–N (porDia) — a tabela é de dias comparáveis. */
     if (gestorAtivo === 'TOTAL') { try { const hm = HAPON_DATA.meses && HAPON_DATA.meses[m];
-      if (hm && hm.kpi && hm.kpi.vidas != null) return hm.kpi.vidas; } catch (e) {} }
+      if (hm) { if (Array.isArray(hm.porDia)) { let s = 0; hm.porDia.forEach(x => { if (x && x.dia <= N) s += (x.total || 0); }); return s; }
+        if (hm.kpi && hm.kpi.vidas != null) return hm.kpi.vidas; } } catch (e) {} }
     return g.hapon || 0; });
   const digMes = ms.map(m => { const g = (DADOS_MESES[m].gestores||{})[gestorAtivo] || {}; let v = 0; for (const x of (g.acumulado||[])) if (x != null) v = x; return v; });
-  const totalMes = ms.map((m,i) => sintroMes[i] == null ? null : digMes[i] + haponMes[i] + sintroMes[i]);
+  const totalMes = ms.map((m,i) => sintroMes[i] == null ? null : real[i] + haponMes[i] + sintroMes[i]); // 09/11: interno e corretoras na janela 1–N; SINTRO segue mês completo (sem quebra diária no payload)
   // Régua nova da Classificação Comercial (SQL / MQL / Improdutivo; "Fechado incluído em SQL").
   // Só existe como TOTAL MENSAL por origem — linhas "(mês)", como SINTRO. Meses sem o campo → "—".
   // A régua antiga de "produtivos" (leadsConversao, tag vazia = produtivo) saiu do Resumo (David, 28/09/2026).
@@ -11864,24 +11866,25 @@ function renderComparativo() {
     const sq = cc.reduce((s, o) => s + (o.sql || 0), 0);
     const vd = cc.reduce((s, o) => s + (o.vidas || 0), 0);
     return sq > 0 ? vd / sq * 100 : null; });
+  const temParcial = ms.some(m => lastLead(m) < 28); // 09/11: mês em andamento na seleção → variação não comparável (n/c) nas linhas de mês completo
   const linhas = [
     { lab: "HapON Interno (" + labelG + ")", vals: real, f: fmt, inv: false },
-    { lab: "HapON Corretoras (mês)", vals: haponMes, f: fmt, inv: false },
-    { lab: "SINTRO (mês)", vals: sintroMes, f: v => v == null ? "—" : fmt(v), inv: false },
-    { lab: "Total (mês)", vals: totalMes, f: v => v == null ? "—" : fmt(v), inv: false },
+    { lab: "HapON Corretoras (dias 1–" + N + ")", vals: haponMes, f: fmt, inv: false },
+    { lab: "SINTRO (mês completo)", vals: sintroMes, f: v => v == null ? "—" : fmt(v), inv: false, mc: true },
+    { lab: "Total (dias 1–" + N + " + SINTRO do mês)", vals: totalMes, f: v => v == null ? "—" : fmt(v), inv: false, mc: true },
     { lab: "Média / dia", vals: med, f: v => fmtDec(v, 0), inv: false },
     { lab: "PF", vals: prod.map(p => p.pf), f: fmt, inv: false },
     { lab: "PME", vals: prod.map(p => p.pme), f: fmt, inv: false },
     { lab: "Adesão", vals: prod.map(p => p.adesao), f: fmt, inv: false },
     { lab: "Conversão % (Total, s/ VPC)", vals: conv, f: v => fmtDec(v) + "%", inv: false },
     { lab: "Volume Leads (Total)", vals: leadsArr, f: fmt, inv: false },
-    { lab: "Leads SQL (mês)", vals: sqlMes, f: v => v == null ? "—" : fmt(v), inv: false },
-    { lab: "% SQL s/ Leads (mês)", vals: pctSqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false },
-    { lab: "Leads MQL (mês)", vals: mqlMes, f: v => v == null ? "—" : fmt(v), inv: false },
-    { lab: "% MQL s/ Leads (mês)", vals: pctMqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false },
-    { lab: "Leads Improdutivos (mês)", vals: imprMes, f: v => v == null ? "—" : fmt(v), inv: true },
-    { lab: "% Improdutivo s/ Leads (mês)", vals: pctImprMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: true },
-    { lab: "Conversão s/ SQL (mês)", vals: convSqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false },
+    { lab: "Leads SQL (mês completo)", vals: sqlMes, f: v => v == null ? "—" : fmt(v), inv: false , mc: true },
+    { lab: "% SQL s/ Leads (mês completo)", vals: pctSqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false , mc: true },
+    { lab: "Leads MQL (mês completo)", vals: mqlMes, f: v => v == null ? "—" : fmt(v), inv: false , mc: true },
+    { lab: "% MQL s/ Leads (mês completo)", vals: pctMqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false , mc: true },
+    { lab: "Leads Improdutivos (mês completo)", vals: imprMes, f: v => v == null ? "—" : fmt(v), inv: true , mc: true },
+    { lab: "% Improdutivo s/ Leads (mês completo)", vals: pctImprMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: true , mc: true },
+    { lab: "Conversão s/ SQL (mês completo)", vals: convSqlMes, f: v => v == null ? "—" : fmtDec(v) + "%", inv: false , mc: true },
     { lab: "Leads / Venda (Total)", vals: lpv, f: v => fmtDec(v), inv: true }
   ];
   // ── VENDAS × SAFRA DO LEAD (card compSafraCard) ──
@@ -11902,6 +11905,7 @@ function renderComparativo() {
   document.getElementById("tabelaComp").innerHTML = linhas.map(r => {
     const cels = r.vals.map(v => `<td class="td-right num">${r.f(v)}</td>`).join("");
     const vars = comparativos.map(c => {
+      if (r.mc && temParcial) return `<td class="td-right" title="mês completo × mês em andamento — variação não comparável">n/c</td>`;
       const d = delta(r.vals[c.base], r.vals[P]);
       if (r.vals[c.base] == null || r.vals[P] == null || !isFinite(d)) return `<td class="td-right">—</td>`;
       const good = r.inv ? d <= 0 : d >= 0, sign = d >= 0 ? "+" : "";
@@ -11912,6 +11916,10 @@ function renderComparativo() {
 
   // ── CONVERSÃO DE VIDAS / % SQL POR ORIGEM × MÊS ──
   (function () {
+    /* 09/11: nota de comparabilidade do Resumo Comparativo */
+    try { const _tc = document.getElementById("tabelaComp");
+      if (_tc && temParcial) _tc.innerHTML += `<tr><td colspan="9" style="font-size:11px;color:#8a6d3b;background:#fcf8e3;padding:6px 10px">⚠️ SINTRO e Classificação Comercial (linhas “mês completo”) não têm quebra diária no dado — com um mês em andamento na seleção, a variação dessas linhas fica como n/c.</td></tr>`;
+    } catch (e) {}
     const card = document.getElementById("compConvVidasCard");
     if (!card) return;
     if (!ms.some(m => Array.isArray(DADOS_MESES[m].leadsConversao))) {
