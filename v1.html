@@ -702,8 +702,11 @@
       <span id="selGestorNota" style="display:none;font-size:11px;margin-left:8px;opacity:.85" title="A HapON só tem recorte nos orçamentos PF; as outras abas não têm esse filtro.">HapON filtra só Orçamentos · PF</span>
       </span>
       <span class="filter-sep"></span>
-      <button class="btn-extrair" id="btnExtrair" onclick="exportarBase()"
-              title="Baixa a base tratada do fechamento (a mesma planilha do levantamento: BASE_PF, BASE PME, BASE ADESÃO, resumo e rankings), com CPF, nome e telefone. Pede o seu login Hapvida e é restrita a administradores: o arquivo não está nesta página, vem do banco na hora.">🔒 Base tratada.xlsx</button>
+      <span class="bt-wrap" style="position:relative;display:inline-block">
+      <button class="btn-extrair" id="btnExtrair" onclick="baseVendasMenu(event)" aria-haspopup="true"
+              title="Baixa a base de vendas tratada (a mesma planilha do levantamento: BASE_PF, BASE PME, BASE ADESÃO, resumo e rankings), com CPF, nome e telefone. Escolha entre a base atual e a base de fechamento de um mês. Pede o seu login Hapvida e é restrita a administradores: o arquivo não está nesta página, vem do banco na hora.">🔒 Base de vendas ▾</button>
+      <div id="btMenu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:9999;min-width:260px;background:#fff;color:#0f2a4a;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 8px 24px rgba(15,42,74,.25);padding:4px;text-align:left"></div>
+      </span>
     </div>
   </div>
 <!-- /BARRA DE NAVEGAÇÃO -->
@@ -7574,6 +7577,14 @@ function projExpandAll(open) {
 // Reusa o modal de login e o token em memória do pfPii.
 // ============================================================================================
 const BT_BUCKET = "base-tratada", BT_PREFIXO = "atual";
+// (10/11/2026) Opções do botão "Base de vendas". `atual` = a base tratada do último fechamento do dia
+// (o release troca o arquivo todo dia); cada `fechamentos/AAAA-MM` guarda a base FINAL do mês, que não
+// muda mais (oracle-reports\py\daily\supabase_base_tratada.py fechamento --mes AAAA-MM). Mês novo
+// fechado = uma linha aqui + o upload. Mesma RLS do bucket para todos os prefixos.
+const BT_OPCOES = [
+  { rotulo: "Base atual", sub: "atualizada a cada fechamento do dia", prefixo: BT_PREFIXO },
+  { rotulo: "Fechamento de Outubro/2026", sub: "base final do mês — não muda mais", prefixo: "fechamentos/2026-10" }
+];
 const BT_LOGIN_TXT = {
   titulo: "Baixar a base tratada",
   sub: "A base tratada traz <b>CPF, nome e telefone</b> dos clientes e <b>não está neste "
@@ -7587,34 +7598,58 @@ function _btHeaders(extra) {
 
 // O que a SUA conta enxerga no bucket. A RLS devolve lista vazia (não erro) para quem não é
 // ADMIN — por isso "vazio" vira a mensagem de acesso, não "sem arquivo".
-function baseTratadaListar() {
+function baseTratadaListar(prefixo) {
   return fetch(PF_PII_URL + "/storage/v1/object/list/" + BT_BUCKET, {
     method: "POST", headers: _btHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ prefix: BT_PREFIXO, limit: 10 })
+    body: JSON.stringify({ prefix: prefixo, limit: 10 })
   }).then(_pfPiiJson).then(function (arr) {
     return (arr || []).filter(function (o) { return o && o.id; });
   });
 }
 
-function baseTratadaObter() {
-  return baseTratadaListar().then(function (itens) {
+function baseTratadaObter(prefixo) {
+  return baseTratadaListar(prefixo).then(function (itens) {
     if (!itens.length) { const e = new Error("__sem_acesso__"); throw e; }
     const nome = itens[0].name;
-    return fetch(PF_PII_URL + "/storage/v1/object/authenticated/" + BT_BUCKET + "/" + BT_PREFIXO
+    return fetch(PF_PII_URL + "/storage/v1/object/authenticated/" + BT_BUCKET + "/" + prefixo
                  + "/" + encodeURIComponent(nome), { headers: _btHeaders() })
       .then(function (r) { return r.ok ? r.blob() : _pfPiiJson(r); })
       .then(function (blob) { return { nome: nome, blob: blob }; });
   });
 }
 
-function exportarBase() {
+// Menu do botão: lista as BT_OPCOES; fecha ao clicar fora.
+function baseVendasMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const m = document.getElementById("btMenu");
+  if (m.style.display !== "none") { m.style.display = "none"; return; }
+  m.innerHTML = "";
+  BT_OPCOES.forEach(function (o) {
+    const b = document.createElement("button");
+    b.type = "button"; b.setAttribute("role", "menuitem");
+    b.style.cssText = "display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:8px 10px;cursor:pointer;font:inherit;color:inherit";
+    b.onmouseenter = function () { b.style.background = "#eef3fa"; };
+    b.onmouseleave = function () { b.style.background = "none"; };
+    b.innerHTML = '<div style="font-weight:600;font-size:12.5px"></div><div style="font-size:11px;opacity:.7"></div>';
+    b.children[0].textContent = o.rotulo; b.children[1].textContent = o.sub;
+    b.onclick = function (e) { e.stopPropagation(); m.style.display = "none"; exportarBase(o.prefixo); };
+    m.appendChild(b);
+  });
+  m.style.display = "block";
+}
+document.addEventListener("click", function () {
+  const m = document.getElementById("btMenu"); if (m) m.style.display = "none";
+});
+
+function exportarBase(prefixo) {
+  prefixo = prefixo || BT_PREFIXO;
   const btn = document.getElementById("btnExtrair");
   const rotulo = btn.innerHTML;
   function ocupado(on) { btn.disabled = on; btn.innerHTML = on ? "Baixando…" : rotulo; }
 
   function baixar() {
     ocupado(true);
-    return baseTratadaObter().then(function (r) {
+    return baseTratadaObter(prefixo).then(function (r) {
       const url = URL.createObjectURL(r.blob);
       const a = document.createElement("a");
       a.href = url; a.download = r.nome;
