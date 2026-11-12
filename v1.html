@@ -4519,8 +4519,22 @@ function haponAbaAtiva() { const p = document.getElementById("haponPanel"); retu
 // rtToggle do ranking). A meta de 3.000 JA' FAZ PARTE do total de 13.300: o Total geral so' passa a somar as
 // vidas/projecao da HapON nos meses que tem meta aqui (senao o total antigo ficaria diferente do publicado).
 // Fonte = HAPON_DATA (relatorios PF/PME), a mesma do card "HAPON CORRETORAS" -- nao a CONFIG.haponRanking antiga.
-const HAP_META = { OUTUBRO: 3000 };   // vidas/mes; mes sem entrada = sem meta (linha aparece, total nao muda)
+const HAP_META = { OUTUBRO: 3000, NOVEMBRO: 1000 };   // vidas/mes; mes sem entrada = sem meta (linha aparece, total nao muda)
 function hapMetaDoMes(key) { return HAP_META[key] != null ? HAP_META[key] : null; }
+// HAPON_META_TOTAL (12/11/2026): a linha HapON entra no Total geral dos meses com meta (ranking, cards, graficos), e o Total geral
+// compara contra uma meta que JA' contem a HapON (outubro: 13.300 da planilha). Quando a planilha ainda nao trouxe a meta do Total
+// (0, caso de novembro), ela = soma das metas das gestoes + a da HapON. Meta do Total > 0 vinda da planilha manda; nao mexe.
+(function hapMetaNoTotal() {
+  try {
+    Object.keys(HAP_META).forEach(function (mes) {
+      const M = DADOS_MESES[mes], G = M && M.gestores, T = G && G.TOTAL;
+      if (!T || (T.meta != null && T.meta > 0)) return;
+      let soma = 0, ok = true;
+      Object.keys(G).forEach(function (k) { if (k === "TOTAL") return; if (G[k].meta == null) ok = false; else soma += G[k].meta; });
+      if (ok) T.meta = soma + HAP_META[mes];
+    });
+  } catch (e) { console.warn("[hapon] meta no Total:", e); }
+})();
 function hapRkTd(v, extra) { return '<td class="td-right num"' + (extra || "") + ">" + v + "</td>"; }
 function hapRkLinha(cls, estilo, label, cel) {
   return '<tr class="' + cls + '" style="' + estilo + '">' + label + cel.join("") + "</tr>";
@@ -5290,6 +5304,12 @@ function renderHaponCorr() {
 // Nao mexe em CONFIG: cada render e' ENVOLVIDO, troca o dado so' durante a chamada e restaura (mesmo padrao do renderProjetos).
 // Depende de hapRankingDados / rlHapLeads (HAPON_FRONT e template). SINTRO continua fora, como no resto do Consolidado.
 const HAP_ORIGEM_ROTULO = "HapON Corretoras";
+// Leads por Origem / Conversao por Origem (Sem/Com HapON): vale em qualquer mes com dado da HapON, tenha meta ou nao (12/11/2026).
+function hapGrafDadosLeads() {
+  if (typeof gestorAtivo === "undefined" || gestorAtivo !== "TOTAL") return null;
+  if (typeof hapRankingDados !== "function") return null;
+  return hapRankingDados() || null;
+}
 function hapGrafDados() {
   if (typeof gestorAtivo === "undefined" || gestorAtivo !== "TOTAL") return null;
   if (typeof hapRankingDados !== "function") return null;
@@ -5388,7 +5408,7 @@ function hapAcumConsolidado() {
   // (o grafico "Leads por Origem (mes)" NAO recebe a HapON: David, 26/10/2026, "nao ficou legal" -- ela virava a maior barra)
   const _rd = window.renderLeadsDia;
   if (typeof _rd === "function") window.renderLeadsDia = function () {
-    const dd = hapGrafDados(), orig = CONFIG.leadsOrigemDia;
+    const dd = hapGrafDadosLeads(), orig = CONFIG.leadsOrigemDia;
     const ld = dd && orig && Array.isArray(orig.origens) ? hapLeadsDia(dd.key, orig.dias) : null;
     hapLeadsDiaToggle(!!(ld && ld.some(v => v > 0)));
     if (!hapLeadsDiaCom || !ld || !ld.some(v => v > 0)) return _rd.apply(this, arguments);
@@ -5401,7 +5421,7 @@ function hapAcumConsolidado() {
   if (typeof _rcv === "function") window.renderConversao = function () {
     const r = _rcv.apply(this, arguments);
     try {
-      const dd = hapGrafDados(), lh = dd ? rlHapLeads(dd.key) : null, base = CONFIG.classificacaoComercial;
+      const dd = hapGrafDadosLeads(), lh = dd ? rlHapLeads(dd.key) : null, base = CONFIG.classificacaoComercial;
       const tb = document.getElementById("tabelaConversao");
       hapConvToggle(!!(dd && lh));
       if (!hapConvCom) return r;
