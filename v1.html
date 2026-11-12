@@ -7482,7 +7482,9 @@ const RITMO_GEST = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];  // gestões 
 // Vendedores ADM da Josy ganham um agrupador próprio no lugar do supervisor do cadastro (David
 // 25/09/2026). Só nesta tabela: vidas e meta de cada um saem do supervisor original e somam no grupo;
 // o dado do payload/cadastro continua igual. Reconhecidos pelo sufixo "VENDEDOR ADM" do nome.
-const GRUPO_VENDEDOR_ADM = { JOSY: "VENDEDORES ADM" };
+// 12/11/2026 (David): agrupador desligado -- os vendedores ADM voltam ao supervisor do desdobramento (Junio Santos em nov/26).
+// Para religar: { JOSY: "VENDEDORES ADM" }.
+const GRUPO_VENDEDOR_ADM = {};
 function supervisorRanking(r, gestorKey) {
   const grupo = GRUPO_VENDEDOR_ADM[gestorKey];
   return (grupo && /VENDEDOR ADM/i.test(r.promotor || "")) ? grupo : r.supervisor;
