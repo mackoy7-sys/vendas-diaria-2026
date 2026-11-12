@@ -7482,12 +7482,25 @@ const RITMO_GEST = ["FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];  // gestões 
 // Vendedores ADM da Josy ganham um agrupador próprio no lugar do supervisor do cadastro (David
 // 25/09/2026). Só nesta tabela: vidas e meta de cada um saem do supervisor original e somam no grupo;
 // o dado do payload/cadastro continua igual. Reconhecidos pelo sufixo "VENDEDOR ADM" do nome.
-// 12/11/2026 (David): agrupador desligado -- os vendedores ADM voltam ao supervisor do desdobramento (Junio Santos em nov/26).
-// Para religar: { JOSY: "VENDEDORES ADM" }.
-const GRUPO_VENDEDOR_ADM = {};
+// 12/11/2026 (David): os vendedores ADM da equipe do Junio (desdobramento de novembro) formam a linha propria
+// "VENDEDORES ADM | JUNIO" no Ranking Consolidado, separada de "BENVE | JUNIO". So agrupa quem hoje esta sob
+// "BENVE | JUNIO" (meses com ADM sob outro supervisor, como outubro/FABIENE MADEIRA, nao mudam).
+// Reconhece o sufixo "VENDEDOR ADM" do nome; ADM_JUNIO_SEM_SUFIXO cobre, ate a proxima rodada do fechamento
+// (que grava o sufixo no payload), as 5 pessoas que entraram em novembro com o nome ainda sem sufixo.
+const GRUPO_VENDEDOR_ADM = { JOSY: { grupo: "VENDEDORES ADM | JUNIO", de: "BENVE | JUNIO" } };
+const ADM_JUNIO_SEM_SUFIXO = ["ISABELLA SOUZA", "WESLEY BACOCCINI", "BEATRIZ BRAIDO", "BEATRIZ GIGLIO", "LUANA RIBEIRO"];
 function supervisorRanking(r, gestorKey) {
-  const grupo = GRUPO_VENDEDOR_ADM[gestorKey];
-  return (grupo && /VENDEDOR ADM/i.test(r.promotor || "")) ? grupo : r.supervisor;
+  const g = GRUPO_VENDEDOR_ADM[gestorKey];
+  if (!g || r.supervisor !== g.de) return r.supervisor;
+  const nome = String(r.promotor || "").toUpperCase();
+  return (/VENDEDOR ADM/.test(nome) || ADM_JUNIO_SEM_SUFIXO.includes(nome)) ? g.grupo : r.supervisor;
+}
+// So exibicao: as 5 pessoas que entraram em novembro ainda vem sem o sufixo no payload (a proxima rodada do
+// fechamento grava "- VENDEDOR ADM"); aqui o rotulo ja' sai igual. Os lookups (leads etc.) seguem pelo nome original.
+function nomeRankingAdm(p, supNome, gestorKey) {
+  const g = GRUPO_VENDEDOR_ADM[gestorKey];
+  const nome = String(p.promotor || "");
+  return (g && supNome === g.grupo && ADM_JUNIO_SEM_SUFIXO.includes(nome.toUpperCase())) ? nome + " - VENDEDOR ADM" : nome;
 }
 function renderRankingSupervisores(tbody, gid, detK, gestorKey) {
   const bySup = {};
@@ -7537,7 +7550,7 @@ function renderRankingSupervisores(tbody, gid, detK, gestorKey) {
       .sort((a, b) => pctMetaRank(b) - pctMetaRank(a))
       .forEach(p => {
         tbody.insertAdjacentHTML("beforeend",
-          rankingRowHtml(`rt_det ${sid}`, p.promotor, badgePromotor(p), p.pf, p.pme, p.adesao, p.meta, 2, "", 0, 0, null, null, 0, 0, rlPromotor(p.promotor)));
+          rankingRowHtml(`rt_det ${sid}`, nomeRankingAdm(p, s.supervisor, gestorKey), badgePromotor(p), p.pf, p.pme, p.adesao, p.meta, 2, "", 0, 0, null, null, 0, 0, rlPromotor(p.promotor)));
       });
   });
 }
