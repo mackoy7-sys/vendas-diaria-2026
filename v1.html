@@ -4514,6 +4514,69 @@ function haponAbaAtiva() { const p = document.getElementById("haponPanel"); retu
     return r;
   };
 })();
+// RK_META_COR (12/11/2026, opcao C aprovada pelo David): Meta / % Meta / Projecao / % Proj do Ranking Consolidado com semaforo.
+// % Meta: verde >= ritmo do mes (dia dos dados/diasNoMes), amarelo 90-100% do ritmo, vermelho < 90%. % Proj: verde >= 100%, amarelo 90-99,9%, vermelho < 90%.
+// A folga aparece embaixo: "pp do ritmo" (% Meta) e "da meta" (Projecao). Roda sobre as celulas ja' escritas (observer) e nao mexe em trimestre.
+(function rkMetaCor() {
+  const tb = document.getElementById("tabela");
+  if (!tb || tb.dataset.rkInit) return;
+  tb.dataset.rkInit = "1";
+  const TXT = { ok: "#0d6e4a", warn: "#7a5000", bad: "#8c2315" }, DOT = { ok: "#1D9E75", warn: "#EF9F27", bad: "#D85A30" };
+  const st = document.createElement("style");
+  st.textContent = "table:has(#tabela) .rk-s{border-left:1px solid #e9ecef;padding-left:22px}" +
+    "table:has(#tabela) thead tr.rk-grp th{border-bottom:none;padding-bottom:0}" +
+    "table:has(#tabela) thead tr.rk-grp th.rk-s{color:#1a1a2e;font-weight:600}" +
+    ".rk-sub{display:block;font-size:11px;font-weight:400;margin-top:2px;white-space:nowrap}" +
+    "#tabela td.rk-s, #tabela td:nth-child(6), #tabela td:nth-child(8){white-space:nowrap}" +
+    ".rk-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}";
+  document.head.appendChild(st);
+  const thead = tb.closest("table").tHead;
+  if (thead && thead.rows.length === 1 && thead.rows[0].cells.length === 14) {
+    const g = document.createElement("tr");
+    g.className = "rk-grp";
+    g.innerHTML = '<th colspan="4"></th><th colspan="2" class="rk-s">Meta do mês</th><th colspan="2" class="rk-s">Projeção do mês</th><th colspan="6"></th>';
+    thead.insertBefore(g, thead.rows[0]);
+    thead.rows[1].cells[4].classList.add("rk-s");
+    thead.rows[1].cells[6].classList.add("rk-s");
+  }
+  const pfl = s => { const m = String(s).replace(/%/g, "").trim(); return /^-?\d+(\.\d+)?$/.test(m) ? parseFloat(m) : null; };
+  const pint = s => { const m = String(s).replace(/\./g, "").trim(); return /^\d+$/.test(m) ? parseInt(m, 10) : null; };
+  const raw = (td, parse) => (td.dataset.rkh && td.dataset.rkh === td.innerHTML) ? parseFloat(td.dataset.rkv) : parse(td.textContent);
+  const sM = (p, ref) => p >= ref ? "ok" : (p >= ref * 0.9 ? "warn" : "bad");
+  const sP = p => p >= 100 ? "ok" : (p >= 90 ? "warn" : "bad");
+  const f1 = v => v.toFixed(1), sg = v => v >= 0 ? "+" : "−";
+  const set = (td, html, v) => {
+    if (td.dataset.rkh && td.dataset.rkh === td.innerHTML && td.dataset.rkk === html) return;
+    td.innerHTML = html; td.dataset.rkk = html; td.dataset.rkh = td.innerHTML; td.dataset.rkv = String(v);
+  };
+  const pctHtml = (s, txt) => '<span style="font-weight:600;color:' + TXT[s] + '"><span class="rk-dot" style="background:' + DOT[s] + '"></span>' + txt + "</span>";
+  const subHtml = (s, txt) => '<span class="rk-sub" style="color:' + TXT[s] + '">' + txt + "</span>";
+  function proc(tr) {
+    const c = tr.children;
+    if (c.length < 14) return;
+    c[4].classList.add("rk-s"); c[6].classList.add("rk-s");
+    if (typeof CONFIG === "undefined" || CONFIG.isTrimestre || !CONFIG.diasNoMes) return;
+    const dia = Math.min(diaFim, CONFIG.diaDados || diaFim), ref = (dia / CONFIG.diasNoMes) * 100;   // diaDados = ultimo dia com dado (D-1); diaFim default = ultimo dia do mes
+    const meta = pint(c[4].textContent), pm = raw(c[5], pfl), pr = raw(c[6], pint), pp = raw(c[7], pfl);
+    if (pm != null && isFinite(pm)) {
+      const s = sM(pm, ref), d = pm - ref;
+      set(c[5], pctHtml(s, f1(pm) + "%") + subHtml(s, sg(d) + f1(Math.abs(d)) + " pp do ritmo"), pm);
+      c[5].title = "Ritmo do mês até o dia " + dia + ": " + f1(ref) + "%";
+    }
+    if (pp != null && isFinite(pp)) {
+      const s = sP(pp);
+      set(c[7], pctHtml(s, f1(pp) + "%"), pp);
+      if (pr != null && meta != null && meta > 0) {
+        const gap = pr - meta;
+        set(c[6], fmt(pr) + subHtml(s, sg(gap) + fmt(Math.abs(gap)) + " da meta"), pr);
+      }
+    }
+  }
+  let q = false;
+  const run = () => { q = false; Array.from(tb.rows).forEach(proc); };
+  new MutationObserver(() => { if (!q) { q = true; setTimeout(run, 0); } }).observe(tb, { childList: true, subtree: true, characterData: true });
+  // sem run() aqui: este trecho roda antes de mesAtivo/CONFIG existirem (TDZ); o observer dispara no primeiro render da tabela
+})();
 // ---- HapON Corretoras no Ranking Consolidado + meta (David, 08/10/2026) -----------------------------------
 // A linha entra ABAIXO do Administrativo, com drill-down HapON > corretora > vendedor (mesmas classes rt_det /
 // rtToggle do ranking). A meta de 3.000 JA' FAZ PARTE do total de 13.300: o Total geral so' passa a somar as
