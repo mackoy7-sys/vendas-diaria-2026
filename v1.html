@@ -861,6 +861,8 @@
         <div class="comp-cv-toggle" role="group" aria-label="Métrica por origem">
           <button type="button" data-comp-cv="vidas" aria-pressed="false" onclick="setCompCVMetric('vidas')">Conversão de vidas</button>
           <button type="button" data-comp-cv="sql" aria-pressed="true" onclick="setCompCVMetric('sql')">% SQL</button>
+          <button type="button" data-comp-cv="orig" aria-pressed="false" onclick="setCompCVMetric('orig')">Leads por origem</button>
+          <button type="button" data-comp-cv="util" aria-pressed="false" onclick="setCompCVMetric('util')">Média de leads por dia útil</button>
         </div>
       </div>
       <div id="compCVNote" style="font-size:11px;color:#888;margin-bottom:8px;"></div>
@@ -6022,7 +6024,7 @@ let cmpModo = "MES";
 let compCVMetric = "sql";
 
 function setCompCVMetric(metric) {
-  if (metric !== "vidas" && metric !== "sql") return;
+  if (metric !== "vidas" && metric !== "sql" && metric !== "orig" && metric !== "util") return;
   compCVMetric = metric;
   renderComparativo();
 }
@@ -12170,6 +12172,64 @@ function renderComparativo() {
       card.style.display = "none"; return;
     }
     card.style.display = "";
+/* comp-leads 16/11 */
+    if (compCVMetric === "orig" || compCVMetric === "util") {
+      document.querySelectorAll("#compConvVidasCard [data-comp-cv]").forEach(btn =>
+        btn.setAttribute("aria-pressed", String(btn.dataset.compCv === compCVMetric)));
+      const soUteis = compCVMetric === "util";
+      const LP = (typeof LEADS_PAINEL !== "undefined" && LEADS_PAINEL && LEADS_PAINEL.meses) ? LEADS_PAINEL : null;
+      const blocos = ms.map(m => LP ? (LP.meses["2026-" + String(SEM_MES_NUM[m] || 0).padStart(2, "0")] || null) : null);
+      const semDado = ms.filter((m, i) => !blocos[i]).map(full);
+      setTxt("ctCompConvVidas", `${soUteis ? "📅 Média de leads por dia útil, por origem" : "🧭 Volume de leads por origem"} — ${ms.map(full).join(" × ")} (dias 1–${N})`);
+      setTxt("compCVNote", (semDado.length ? `Sem dado de leads em: ${semDado.join(", ")}. ` : "") +
+        `Período comparável: dias 1–${N} de cada mês (o mesmo corte do mês em andamento). ` +
+        "Leads = base tratada do GUP (atribuídos, 1 por telefone no mês, sem SINTRO) — mesma base da aba Leads." +
+        (soUteis ? " Média = leads de dias úteis ÷ dias úteis do período (segunda a sexta, sem feriado nacional; fins de semana e feriados ficam de fora)."
+                 : "") + " Selo = variação contra o mês anterior da seleção (omitido quando esse mês teve menos de 30 leads na origem).");
+      document.getElementById("compCVHead").innerHTML =
+        `<th>Origem</th>` + ms.map(m => `<th class="td-right">${full(m)}</th>`).join("");
+      const traco = `<td class="td-right">—</td>`;
+      const mut = t => `<span style="color:#8a8a99;font-size:11px">${t}</span>`;
+      const ehUtil = (mesNum, d) => { const dow = new Date(2026, mesNum - 1, d).getDay();
+        return dow >= 1 && dow <= 5 && !semEhFeriado(2026, mesNum, d); };
+      const por = blocos.map((b, i) => { if (!b) return null;
+        const mesNum = SEM_MES_NUM[ms[i]], o = new Map(); let nUteis = 0;
+        const corte = Math.min(N, b.dias);
+        for (let d = 1; d <= corte; d++) if (ehUtil(mesNum, d)) nUteis++;
+        b.cubo.forEach(r => { let s = 0;
+          for (let d = 1; d <= corte; d++)
+            if (!soUteis || ehUtil(mesNum, d)) s += (r.sql[d - 1] || 0) + (r.mql[d - 1] || 0) + (r.imp[d - 1] || 0);
+          const nome = b.origens[r.o]; o.set(nome, (o.get(nome) || 0) + s); });
+        return { o, nUteis, tot: Array.from(o.values()).reduce((a, v) => a + v, 0) }; });
+      const nomes = Array.from(new Set(por.flatMap(x => x ? Array.from(x.o.keys()) : [])));
+      const soma = n => por.reduce((s, x) => s + ((x && x.o.get(n)) || 0), 0);
+      nomes.sort((a, b) => soma(b) - soma(a));
+      const media = v => v >= 100 ? fmt(Math.round(v)) : fmtDec(v, 1);
+      // variação contra o mês anterior da seleção, na própria célula (David, 16/11): a 1ª coluna não tem selo
+      const bdg = (cur, ant, antBruto) => {
+        if (!cur || !(ant > 0) || (antBruto != null && antBruto < 30)) return "";
+        const d = (cur - ant) / ant * 100;
+        return ` <span class="badge ${d >= 0 ? "green" : "red"}">${d >= 0 ? "▲ +" : "▼ "}${fmtDec(d)}%</span>`;
+      };
+      const vOrig = (i, n) => { const x = por[i]; if (!x) return null; const v = x.o.get(n) || 0;
+        return soUteis ? (x.nUteis ? v / x.nUteis : null) : v; };
+      const celOrig = (i, n) => { const v = vOrig(i, n);
+        return v ? `<td class="td-right num">${soUteis ? media(v) : fmt(v)}${i > 0 ? bdg(v, vOrig(i - 1, n), por[i - 1] ? (por[i - 1].o.get(n) || 0) : null) : ""}</td>` : traco; };
+      const vTot = (i, med) => { const x = por[i]; return !x ? null : (med ? (x.nUteis ? x.tot / x.nUteis : null) : x.tot); };
+      const celTot = (i, med) => { const v = vTot(i, med);
+        return v == null ? traco : `<td class="td-right num">${med ? media(v) : fmt(v)}${i > 0 ? bdg(v, vTot(i - 1, med)) : ""}</td>`; };
+      const linhaTot = (lab, med, cls) => `<tr${cls ? ` class="${cls}"` : ""}><td>${lab}</td>${por.map((x, i) => celTot(i, med)).join("")}</tr>`;
+      let corpo = nomes.map(n => `<tr><td>${n}</td>${por.map((x, i) => celOrig(i, n)).join("")}</tr>`).join("");
+      if (soUteis) {
+        corpo += linhaTot("TOTAL (média por dia útil)", true, "comp-cv-total");
+        corpo += linhaTot("Leads em dias úteis", false, "");
+        corpo += `<tr><td>Dias úteis considerados</td>${por.map(x => x ? `<td class="td-right num">${x.nUteis}</td>` : traco).join("")}</tr>`;
+      } else {
+        corpo += linhaTot("TOTAL", false, "comp-cv-total");
+      }
+      document.getElementById("compCVBody").innerHTML = corpo;
+      return;
+    }
     const sql = compCVMetric === "sql";
     const campo = sql ? "classificacaoComercial" : "leadsConversao";
     const denominador = sql ? "total" : "leads";
