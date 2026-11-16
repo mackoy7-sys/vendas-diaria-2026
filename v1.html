@@ -4338,9 +4338,9 @@ Object.assign(HAP_COR, { "F FURTADO": "#1D9E75", CLINIPAM: "#B5539B" });
 Object.assign(HAP_NOME, { "F FURTADO": "F FURTADO CARNEIRO", CLINIPAM: "CALL LINK" });   // chave interna segue CLINIPAM (hapon_leads); so' o nome exibido mudou (08/10/2026)
 Object.assign(HAP_COR, { QIP: "#E5484D" });   // 16/10/2026: DRV foi incorporada na F FURTADO; entrou a QIP (mesma cor livre)
 Object.assign(HAP_NOME, { QIP: "QIP SAÚDE" });
-Object.assign(HAP_COR, { "W3G OPTAS": "#17A2B8", "VHRC AMELS": "#8C6D46", "HAPBIT": "#7B4FB3", "MERIDIAL": "#C2547A" });   // 04/11/2026: HAPBIT e MERIDIAL (areas 611A/6121-6124 e 613A/6141-6144)   // 21/10/2026: corretoras novas (areas 5A72-5A76 e 5A67-5A6A); 2a rotulada "AMELS" ate 28/10/2026
-Object.assign(HAP_NOME, { "W3G OPTAS": "W3G OPTAS", "VHRC AMELS": "VHRC AMELS", "HAPBIT": "HAPBIT", "MERIDIAL": "MERIDIAL" });
-const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "CLINIPAM", "QIP", "W3G OPTAS", "VHRC AMELS", "HAPBIT", "MERIDIAL"];   // CLINIPAM = CALL LINK (16/10/2026: ganhou areas de venda)
+Object.assign(HAP_COR, { "W3G OPTAS": "#17A2B8", "VHRC AMELS": "#8C6D46", "HAPBIT": "#7B4FB3", "MERIDIAL": "#C2547A", "FIIBO": "#D9822B" });   // 16/11/2026: FIIBO (areas 6177-6179/6181/617A)   // 04/11/2026: HAPBIT e MERIDIAL (areas 611A/6121-6124 e 613A/6141-6144)   // 21/10/2026: corretoras novas (areas 5A72-5A76 e 5A67-5A6A); 2a rotulada "AMELS" ate 28/10/2026
+Object.assign(HAP_NOME, { "W3G OPTAS": "W3G OPTAS", "VHRC AMELS": "VHRC AMELS", "HAPBIT": "HAPBIT", "MERIDIAL": "MERIDIAL", "FIIBO": "FIIBO" });
+const HAP_COM_VENDA = ["RAISE", "COMPLETO", "QUINDTECH", "FJS", "F FURTADO", "CLINIPAM", "QIP", "W3G OPTAS", "VHRC AMELS", "HAPBIT", "MERIDIAL", "FIIBO"];   // CLINIPAM = CALL LINK (16/10/2026: ganhou areas de venda)
 let hapSel = {};           // filtro global de corretora (vazio = todas)
 let hapSerie = "vidas";    // grafico principal: "vidas" | "leads"
 let hapCmpSerie = "leads"; // comparativo mes x mes: "leads" | "vidas"
@@ -4389,7 +4389,7 @@ function hapGaranteAba() {
   p.innerHTML = `
 <div class="container" style="padding-top:14px">
   <div style="background:#eaf0fd;border-left:4px solid #3D65E7;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0F297B;">
-    🏢 <b>HapON Corretoras</b> · RAISE TECH, COMPLETO, QUINDTECH, FJS, F FURTADO, CALL LINK, QIP, W3G OPTAS, VHRC AMELS, HAPBIT e MERIDIAL. Dado dos <b>relatórios de PF e PME</b> por área de venda (não usa a VENDA_DIGITAL); PF e PME somados. Leads: corretoras do escopo que recebem lead do portal NDI (COMPLETO fica fora dos leads). Use os filtros de <b>mês</b> e de <b>corretora</b>. <span id="hpRef" style="opacity:.75"></span>
+    🏢 <b>HapON Corretoras</b> · RAISE TECH, COMPLETO, QUINDTECH, FJS, F FURTADO, CALL LINK, QIP, W3G OPTAS, VHRC AMELS, HAPBIT, MERIDIAL e FIIBO. Dado dos <b>relatórios de PF e PME</b> por área de venda (não usa a VENDA_DIGITAL); PF e PME somados. Leads: corretoras do escopo que recebem lead do portal NDI (COMPLETO fica fora dos leads). Use os filtros de <b>mês</b> e de <b>corretora</b>. <span id="hpRef" style="opacity:.75"></span>
   </div>
   <div class="hp-fb" id="hpFiltro"><span class="hp-fl">Corretora</span><span class="hp-chips" id="hpChips"></span></div>
   <div class="kpi-row" id="hpKpis"></div>
@@ -5205,7 +5205,7 @@ function hapOrcamentos(O, key, mesNome, ld, emLeads) {
     (O.incluiPme ? "<b>PME</b>: propostas do portal NDI, que já nascem assinadas; mês pela assinatura (até " + (r.pme || "?") + "). O status do PME é o do portal, que atrasa: parte do “em andamento” pode já estar implantada. " : "<b>Somente PF</b> por enquanto; o PME ainda não entra aqui. ") +
     (caso ? "<b>1 CPF = 1 orçamento</b> (como no Funil PF): o PF conta uma vez por CPF e corretora no mês — data da 1ª digitação, destino do orçamento mais recente; " + hapFmt(rep) + " redigitações ficam de fora (veja <b>Orçamentos brutos</b>). " + (O.incluiPme ? "O PME conta propostas assinadas. " : "")
           : "O PF conta <b>orçamentos</b>: " + hapFmt(rep) + " de " + hapFmt(pfT) + " repetem o CPF de outro no mês (cliente digitado de novo) e engordam os perdidos — veja <b>1 CPF = 1 orçamento</b>. ") +
-    "F FURTADO inclui as áreas ex-DRV (desde 16/10). CALL LINK e QIP: áreas de venda desde 16/10; W3G OPTAS e VHRC AMELS desde 21/10; HAPBIT e MERIDIAL desde 28 e 30/10 (ainda sem vendas). A coluna Leads é contexto — lead e orçamento não são os mesmos clientes, não há taxa entre eles.";
+    "F FURTADO inclui as áreas ex-DRV (desde 16/10). CALL LINK e QIP: áreas de venda desde 16/10; W3G OPTAS e VHRC AMELS desde 21/10; HAPBIT e MERIDIAL desde 28 e 30/10 e FIIBO desde 16/11 (ainda sem vendas). A coluna Leads é contexto — lead e orçamento não são os mesmos clientes, não há taxa entre eles.";
 }
 
 // Criados por dia, empilhado por corretora (filtro global hapOn). Dia = digitacao (PF; no caso, a 1a do CPF) ou assinatura (PME).
