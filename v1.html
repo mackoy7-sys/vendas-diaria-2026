@@ -5443,6 +5443,170 @@ function renderHapDdd() {
   };
 })();
 // === FIM HAPON_DDD ===
+// === HAPON_BASE_VIDAS (botao "Base de vidas" da aba HapON Corretoras -- aplicado por aplicar_front_hapon_base_vidas.py; NAO editar no HTML) ===
+// David, 16/11/2026: ao lado do Boletim, baixa a BASE_VIDAS (o mesmo xlsx do botao "Base de vendas", 1 aba, 1 vida por linha,
+// mesmas colunas) SO' com as vidas das corretoras selecionadas nos chips. Sem chip marcado = todas as corretoras HapON.
+// Como: o xlsx vem do bucket privado `base-tratada` (mesmo login de ADMIN do "Base de vendas": baseTratadaObter / pfPiiPedirLogin),
+// e o filtro roda NO NAVEGADOR -- a base nunca sai do bucket sem o login e nao existe copia filtrada guardada em lugar nenhum.
+// Quem decide a corretora e' o CODIGO da area de venda (CD_AREA_VENDA), nunca o nome: HAPON_DATA.areas (codigo -> chave do chip;
+// gerado a cada build por hapon_corretoras.py) com a lista abaixo como reserva.
+// Mes = o do filtro de mes do painel: o mes corrente sai de `atual/`; mes fechado, de `fechamentos/AAAA-MM` (BT_OPCOES).
+// Leitura/escrita do xlsx: SheetJS 0.18.5 (cdnjs, com SRI), carregado so' no 1o clique.
+const HAP_BV_XLSX = { url: "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+  sri: "sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" };
+const HAP_BV_AREAS_RESERVA = {"006X": "COMPLETO", "026U": "FJS", "1A39": "CLINIPAM", "34A4": "COMPLETO", "5616": "CLINIPAM", "5619": "CLINIPAM", "5769": "COMPLETO", "576A": "COMPLETO", "5771": "COMPLETO", "57A2": "RAISE", "57AA": "RAISE", "5811": "RAISE", "5812": "RAISE", "5813": "RAISE", "5919": "QUINDTECH", "5934": "QUINDTECH", "5935": "QUINDTECH", "5936": "QUINDTECH", "5937": "QUINDTECH", "5971": "F FURTADO", "5973": "F FURTADO", "5974": "F FURTADO", "5978": "FJS", "5981": "FJS", "5982": "FJS", "5984": "FJS", "5999": "CLINIPAM", "599A": "CLINIPAM", "59A6": "QIP", "59A8": "F FURTADO", "5A25": "QIP", "5A26": "QIP", "5A27": "QIP", "5A28": "QIP", "5A39": "F FURTADO", "5A41": "F FURTADO", "5A67": "VHRC AMELS", "5A68": "VHRC AMELS", "5A69": "VHRC AMELS", "5A6A": "VHRC AMELS", "5A71": "VHRC AMELS", "5A72": "W3G OPTAS", "5A73": "W3G OPTAS", "5A74": "W3G OPTAS", "5A75": "W3G OPTAS", "5A76": "W3G OPTAS", "5A77": "F FURTADO", "5A78": "F FURTADO", "611A": "HAPBIT", "6121": "HAPBIT", "6122": "HAPBIT", "6123": "HAPBIT", "6124": "HAPBIT", "613A": "MERIDIAL", "6141": "MERIDIAL", "6142": "MERIDIAL", "6143": "MERIDIAL", "6144": "MERIDIAL", "8878": "F FURTADO"};
+const HAP_BV_MESES = ["JANEIRO", "FEVEREIRO", "MARCO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+
+function hapBvAreas() {
+  return (typeof HAPON_DATA !== "undefined" && HAPON_DATA && HAPON_DATA.areas) ? HAPON_DATA.areas : HAP_BV_AREAS_RESERVA;
+}
+
+function hapBvCarregaXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise(function (ok, erro) {
+    const s = document.createElement("script");
+    s.src = HAP_BV_XLSX.url; s.integrity = HAP_BV_XLSX.sri; s.crossOrigin = "anonymous";
+    s.onload = function () { window.XLSX ? ok(window.XLSX) : erro(new Error("biblioteca de planilha não carregou")); };
+    s.onerror = function () { erro(new Error("não consegui carregar a biblioteca de planilha (sem internet ou bloqueada)")); };
+    document.head.appendChild(s);
+  });
+}
+
+// Nucleo (testavel fora do navegador): recebe o xlsx da BASE_VIDAS e devolve outro, so' com as linhas cujo CD_AREA_VENDA
+// pertence a uma corretora aceita por `aceita(chave)`. Copia as celulas como estao (tipos, formato de data, largura de coluna).
+function hapBvFiltra(XLSX, buf, areas, aceita) {
+  // sem cellDates: a data fica como serial + formato (com cellDates o SheetJS desloca 28 s por causa do fuso)
+  const wb = XLSX.read(buf, { type: "array", cellNF: true, cellStyles: true });
+  const nomeAba = wb.SheetNames[0], ws = wb.Sheets[nomeAba];
+  if (!ws || !ws["!ref"]) throw new Error("a base veio vazia");
+  const rg = XLSX.utils.decode_range(ws["!ref"]), enc = XLSX.utils.encode_cell;
+  let cArea = -1;
+  for (let c = rg.s.c; c <= rg.e.c; c++) {
+    const h = ws[enc({ r: rg.s.r, c: c })];
+    if (h && String(h.v).trim() === "CD_AREA_VENDA") { cArea = c; break; }
+  }
+  if (cArea < 0) throw new Error("a base não tem a coluna CD_AREA_VENDA");
+  const novo = {}, porCor = {};
+  let r2 = rg.s.r;
+  for (let c = rg.s.c; c <= rg.e.c; c++) { const h = ws[enc({ r: rg.s.r, c: c })]; if (h) novo[enc({ r: r2, c: c })] = h; }
+  let total = 0;
+  for (let r = rg.s.r + 1; r <= rg.e.r; r++) {
+    const a = ws[enc({ r: r, c: cArea })];
+    const cod = a && a.v != null ? String(a.v).trim().toUpperCase() : "";
+    if (!cod) continue;
+    total++;
+    const cor = areas[cod];
+    if (!cor || !aceita(cor)) continue;
+    r2++;
+    porCor[cor] = (porCor[cor] || 0) + 1;
+    for (let c = rg.s.c; c <= rg.e.c; c++) { const x = ws[enc({ r: r, c: c })]; if (x) novo[enc({ r: r2, c: c })] = x; }
+  }
+  const n = r2 - rg.s.r;
+  if (!n) return { n: 0, total: total, porCor: porCor, bytes: null };
+  novo["!ref"] = XLSX.utils.encode_range({ s: rg.s, e: { r: r2, c: rg.e.c } });
+  if (ws["!cols"]) novo["!cols"] = ws["!cols"];
+  if (ws["!autofilter"]) novo["!autofilter"] = { ref: novo["!ref"] };
+  const wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, novo, nomeAba);
+  return { n: n, total: total, porCor: porCor, bytes: XLSX.write(wb2, { bookType: "xlsx", type: "array" }) };
+}
+
+function hapBvPrefixo() {
+  const key = String(mesAtivo).toUpperCase(), i = HAP_BV_MESES.indexOf(key);
+  if (i < 0) throw new Error("escolha um mês no filtro (hoje está em “" + key + "”)");
+  const mm = ("0" + (i + 1)).slice(-2);
+  const fech = BT_OPCOES.filter(function (o) { return o.prefixo.slice(-3) === "-" + mm && o.prefixo !== BT_PREFIXO; })[0];
+  return { key: key, prefixo: fech ? fech.prefixo : BT_PREFIXO, atual: !fech };
+}
+
+function hapBvSufixo(chaves) {
+  if (!chaves.length) return "_HAPON_TODAS";
+  const nomes = chaves.map(function (k) { return String((HAP_NOME && HAP_NOME[k]) || k).toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, ""); });
+  return "_HAPON_" + (nomes.length <= 3 ? nomes.join("_") : nomes.length + "-CORRETORAS");
+}
+
+function baixarBaseVidasHapon() {
+  const btn = document.getElementById("hpBtnBaseVidas");
+  const rotulo = btn.getAttribute("data-rotulo") || btn.innerHTML;
+  btn.setAttribute("data-rotulo", rotulo);
+  const ocupado = function (txt) { btn.disabled = !!txt; btn.innerHTML = txt || rotulo; };
+  const chaves = Object.keys(hapSel);
+  const aceita = function (k) { return hapOn(k); };
+  let alvo;
+  try { alvo = hapBvPrefixo(); } catch (e) { alert("Não deu para baixar a base de vidas: " + e.message + "."); return; }
+
+  function gerar() {
+    ocupado("Baixando…");
+    return Promise.all([baseTratadaObter(alvo.prefixo), hapBvCarregaXlsx()]).then(function (v) {
+      const r = v[0], XLSX = v[1];
+      if (alvo.atual && r.nome.toUpperCase().indexOf("_" + alvo.key) < 0)
+        throw new Error("a base atual do painel não é de " + alvo.key.charAt(0) + alvo.key.slice(1).toLowerCase()
+          + " (arquivo " + r.nome + "), e esse mês ainda não tem base de fechamento guardada.");
+      ocupado("Filtrando…");
+      return r.blob.arrayBuffer().then(function (buf) {
+        const f = hapBvFiltra(XLSX, buf, hapBvAreas(), aceita);
+        if (!f.n) { alert("A base de " + r.nome + " não tem nenhuma vida das corretoras selecionadas."); return null; }
+        const nome = r.nome.replace(/\.xlsx$/i, "") + hapBvSufixo(chaves) + ".xlsx";
+        const url = URL.createObjectURL(new Blob([f.bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+        const a = document.createElement("a");
+        a.href = url; a.download = nome;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        return f;
+      });
+    }).then(function (f) {
+      ocupado("");
+      if (f) { btn.innerHTML = "✔ " + f.n.toLocaleString("pt-BR") + " vidas"; setTimeout(function () { btn.innerHTML = rotulo; }, 4000); }
+    }, function (err) { ocupado(""); throw err; });
+  }
+  function falha(err) {
+    if (err && err.message === "__cancelado__") return;
+    if (err && err.message === "__sem_acesso__") {
+      alert("A sua conta não tem acesso à base tratada.\n\nEste download é restrito a administradores. Se você deveria ter acesso, fale com o David.");
+      return;
+    }
+    alert("Não deu para baixar a base de vidas.\n\n" + (err && err.message ? err.message : err));
+  }
+  (_pfPiiTok ? gerar() : pfPiiPedirLogin(BT_LOGIN_TXT).then(gerar)).catch(function (err) {
+    if (err && _pfPiiTok && /jwt|exp|expired|unauthor/i.test(err.message + " " + err.status)) {   // token de 1h vencido: pede o login de novo
+      _pfPiiTok = null; _pfPiiMapa = null;
+      pfPiiPedirLogin(BT_LOGIN_TXT).then(gerar).catch(falha);
+      return;
+    }
+    falha(err);
+  });
+}
+
+// Botao ao lado do Boletim (que e' criado por outro bloco, a cada 2 s, no fim da barra): este entra ANTES dele e o Boletim perde o
+// margin-left:auto (dois "auto" dividiriam o espaco). Reaplica sozinho se a barra for recriada.
+(function () {
+  function garante() {
+    try {
+      const f = document.getElementById("hpFiltro");
+      if (!f) return;
+      let b = document.getElementById("hpBtnBaseVidas");
+      if (!b) {
+        b = document.createElement("button");
+        b.id = "hpBtnBaseVidas"; b.type = "button"; b.className = "hp-noprint";
+        b.style.cssText = "margin-left:auto;padding:6px 14px;border-radius:8px;border:1.5px solid #3D65E7;background:#fff;color:#3D65E7;"
+          + "font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap";
+        b.innerHTML = "📥 Base de vidas";
+        b.title = "Baixa a base de vidas (mesmo formato do “Base de vendas”) só com as corretoras marcadas nos chips; sem chip marcado, todas as corretoras HapON. "
+          + "Traz CPF, nome e telefone: pede o seu login Hapvida e é restrito a administradores.";
+        b.onclick = baixarBaseVidasHapon;
+        f.appendChild(b);
+      }
+      const bol = document.getElementById("hpBtnBoletim");
+      if (bol) {
+        if (b.nextSibling !== bol) f.insertBefore(b, bol);
+        bol.style.marginLeft = "8px";
+      }
+    } catch (e) { }
+  }
+  garante();
+  setInterval(garante, 2000);
+})();
+// === FIM HAPON_BASE_VIDAS ===
 
 // === HAPON_GRAFICOS (Consolidado soma a HapON Corretoras nos graficos -- aplicado por aplicar_front_hapon_graficos.py; NAO editar no HTML) ===
 // David, 26/10/2026: os graficos do Consolidado mostravam so' o HapON Interno. Agora, em gestao "Total geral" e mes com meta da
