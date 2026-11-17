@@ -6139,22 +6139,31 @@ const rkMetNome = { vidas: "mais vidas", conv: "melhor conversão", leads: "mais
 // ---- modo "Comparar com a media" (David, 17/11/2026): escolhe uma corretora X e o mapa mostra, por estado, a diferenca dela para a media das
 // corretoras NO MESMO ESTADO (vidas/leads de todas juntas, X incluida), para conversao ou ticket. Estado avaliavel: conversao >= RK_MIN_L leads
 // da X (e vidas <= leads; * = menos de RK_MIN_V vidas, taxa instavel); ticket >= RK_MIN_T vidas da X. Mesma tela, mesmo painel do estado.
+const rkEhVol = met => met === "vidas" || met === "leads";
+const rkDSuf = met => met === "conv" ? " p.p." : "";
+const rkMediaNome = met => rkEhVol(met) ? "Média por corretora" : "Média do estado";
+const RK_MIN_MEDIA = { vidas: 5, leads: 20 };   // vidas/leads: estado so' entra com total >= isto (senao a "media por corretora" e' ruido)
 function rkCmpVal(x, met) {
+  if (rkEhVol(met)) return x.l > 0 ? { val: met === "vidas" ? x.vt : x.l, few: false } : null;   // X precisa ter recebido lead no estado
   if (met === "ticket") return (x.vt >= RK_MIN_T && x.wt > 0) ? { val: x.wt / x.vt, few: false } : null;
   return (x.l >= RK_MIN_L && x.v <= x.l) ? { val: 100 * x.v / x.l, few: x.v < RK_MIN_V } : null;
 }
 function rkCmpInfo(uf) {
-  const x = rkCell(uf, RK.cmp), r = rkCmpVal(x, RK.met); let sl = 0, sv = 0, sw = 0, svt = 0;
-  rkCorrsUf(uf).forEach(k => { const y = rkCell(uf, k); sl += y.l; sv += y.v; sw += y.wt; svt += y.vt; });
-  const avg = RK.met === "ticket" ? (svt && sw ? sw / svt : null) : (sl ? 100 * sv / sl : null);
-  return { x, has: x.l > 0 || x.v > 0, val: r ? r.val : null, few: r ? r.few : false, avg, d: (r && avg !== null) ? r.val - avg : null };
+  const met = RK.met, x = rkCell(uf, RK.cmp), r = rkCmpVal(x, met); let sl = 0, sv = 0, sw = 0, svt = 0, n = 0, soma = 0;
+  rkCorrsUf(uf).forEach(k => { const y = rkCell(uf, k); sl += y.l; sv += y.v; sw += y.wt; svt += y.vt; if (y.l > 0) { n++; soma += met === "vidas" ? y.vt : y.l; } });
+  let avg;
+  if (rkEhVol(met)) avg = (n && soma >= RK_MIN_MEDIA[met]) ? soma / n : null;        // media por corretora que recebeu lead no estado
+  else avg = met === "ticket" ? (svt && sw ? sw / svt : null) : (sl ? 100 * sv / sl : null);
+  let d = null;
+  if (r && avg !== null) d = rkEhVol(met) ? (avg > 0 ? 100 * (r.val / avg - 1) : null) : r.val - avg;      // vidas/leads: diferenca em % (estado grande nao domina)
+  return { x, has: x.l > 0 || x.v > 0, val: r ? r.val : null, few: r ? r.few : false, avg, d, n };
 }
-const rkSgn = (d, met) => (d >= 0 ? "+" : "−") + (met === "ticket" ? "R$ " + Math.round(Math.abs(d)).toLocaleString("pt-BR") : Math.abs(d).toFixed(1).replace(".", ","));
-const rkUnid = (v, met) => met === "ticket" ? rkBrl2(v) : rkPc(v);
+const rkSgn = (d, met) => (d >= 0 ? "+" : "−") + (met === "ticket" ? "R$ " + Math.round(Math.abs(d)).toLocaleString("pt-BR") : rkEhVol(met) ? Math.round(Math.abs(d)).toLocaleString("pt-BR") + "%" : Math.abs(d).toFixed(1).replace(".", ","));
+const rkUnid = (v, met) => met === "ticket" ? rkBrl2(v) : rkEhVol(met) ? (v < 10 ? v.toFixed(1).replace(".", ",") : rkNf(v)) : rkPc(v);
 const RK_ACIMA = [61, 101, 231], RK_ABAIXO = [255, 78, 5], RK_NEUTRO = [238, 242, 246];
 function rkCmpCap() {
   const ds = Object.keys(RK_UF_NOME).map(u => rkCmpInfo(u).d).filter(d => d !== null).map(Math.abs).sort((a, b) => a - b);
-  return Math.max(ds.length ? ds[Math.min(ds.length - 1, Math.floor(ds.length * 0.85))] : 0, RK.met === "ticket" ? 20 : 1);
+  return Math.max(ds.length ? ds[Math.min(ds.length - 1, Math.floor(ds.length * 0.85))] : 0, RK.met === "ticket" ? 20 : rkEhVol(RK.met) ? 30 : 1);
 }
 const rkMetCurto = { vidas: "vidas", conv: "conversão", leads: "leads", ticket: "ticket médio" };
 
@@ -6197,8 +6206,8 @@ function rkTip(e, uf) {
   const t = rkUfTot(uf), r = RK.cmp ? [] : rkRanking(uf, RK.met).slice(0, 3), T = rkId("rkTip");
   let h = "<b>" + RK_UF_NOME[uf] + " · " + uf + "</b><br>";
   if (RK.cmp) {
-    const I = rkCmpInfo(uf);
-    h += rkEsc(rkNome(RK.cmp)) + ": " + (I.val === null ? "sem base mínima" : rkUnid(I.val, RK.met) + (I.few ? "*" : "")) + "<br>Média do estado: " + (I.avg === null ? "—" : rkUnid(I.avg, RK.met)) + (I.d !== null ? "<br>Diferença: <b>" + rkSgn(I.d, RK.met) + (RK.met === "ticket" ? "" : " p.p.") + "</b>" : "");
+    const I = rkCmpInfo(uf), met = RK.met;
+    h += rkEsc(rkNome(RK.cmp)) + ": " + (I.val === null ? "sem base mínima" : rkUnid(I.val, met) + (I.few ? "*" : "")) + "<br>" + rkMediaNome(met) + ": " + (I.avg === null ? "—" : rkUnid(I.avg, met)) + (I.d !== null ? "<br>Diferença: <b>" + rkSgn(I.d, met) + rkDSuf(met) + "</b>" : "");
   } else if (!t.l && !t.v) h += "sem leads nem vendas no mês";
   else {
     h += rkNf(t.vt) + " vidas" + (RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "") + " · " + rkNf(t.l) + " leads" + (t.l && RK.tipo === "T" ? " · " + rkPc(100 * t.v / t.l) : "");
@@ -6211,9 +6220,9 @@ function rkTip(e, uf) {
 function rkLegend() {
   const L = rkId("rkLeg"); let h = "";
   if (RK.cmp) {
-    const cap = rkCmpCap(), u = RK.met === "ticket" ? "" : " p.p.", f = v => RK.met === "ticket" ? "R$ " + Math.round(v) : v.toFixed(1).replace(".", ",");
+    const cap = rkCmpCap(), u = rkDSuf(RK.met), f = v => RK.met === "ticket" ? "R$ " + Math.round(v) : rkEhVol(RK.met) ? Math.round(v) + "%" : v.toFixed(1).replace(".", ",");
     L.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;color:#1c2b4a"><span>abaixo −' + f(cap) + u + '</span><span class="rk-ramp" style="background:linear-gradient(90deg,' + rkRgb(RK_ABAIXO) + "," + rkRgb(RK_NEUTRO) + "," + rkRgb(RK_ACIMA) + ')"></span><span>+' + f(cap) + u + " acima</span></span>" +
-      '<span><i class="sw" style="background:repeating-linear-gradient(45deg,#f4f6f9 0 3px,#cbd5e1 3px 5px)"></i> dado insuficiente</span><span><i class="sw" style="background:#f4f6f9"></i> sem dado</span>' + (RK.met === "ticket" ? "" : "<span>* menos de " + RK_MIN_V + " vidas</span>");
+      '<span><i class="sw" style="background:repeating-linear-gradient(45deg,#f4f6f9 0 3px,#cbd5e1 3px 5px)"></i> dado insuficiente</span><span><i class="sw" style="background:#f4f6f9"></i> sem dado</span>' + (RK.met === "conv" ? "<span>* menos de " + RK_MIN_V + " vidas</span>" : "");
     return;
   }
   const usadas = new Set(); Object.keys(RK_UF_NOME).forEach(u => { const x = rkLider(u, RK.met); if (x) usadas.add(x.c); });
@@ -6226,17 +6235,23 @@ function rkLegend() {
 function rkPanelCmp() {
   const uf = RK.uf, met = RK.met, c = RK.cmp, I = rkCmpInfo(uf), tp = RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "";
   const rows = rkCorrsUf(uf).map(k => { const x = rkCell(uf, k), r = rkCmpVal(x, met); return { n: rkNome(k), k, val: r ? r.val : null, few: r ? r.few : false, x }; });
-  if (I.avg !== null) rows.push({ n: "Média das corretoras", k: null, val: I.avg, few: false, x: null });
+  if (I.avg !== null) rows.push({ n: rkMediaNome(met), k: null, val: I.avg, few: false, x: null });
   const avgNac = rkCmpNacional();
   const vv = r => r.val === null ? -1 : r.val; rows.sort((a, b) => vv(b) - vv(a));
   const mx = Math.max(1, ...rows.map(r => r.val || 0));
   let h = '<div class="rk-uf-h"><b>' + RK_UF_NOME[uf] + ' <span style="font-weight:600">· ' + uf + "</span></b><span>" + rkEsc(rkNome(c)) + " × média · " + rkMetCurto[met] + tp + "</span></div>";
-  const dif = I.d === null ? "—" : '<span style="color:' + (I.d >= 0 ? "#3D65E7" : "#FF4E05") + '">' + rkSgn(I.d, met) + (met === "ticket" ? "" : " p.p.") + "</span>";
-  h += '<div class="rk-sum"><div><i>' + rkEsc(rkNome(c)) + "</i><b>" + (I.val === null ? "—" : rkUnid(I.val, met) + (I.few ? "*" : "")) + "</b></div><div><i>Média do estado</i><b>" + (I.avg === null ? "—" : rkUnid(I.avg, met)) + "</b></div><div><i>Diferença</i><b>" + dif + "</b></div><div><i>Média HapON</i><b>" + (avgNac === null ? "—" : rkUnid(avgNac, met)) + "</b></div></div>";
-  if (I.val === null) h += '<p class="rk-hint" style="margin:0 0 8px">' + (met === "ticket" ? "Menos de " + RK_MIN_T + " vidas da corretora neste estado: ticket não avaliável." : (I.x.v > I.x.l ? "Vidas maiores que leads (◆): conversão não comparável." : "Menos de " + RK_MIN_L + " leads da corretora neste estado: conversão não avaliável.")) + "</p>";
+  const dif = I.d === null ? "—" : '<span style="color:' + (I.d >= 0 ? "#3D65E7" : "#FF4E05") + '">' + rkSgn(I.d, met) + rkDSuf(met) + "</span>";
+  h += '<div class="rk-sum"><div><i>' + rkEsc(rkNome(c)) + "</i><b>" + (I.val === null ? "—" : rkUnid(I.val, met) + (I.few ? "*" : "")) + "</b></div><div><i>" + rkMediaNome(met) + "</i><b>" + (I.avg === null ? "—" : rkUnid(I.avg, met)) + "</b></div><div><i>Diferença</i><b>" + dif + "</b></div><div><i>Média HapON</i><b>" + (avgNac === null ? "—" : rkUnid(avgNac, met)) + "</b></div></div>";
+  if (I.val === null || I.avg === null) {
+    let why;
+    if (met === "ticket") why = "Menos de " + RK_MIN_T + " vidas da corretora neste estado: ticket não avaliável.";
+    else if (rkEhVol(met)) why = I.x.l === 0 ? "A corretora não recebeu leads neste estado." : "Estado com poucos dados para uma média por corretora (menos de " + RK_MIN_MEDIA[met] + " " + (met === "vidas" ? "vidas" : "leads") + " no total).";
+    else why = I.x.v > I.x.l ? "Vidas maiores que leads (◆): conversão não comparável." : "Menos de " + RK_MIN_L + " leads da corretora neste estado: conversão não avaliável.";
+    h += '<p class="rk-hint" style="margin:0 0 8px">' + why + "</p>";
+  }
   rows.forEach((r, i) => {
     const isX = r.k === c, avg = r.k === null, gray = r.val === null;
-    const det = avg ? "todas as corretoras juntas" : rkNf(r.x.l) + " leads · " + rkNf(r.x.v) + " vidas" + (r.x.vt && r.x.wt && met !== "ticket" ? " · ticket " + rkBrl(r.x.wt / r.x.vt) : "");
+    const det = avg ? (rkEhVol(met) ? "total do estado ÷ " + I.n + " corretora(s) com lead" : "todas as corretoras juntas") : rkNf(r.x.l) + " leads · " + rkNf(r.x.v) + " vidas" + (r.x.vt && r.x.wt && met !== "ticket" ? " · ticket " + rkBrl(r.x.wt / r.x.vt) : "");
     h += '<div class="rk-cr' + (gray ? " gray" : "") + '" style="' + (isX ? "background:#f2f6ff;border-radius:6px;padding-left:6px;padding-right:6px" : "") + '"><span class="pos">' + (gray ? "·" : i + 1) + "</span>" +
       '<span class="nm"><i class="rk-dot" style="background:' + (avg ? "#94a3b8" : rkCor(r.k)) + '"></i>' + (isX ? "<b>" + rkEsc(r.n) + "</b>" : rkEsc(r.n)) + '</span><span class="val">' + (gray ? "—" : rkUnid(r.val, met) + (r.few ? "*" : "")) + "</span>" +
       '<div class="bar"><i style="width:' + (gray ? 100 : Math.max(2, 100 * r.val / mx)) + "%;background:" + (avg ? "#94a3b8" : rkCor(r.k)) + '"></i></div><div class="det">' + det + "</div></div>";
@@ -6244,7 +6259,8 @@ function rkPanelCmp() {
   rkId("rkPanel").innerHTML = h;
 }
 function rkCmpNacional() {
-  const L = rkCorrList(), t = RK.met === "ticket";
+  const L = rkCorrList(), met = RK.met, t = met === "ticket";
+  if (rkEhVol(met)) return L.length ? L.reduce((a, o) => a + (met === "vidas" ? o.vt : o.leads), 0) / L.length : null;     // media por corretora
   const num = L.reduce((a, o) => a + (t ? (o.ticket || 0) * o.vt : o.vidas), 0), den = L.reduce((a, o) => a + (t ? o.vt : o.leads), 0);
   return den ? (t ? num / den : 100 * num / den) : null;
 }
@@ -6295,15 +6311,18 @@ function rkPlacarData() {
 }
 function rkKpisCmp() {
   const L = rkCorrList(), c = RK.cmp, met = RK.met, o = L.find(x => x.c === c), tp = RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "";
-  const mine = met === "ticket" ? (o && o.ticket) : (o && o.conv), avg = rkCmpNacional(), d = (mine !== null && mine !== undefined && avg !== null) ? mine - avg : null;
+  const mine = !o ? null : met === "ticket" ? o.ticket : met === "conv" ? o.conv : met === "vidas" ? o.vt : o.leads, avg = rkCmpNacional();
+  const d = (mine !== null && mine !== undefined && avg !== null) ? (rkEhVol(met) ? (avg > 0 ? 100 * (mine / avg - 1) : null) : mine - avg) : null;
   const rs = Object.keys(RK_UF_NOME).map(u => rkCmpInfo(u).d).filter(v => v !== null), up = rs.filter(v => v > 0).length;
   const k = (cl, lb, dot, v, dd) => '<div class="rk-card rk-kpi" style="--c:' + cl + '"><div class="l">' + lb + '</div><div class="v">' + (dot ? '<i class="rk-dot" style="background:' + dot + '"></i>' : "") + v + '</div><div class="d">' + dd + "</div></div>";
-  const nome = met === "ticket" ? "ticket médio" + tp : "conversão";
+  const nome = { conv: "conversão", ticket: "ticket médio" + tp, vidas: "vidas" + tp, leads: "leads recebidos" }[met];
+  const sub1 = met === "ticket" ? "mensalidade ÷ vida" : met === "conv" ? rkNf(o ? o.vidas : 0) + " vidas ÷ " + rkNf(o ? o.leads : 0) + " leads" : "total da corretora no mês";
+  const sub2 = rkEhVol(met) ? "total ÷ " + L.length + " corretoras" : "todas as corretoras juntas";
   rkId("rkKpis").innerHTML =
-    k(rkCor(c), rkEsc(rkNome(c)) + " · " + nome + " · todos os estados", rkCor(c), mine ? rkUnid(mine, met) : "—", met === "ticket" ? "mensalidade ÷ vida" : rkNf(o ? o.vidas : 0) + " vidas ÷ " + rkNf(o ? o.leads : 0) + " leads") +
-    k("#94a3b8", "Média das corretoras · todos os estados", null, avg === null ? "—" : rkUnid(avg, met), "todas as corretoras juntas") +
-    k(d === null ? "#94a3b8" : (d >= 0 ? "#3D65E7" : "#FF4E05"), "Diferença", null, d === null ? "—" : '<span style="color:' + (d >= 0 ? "#3D65E7" : "#FF4E05") + '">' + rkSgn(d, met) + (met === "ticket" ? "" : " p.p.") + "</span>", "da corretora para a média") +
-    k("#0F297B", "Estados acima da média", null, up + " <small>de " + rs.length + "</small>", "só estados com base mínima da corretora");
+    k(rkCor(c), rkEsc(rkNome(c)) + " · " + nome + " · todos os estados", rkCor(c), (mine || mine === 0) ? rkUnid(mine, met) : "—", sub1) +
+    k("#94a3b8", (rkEhVol(met) ? "Média por corretora" : "Média das corretoras") + " · todos os estados", null, avg === null ? "—" : rkUnid(avg, met), sub2) +
+    k(d === null ? "#94a3b8" : (d >= 0 ? "#3D65E7" : "#FF4E05"), "Diferença", null, d === null ? "—" : '<span style="color:' + (d >= 0 ? "#3D65E7" : "#FF4E05") + '">' + rkSgn(d, met) + rkDSuf(met) + "</span>", "da corretora para a média") +
+    k("#0F297B", "Estados acima da média", null, up + " <small>de " + rs.length + "</small>", "só estados com base mínima");
 }
 function rkKpis() {
   if (RK.cmp) return rkKpisCmp();
@@ -6404,10 +6423,9 @@ function rkGaranteUi() {
     rkId("rkSegMet").onclick = e => { const b = e.target.closest("button"); if (!b || b.disabled) return; RK.met = b.dataset.v; if ((RK.met === "conv" || RK.met === "leads") && RK.tipo !== "T") RK.tipo = "T"; rkRender(); };
     rkId("rkSelCmp").onchange = e => {
       RK.cmp = e.target.value || null;
-      if (RK.cmp) { if (RK.met === "vidas" || RK.met === "leads") RK.met = "conv"; if (RK.met === "conv" && RK.tipo !== "T") RK.tipo = "T"; }
       rkRender();
     };
-    rkId("rkSegTipo").onclick = e => { const b = e.target.closest("button"); if (!b || b.disabled) return; RK.tipo = b.dataset.v; if (RK.tipo !== "T" && (RK.met === "conv" || RK.met === "leads")) RK.met = "vidas"; if (RK.cmp && RK.tipo !== "T") RK.met = "ticket"; rkRender(); };
+    rkId("rkSegTipo").onclick = e => { const b = e.target.closest("button"); if (!b || b.disabled) return; RK.tipo = b.dataset.v; if (RK.tipo !== "T" && (RK.met === "conv" || RK.met === "leads")) RK.met = "vidas"; rkRender(); };
   }
   return true;
 }
@@ -6428,13 +6446,15 @@ function rkRender() {
   const D = RK.D;
   if (!D.temRank) { RK.tipo = "T"; if (RK.met === "ticket") RK.met = "vidas"; }
   if (RK.cmp && !D.corr[RK.cmp]) RK.cmp = null;
-  if (RK.cmp && (RK.met === "vidas" || RK.met === "leads")) RK.met = "conv";
+
   if (!rkUfsDado().length) { msg.style.display = ""; corpo.style.display = "none"; msg.textContent = "Sem dados por estado em " + D.mesNome + "."; return; }
   if (!RK_UF_NOME[RK.uf] || !(rkUfTot(RK.uf).l + rkUfTot(RK.uf).v)) RK.uf = rkUfsDado().sort((a, b) => rkUfTot(b).v - rkUfTot(a).v)[0];
   const met = RK.met, tp = RK.tipo !== "T" && (met === "vidas" || met === "ticket") ? " · só " + RK_TIPO[RK.tipo] : "";
   if (RK.cmp) {
-    rkId("rkMapTit").textContent = rkNome(RK.cmp) + " × média das corretoras — " + (met === "ticket" ? "ticket médio" + tp : "conversão") + " por estado · " + D.mesNome;
-    rkId("rkMapSub").textContent = "Cada estado mostra a diferença da corretora para a média das corretoras no mesmo estado (todas juntas, ela incluída). Azul = acima da média, laranja = abaixo.";
+    rkId("rkMapTit").textContent = rkNome(RK.cmp) + " × média das corretoras — " + ({ conv: "conversão", ticket: "ticket médio", vidas: "vidas", leads: "leads recebidos" })[met] + tp + " por estado · " + D.mesNome;
+    rkId("rkMapSub").textContent = rkEhVol(met)
+      ? "Cada estado mostra quanto a corretora está acima ou abaixo da média por corretora no mesmo estado (total do estado ÷ corretoras que receberam lead lá, ela incluída), em %. Azul = acima, laranja = abaixo."
+      : "Cada estado mostra a diferença da corretora para a média das corretoras no mesmo estado (todas juntas, ela incluída). Azul = acima da média, laranja = abaixo.";
   } else {
     rkId("rkMapTit").textContent = "Corretora líder em cada estado — " + rkMetNome[met] + tp + " · " + D.mesNome;
     rkId("rkMapSub").textContent = "Cada estado é pintado com a cor de quem lidera; o número é o valor do líder.";
@@ -6442,9 +6462,9 @@ function rkRender() {
   const sc = rkId("rkSelCmp");
   sc.innerHTML = '<option value="">— nenhuma —</option>' + D.ordem.map(c => '<option value="' + rkEsc(c) + '"' + (c === RK.cmp ? " selected" : "") + ">" + rkEsc(rkNome(c)) + "</option>").join("");
   sc.value = RK.cmp || "";
-  rkId("rkSegMet").querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.v === met); if (b.dataset.v === "ticket") b.disabled = !D.temRank; if (RK.cmp && (b.dataset.v === "vidas" || b.dataset.v === "leads")) b.disabled = true; else if (b.dataset.v !== "ticket") b.disabled = false; });
+  rkId("rkSegMet").querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.v === met); if (b.dataset.v === "ticket") b.disabled = !D.temRank; });
   rkId("rkSegTipo").querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.v === RK.tipo); if (b.dataset.v !== "T") b.disabled = !D.temRank; });
-  rkId("rkTipoHint").textContent = !D.temRank ? "Ticket médio e PF/PME ainda não estão disponíveis para " + D.mesNome + "." : (RK.cmp ? "Comparando " + rkNome(RK.cmp) + " com a média: vale para conversão e ticket médio." : "PF/PME vale para vidas e ticket; leads e conversão são sempre do total.");
+  rkId("rkTipoHint").textContent = !D.temRank ? "Ticket médio e PF/PME ainda não estão disponíveis para " + D.mesNome + "." : (RK.cmp ? "Comparando " + rkNome(RK.cmp) + " com a média. PF/PME vale para vidas e ticket; leads e conversão são sempre do total." : "PF/PME vale para vidas e ticket; leads e conversão são sempre do total.");
   const sem = Object.keys(D.sem).filter(c => D.sem[c][1] > 0).map(c => rkNome(c) + " " + D.sem[c][1]).concat(Object.keys(D.semUf || {}).map(c => { const p = D.semUf[c], n = p[0] + p[2]; return n ? rkNome(c) + " " + n : ""; }).filter(Boolean));
   rkId("rkNotaSem").innerHTML = "Vidas sem DDD entram no total da corretora e ficam fora do mapa: " + (sem.length ? sem.join(", ") + " vida(s)" : "nenhuma neste mês") + ". Dado até " + rkEsc(D.ref || "?") + ".";
   rkKpis(); rkDrawMap(); rkLegend(); rkPanel(); rkPlacar(); rkTabela();
