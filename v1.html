@@ -663,6 +663,7 @@
           <button role="menuitem" data-out="ASET" onclick="escolheOut('ASET')"><b>📉 Análise Set</b></button>
           <button role="menuitem" data-out="AOUT" onclick="escolheOut('AOUT')"><b>📈 Análise Out</b></button>
           <button role="menuitem" data-out="VD2026" onclick="escolheOut('VD2026')"><b>📊 Vendas 2026</b></button>
+          <button role="menuitem" data-out="PRD2026" onclick="escolheOut('PRD2026')"><b>&#128230; Produtos 2026</b></button>
           <button role="menuitem" data-out="CANCRET" onclick="escolheOut('CANCRET')"><b>🔄 Canc. &amp; Retenção</b></button>
           <button role="menuitem" data-out="QUARTIS" onclick="escolheOut('QUARTIS')"><b>🏆 Quartis</b></button>
         </div>
@@ -7809,7 +7810,7 @@ function coorteGaranteAba() {
 // CASCA como Orçamentos/Comparar: cada item só chama setView(<view de sempre>); o gatilho (data-view
 // OUTRAS) acende e ganha o sufixo " · <nome>" quando uma delas está na tela.
 const OUT_VIEWS = { PROD: "Produtividade", LEADS: "Leads", ATEND: "Atendimento", COHORT: "Cohort", MVM: "MVM",
-                    ASET: "Análise Set", AOUT: "Análise Out", VD2026: "Vendas 2026", CANCRET: "Canc. & Retenção", QUARTIS: "Quartis" };
+                    ASET: "Análise Set", AOUT: "Análise Out", VD2026: "Vendas 2026", PRD2026: "Produtos 2026", CANCRET: "Canc. & Retenção", QUARTIS: "Quartis" };
 function fecharOutMenu() {
   const m = document.getElementById("outMenu"); if (m) m.classList.remove("aberto");
   const t = document.getElementById("outTrigger"); if (t) t.setAttribute("aria-expanded", "false");
@@ -14692,6 +14693,230 @@ const ATENDIMENTO_PAINEL = {"geradoEm":"18/11/2026 09:59","fonte":"chat_level_me
       ['prodPanel', 'leadsPanel', 'funilPfPanel', 'funilPmePanel', 'vd2026Panel', 'cancPanel', 'mvmPanel', 'asetPanel', 'aoutPanel', 'cohortPanel'].forEach(function(id){ var e = document.getElementById(id); if (e) e.style.display = 'none'; });
       painel.style.display = 'block'; pos(); setTimeout(pos, 80); setTimeout(pos, 400);
       document.querySelectorAll('.view-tab').forEach(function(x){ x.classList.toggle('active', x.dataset.view === 'ATEND'); });
+      if (typeof syncOrcTab === 'function') syncOrcTab(null);
+      var mg = document.getElementById('mesGroup'); if (mg) mg.style.display = 'none';
+      var gg = document.getElementById('gestorGroup'); if (gg) gg.style.display = 'none';
+      render();
+      return;
+    }
+    painel.style.display = 'none';
+    _sv.apply(null, arguments);
+  };
+})();
+</script>
+<!-- ABA PRODUTOS 2026 (estatica; ver comentario no topo do IIFE) -->
+<script>
+(function(){
+  /* OUTRAS VISUALIZACOES > PRODUTOS 2026 (18/11/2026)
+     Variacao dos quatro produtos no ano e ticket por produto.
+     DADO ESTATICO, embutido aqui: planilha de produtos de 18/11/2026 (companhia, so quantidade)
+     e BASE_DIGITAL_FULL corte 10/11/2026 (Venda Digital, com mensalidade). NAO le os cubos do
+     release e NAO muda com a carga diaria -- quando chegar base nova, trocar PRD_B e PRD_TK.
+     Novembro e parcial nas duas visoes, com cortes diferentes: fica fora das medias.
+     Dois seletores: Visao (Companhia x Venda Digital) e Produto (todos ou um). */
+  if (document.getElementById('prd2026Panel')) return;
+
+  var COR = {'Individual':'#3D65E7','PIM':'#FF4E05','Administradora':'#0F8A5F','Middle I':'#8B46C9'};
+  var ORD = ['PIM','Individual','Administradora','Middle I'];
+  var NAVY = '#0F297B', GRAY = '#7F7F7F', REF = '#9AA3B5';
+
+  var PRD_B = {
+    comp:{rot:'Companhia', fonte:'planilha de 18/11/2026, todos os canais de venda',
+      novTxt:'novembro parcial (metade do mes)', v:{
+      'PIM':           [19439,20414,29140,26043,28478,27710,24897,32446,34228,38790],
+      'Individual':    [24913,23505,33335,30350,32672,31872,23541,23132,24202,23119],
+      'Administradora':[5403,5547,8321,6475,10546,17823,14173,10804,16588,7086],
+      'Middle I':      [2494,2201,2451,1893,3419,2781,3135,2184,3360,2793]},
+      nov:{'PIM':18123,'Individual':10823,'Administradora':5630,'Middle I':1307}},
+    vd:{rot:'Venda Digital', fonte:'BASE_DIGITAL_FULL, corte 10/11/2026',
+      novTxt:'novembro ate o dia 10', v:{
+      'PIM':           [3216,2957,4250,3266,3439,2650,2886,3989,3368,4188],
+      'Individual':    [4980,4395,6042,5578,6374,5901,4528,4679,5005,5011],
+      'Administradora':[50,110,260,119,464,4743,4362,1980,131,585],
+      'Middle I':      [48,159,270,14,277,42,97,154,104,228]},
+      nov:{'PIM':925,'Individual':1267,'Administradora':4,'Middle I':13}}};
+  var PRD_TK = {
+    'Individual':    [372.49,371.20,390.23,387.91,373.59,347.04,369.37,363.94,405.35,394.41],
+    'Administradora':[303.34,341.93,349.83,365.10,320.81,305.33,307.43,309.95,383.45,341.86],
+    'PIM':           [258.63,260.10,251.20,258.59,261.26,270.01,256.31,263.33,270.61,261.95],
+    'Middle I':      [187.15,217.52,230.73,176.86,262.97,300.53,509.90,290.50,304.52,267.05]};
+  var TK_DIV = [326.67,324.46,330.68,339.86,331.60,316.61,320.28,315.84,351.08,333.03];
+  var MES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out'];
+  var LINK = 'https://claude.ai/artifact/HouGcvGoCvDf9c6tCTrj53';
+
+  var st = {vis:'comp', prod:''};
+  var charts = {};
+  var nf = function(v){ return Math.round(v).toLocaleString('pt-BR'); };
+  var pc = function(v){ return (v>=0?'+':'−') + Math.abs(v).toFixed(1).replace('.',',') + '%'; };
+  var rs = function(v){ return 'R$ ' + v.toFixed(2).replace('.',','); };
+  var soma = function(a){ return a.reduce(function(x,y){ return x+y; }, 0); };
+  var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+
+  var css = document.createElement('style');
+  css.textContent =
+    '#prd2026Panel{display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#EEF1F5;overflow:auto;color:#404040}' +
+    '#prd2026Panel *{box-sizing:border-box}' +
+    '#prd2026Panel .pr-wrap{max-width:1280px;margin:0 auto;padding:14px 16px 60px}' +
+    '#prd2026Panel h2{font:700 17px Arial,sans-serif;color:' + NAVY + ';margin:0 0 4px}' +
+    '#prd2026Panel .pr-sub{font-size:12.5px;color:' + GRAY + ';line-height:1.5;margin:0 0 12px}' +
+    '#prd2026Panel .pr-bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;margin:0 0 14px}' +
+    '#prd2026Panel .pr-fg{display:flex;flex-direction:column;gap:4px}' +
+    '#prd2026Panel .pr-lab{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:' + GRAY + ';font-weight:700}' +
+    '#prd2026Panel select{font:13px Arial,sans-serif;padding:6px 9px;border:1px solid #CBD3E0;border-radius:6px;background:#fff;color:' + NAVY + ';font-weight:600;min-width:210px}' +
+    '#prd2026Panel .pr-card{background:#fff;border-radius:10px;padding:14px 16px 10px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:14px}' +
+    '#prd2026Panel .pr-card h3{font:700 14px Arial,sans-serif;color:' + NAVY + ';margin:0 0 3px}' +
+    '#prd2026Panel .pr-card p.d{font-size:12px;color:' + GRAY + ';line-height:1.5;margin:0 0 10px}' +
+    '#prd2026Panel .pr-note{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;font-size:12px;line-height:1.55;padding:10px 14px;border-radius:8px;margin-bottom:14px}' +
+    '#prd2026Panel .pr-read{background:#EEF4FF;border:1px solid #C7D7F5;color:#1E3A8A;font-size:12.5px;line-height:1.6;padding:12px 15px;border-radius:8px}' +
+    '#prd2026Panel a{color:#1539AA;font-weight:700}' +
+    '#prd2026Panel table{border-collapse:collapse;width:100%;font:13px Arial,sans-serif;min-width:700px}' +
+    '#prd2026Panel .pr-scroll{overflow-x:auto}' +
+    '#prd2026Panel th,#prd2026Panel td{padding:7px 10px;text-align:right;border-bottom:1px solid #E6EAF2;white-space:nowrap}' +
+    '#prd2026Panel th:first-child,#prd2026Panel td:first-child{text-align:left}' +
+    '#prd2026Panel thead th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:' + GRAY + ';font-weight:700}' +
+    '#prd2026Panel tfoot td{font-weight:700;color:' + NAVY + ';border-top:2px solid #D8DEE8;border-bottom:0}' +
+    '#prd2026Panel .pr-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px}' +
+    '#prd2026Panel .up{color:#0F8A5F}#prd2026Panel .dn{color:#C0392B}' +
+    '#prd2026Panel canvas{max-height:330px}';
+  document.head.appendChild(css);
+
+  var painel = document.createElement('div');
+  painel.id = 'prd2026Panel';
+  painel.innerHTML =
+    '<div class="pr-wrap">' +
+      '<h2>Produtos 2026 &mdash; varia&ccedil;&atilde;o no ano</h2>' +
+      '<p class="pr-sub">Como cada produto andou de janeiro a outubro, e quanto vale a vida de cada um.</p>' +
+      '<div class="pr-bar">' +
+        '<div class="pr-fg"><span class="pr-lab">Vis&atilde;o</span>' +
+          '<select id="prdVis"><option value="comp">Companhia</option>' +
+          '<option value="vd">Venda Digital (canal digital)</option></select></div>' +
+        '<div class="pr-fg"><span class="pr-lab">Produto</span>' +
+          '<select id="prdProd"><option value="">Todos</option><option>Individual</option>' +
+          '<option>PIM</option><option>Administradora</option><option>Middle I</option></select></div>' +
+      '</div>' +
+      '<div class="pr-note">Dados <b>est&aacute;ticos</b>: planilha de produtos de 18/11/2026 (companhia) e BASE_DIGITAL_FULL ' +
+        'corte 10/11/2026 (Venda Digital e ticket). Esta tela <b>n&atilde;o</b> acompanha a carga di&aacute;ria nem os filtros ' +
+        'do topo &mdash; quando chegar base nova, os n&uacute;meros precisam ser trocados &agrave; m&atilde;o. Novembro fica fora ' +
+        'das m&eacute;dias nas duas vis&otilde;es. <a href="' + LINK + '" target="_blank" rel="noopener">Abrir a an&aacute;lise completa &rarr;</a></div>' +
+      '<div class="pr-card"><h3 id="prdH1">Vidas por m&ecirc;s</h3><canvas id="prdChLin"></canvas></div>' +
+      '<div class="pr-card"><h3>Participa&ccedil;&atilde;o de cada produto no m&ecirc;s</h3>' +
+        '<p class="d">Mostra sempre os quatro &mdash; o filtro de Produto n&atilde;o se aplica aqui, porque composi&ccedil;&atilde;o precisa do todo.</p>' +
+        '<canvas id="prdChEmp"></canvas></div>' +
+      '<div class="pr-card pr-scroll"><table id="prdTbl"><thead><tr><th>Produto</th><th>Jan&ndash;out</th>' +
+        '<th>% do total</th><th>M&eacute;dia jan&ndash;jun</th><th>M&eacute;dia jul&ndash;out</th><th>Varia&ccedil;&atilde;o</th>' +
+        '<th>Jan &rarr; out</th><th>Nov (parcial)</th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>' +
+      '<div class="pr-card"><h3>Ticket m&eacute;dio por m&ecirc;s, em R$ &mdash; sempre Venda Digital</h3>' +
+        '<p class="d" id="prdTkSub"></p><canvas id="prdChTk"></canvas></div>' +
+      '<div class="pr-read" id="prdRead"></div>' +
+    '</div>';
+  document.body.appendChild(painel);
+
+  function pos(){ var nb = document.getElementById('navBar'); if (!nb) return;
+    var r = nb.getBoundingClientRect(); painel.style.top = Math.max(0, r.bottom) + 'px'; }
+  window.addEventListener('resize', pos);
+  window.addEventListener('scroll', pos, true);
+
+  function mk(id, cfg){ if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), cfg); }
+
+  function render(){
+    var B = PRD_B[st.vis], alvo = st.prod;
+    var lista = alvo ? [alvo] : ORD;
+    var tot = MES.map(function(_, i){ var s = 0; ORD.forEach(function(k){ s += B.v[k][i]; }); return s; });
+
+    document.getElementById('prdH1').textContent =
+      'Vidas por mês — ' + (alvo ? alvo : 'os quatro produtos') + ' · ' + B.rot + ' · jan–out/26';
+
+    mk('prdChLin', {type:'line', data:{labels:MES, datasets:lista.map(function(k){
+      return {label:k, data:B.v[k], borderColor:COR[k], backgroundColor:COR[k],
+              tension:.25, borderWidth:2.5, pointRadius:3}; })},
+      options:{plugins:{legend:{position:'bottom', display:!alvo}, datalabels:{display:false},
+        tooltip:{callbacks:{afterBody:function(it){ return 'Total do mês: ' + nf(tot[it[0].dataIndex]); }}}},
+        scales:{y:{beginAtZero:true, ticks:{callback:function(v){ return v>=1000 ? (v/1000)+'k' : v; }}}}}});
+
+    mk('prdChEmp', {type:'bar', data:{labels:MES, datasets:ORD.map(function(k){
+      return {label:k, data:B.v[k].map(function(v, i){ return tot[i] ? +(v/tot[i]*100).toFixed(1) : 0; }),
+              backgroundColor:COR[k]}; })},
+      options:{plugins:{legend:{position:'bottom'}, datalabels:{display:false},
+        tooltip:{callbacks:{label:function(c){ var k = ORD[c.datasetIndex];
+          return k + ': ' + c.parsed.y.toFixed(1).replace('.',',') + '% (' + nf(B.v[k][c.dataIndex]) + ')'; }}}},
+        scales:{x:{stacked:true}, y:{stacked:true, max:100, ticks:{callback:function(v){ return v+'%'; }}}}}});
+
+    var listaTk = alvo ? lista : lista.filter(function(k){ return k !== 'Middle I'; });
+    var serie = listaTk.map(function(k){
+      return {label:k, data:PRD_TK[k], borderColor:COR[k], backgroundColor:COR[k],
+              tension:.25, borderWidth:2.5, pointRadius:3}; });
+    serie.push({label:'Venda Digital (todos)', data:TK_DIV, borderColor:REF, backgroundColor:REF,
+                tension:.25, borderWidth:2, borderDash:[6,4], pointRadius:0});
+    var tks = serie.reduce(function(a, s){ return a.concat(s.data); }, []);
+    mk('prdChTk', {type:'line', data:{labels:MES, datasets:serie},
+      options:{plugins:{legend:{position:'bottom'}, datalabels:{display:false},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label + ': ' + rs(c.parsed.y); }}}},
+        scales:{y:{min:Math.floor(Math.min.apply(null, tks)/20)*20 - 10,
+          ticks:{callback:function(v){ return 'R$ ' + v; }}}}}});
+    document.getElementById('prdTkSub').innerHTML =
+      (st.vis === 'vd' ? 'Mesmo universo da visão escolhida acima.'
+        : 'A planilha da companhia traz só quantidade, sem mensalidade. Este gráfico é a <b>Venda Digital</b>, ' +
+          '19,4% do Individual da companhia — não acompanha a visão Companhia.') +
+      ' Eixo ampliado, não começa em zero.' +
+      (alvo === 'Middle I'
+        ? ' Middle I roda com 14 a 277 vidas por mês, então o ticket dele oscila entre R$ 177 e R$ 510.'
+        : (alvo ? '' : ' Middle I fica fora deste gráfico por oscilar demais em cima de pouco volume — selecione-o no filtro para vê-lo.'));
+
+    var TJ = 0; ORD.forEach(function(k){ TJ += soma(B.v[k]); });
+    var h = '';
+    lista.forEach(function(k){
+      var a = B.v[k], s = soma(a);
+      var m1 = soma(a.slice(0,6))/6, m2 = soma(a.slice(6))/4;
+      var vr = (m2/m1-1)*100, jo = (a[9]/a[0]-1)*100;
+      h += '<tr><td><span class="pr-dot" style="background:' + COR[k] + '"></span>' + esc(k) + '</td>' +
+           '<td>' + nf(s) + '</td><td>' + (s/TJ*100).toFixed(1).replace('.',',') + '%</td>' +
+           '<td>' + nf(m1) + '</td><td>' + nf(m2) + '</td>' +
+           '<td class="' + (vr>=0?'up':'dn') + '">' + pc(vr) + '</td>' +
+           '<td class="' + (jo>=0?'up':'dn') + '">' + pc(jo) + '</td>' +
+           '<td style="color:' + GRAY + '">' + nf(B.nov[k]) + '</td></tr>';
+    });
+    document.querySelector('#prdTbl tbody').innerHTML = h;
+    var T1 = soma(tot.slice(0,6))/6, T2 = soma(tot.slice(6))/4, TN = 0;
+    ORD.forEach(function(k){ TN += B.nov[k]; });
+    var TV = (T2/T1-1)*100, TJO = (tot[9]/tot[0]-1)*100;
+    document.querySelector('#prdTbl tfoot').innerHTML =
+      '<tr><td>Total ' + esc(B.rot) + '</td><td>' + nf(TJ) + '</td><td>100,0%</td>' +
+      '<td>' + nf(T1) + '</td><td>' + nf(T2) + '</td>' +
+      '<td class="' + (TV>=0?'up':'dn') + '">' + pc(TV) + '</td>' +
+      '<td class="' + (TJO>=0?'up':'dn') + '">' + pc(TJO) + '</td>' +
+      '<td style="color:' + GRAY + '">' + nf(TN) + '</td></tr>';
+
+    var iI = B.v['Individual'], iP = B.v['PIM'];
+    var raz1 = soma(iP.slice(0,6))/soma(iI.slice(0,6))*100, raz2 = iP[9]/iI[9]*100;
+    var mI1 = soma(iI.slice(0,6))/6, mI2 = soma(iI.slice(6))/4;
+    var txt = '<b>' + esc(B.rot) + '</b> (' + esc(B.fonte) + '). O PIM era <b>' + raz1.toFixed(0) +
+      '%</b> do Individual no 1º semestre e em outubro é <b>' + raz2.toFixed(0) + '%</b> — ' +
+      nf(iP[9]) + ' contra ' + nf(iI[9]) + '. O Individual foi de ' + nf(mI1) + ' para ' + nf(mI2) +
+      ' vidas/mês entre as metades do ano (' + pc((mI2/mI1-1)*100) + '), e o conjunto dos quatro, ' + pc(TV) + '.';
+    txt += (raz2 >= 100)
+      ? ' <b>O PIM já passou o Individual aqui.</b> Não foi perda de volume, foi troca de produto.'
+      : ' <b>Aqui o PIM ainda não passou o Individual</b> — na companhia ele já está em 168%. ' +
+        'O canal digital segue mais concentrado em Individual que o resto da empresa.';
+    txt += ' <b>No ticket</b> (sempre Venda Digital), todo produto subiu entre as metades — Individual +4,0%, ' +
+      'PIM +2,3%, Administradora +3,6% — e mesmo assim o ticket da divisão ficou em +0,3%: o preço ' +
+      'somou +R$ 8,06 e o mix tirou −R$ 6,67, porque o Individual caiu de 55,8% para 46,6% das vidas.';
+    document.getElementById('prdRead').innerHTML = txt;
+  }
+
+  document.getElementById('prdVis').addEventListener('change', function(){ st.vis = this.value; render(); });
+  document.getElementById('prdProd').addEventListener('change', function(){ st.prod = this.value; render(); });
+
+  var _sv = window.setView;
+  window.setView = function(v){
+    if (v === 'PRD2026'){
+      ['prodPanel','leadsPanel','atendPanel','funilPfPanel','funilPmePanel','vd2026Panel',
+       'cancPanel','mvmPanel','asetPanel','aoutPanel','cohortPanel','quartisPanel'].forEach(function(id){
+        var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+      painel.style.display = 'block'; pos(); setTimeout(pos, 80); setTimeout(pos, 400);
+      document.querySelectorAll('.view-tab').forEach(function(x){
+        x.classList.toggle('active', x.dataset.view === 'OUTRAS'); });
       if (typeof syncOrcTab === 'function') syncOrcTab(null);
       var mg = document.getElementById('mesGroup'); if (mg) mg.style.display = 'none';
       var gg = document.getElementById('gestorGroup'); if (gg) gg.style.display = 'none';
