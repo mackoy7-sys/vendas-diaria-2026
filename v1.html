@@ -14831,14 +14831,19 @@ const ATENDIMENTO_PAINEL = {"geradoEm":"18/11/2026 09:59","fonte":"chat_level_me
     mk('prdChLin', {type:'line', data:{labels:MES, datasets:lista.map(function(k){
       return {label:k, data:B.v[k], borderColor:COR[k], backgroundColor:COR[k],
               tension:.25, borderWidth:2.5, pointRadius:3}; })},
-      options:{plugins:{legend:{position:'bottom', display:!alvo}, datalabels:{display:false},
+      options:{layout:{padding:{top:16,right:20}},
+        plugins:{legend:{position:'bottom', display:!alvo}, datalabels:{display:'auto', anchor:'end', align:'top', offset:3,
+          color:function(c){ return c.dataset.borderColor; }, font:{size:9.5,weight:'600'},
+          formatter:function(v){ return nf(v); }},
         tooltip:{callbacks:{afterBody:function(it){ return 'Total do mês: ' + nf(tot[it[0].dataIndex]); }}}},
         scales:{y:{beginAtZero:true, ticks:{callback:function(v){ return v>=1000 ? (v/1000)+'k' : v; }}}}}});
 
     mk('prdChEmp', {type:'bar', data:{labels:MES, datasets:ORD.map(function(k){
       return {label:k, data:B.v[k].map(function(v, i){ return tot[i] ? +(v/tot[i]*100).toFixed(1) : 0; }),
               backgroundColor:COR[k]}; })},
-      options:{plugins:{legend:{position:'bottom'}, datalabels:{display:false},
+      options:{plugins:{legend:{position:'bottom'}, datalabels:{display:function(c){ return c.dataset.data[c.dataIndex] >= 7; },
+          color:'#fff', font:{size:9.5,weight:'700'},
+          formatter:function(v){ return Math.round(v) + '%'; }},
         tooltip:{callbacks:{label:function(c){ var k = ORD[c.datasetIndex];
           return k + ': ' + c.parsed.y.toFixed(1).replace('.',',') + '% (' + nf(B.v[k][c.dataIndex]) + ')'; }}}},
         scales:{x:{stacked:true}, y:{stacked:true, max:100, ticks:{callback:function(v){ return v+'%'; }}}}}});
@@ -14848,10 +14853,14 @@ const ATENDIMENTO_PAINEL = {"geradoEm":"18/11/2026 09:59","fonte":"chat_level_me
       return {label:k, data:PRD_TK[k], borderColor:COR[k], backgroundColor:COR[k],
               tension:.25, borderWidth:2.5, pointRadius:3}; });
     serie.push({label:'Venda Digital (todos)', data:TK_DIV, borderColor:REF, backgroundColor:REF,
-                tension:.25, borderWidth:2, borderDash:[6,4], pointRadius:0});
+                tension:.25, borderWidth:2, borderDash:[6,4], pointRadius:0,
+                datalabels:{display:false}});
     var tks = serie.reduce(function(a, s){ return a.concat(s.data); }, []);
     mk('prdChTk', {type:'line', data:{labels:MES, datasets:serie},
-      options:{plugins:{legend:{position:'bottom'}, datalabels:{display:false},
+      options:{layout:{padding:{top:16,right:24}},
+        plugins:{legend:{position:'bottom'}, datalabels:{display:'auto', anchor:'end', align:'top', offset:3,
+          color:function(c){ return c.dataset.borderColor; }, font:{size:9,weight:'600'},
+          formatter:function(v){ return 'R$ ' + Math.round(v); }},
         tooltip:{callbacks:{label:function(c){ return c.dataset.label + ': ' + rs(c.parsed.y); }}}},
         scales:{y:{min:Math.floor(Math.min.apply(null, tks)/20)*20 - 10,
           ticks:{callback:function(v){ return 'R$ ' + v; }}}}}});
