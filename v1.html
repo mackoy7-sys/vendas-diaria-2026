@@ -14433,6 +14433,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   var COR = {'Individual':'#3D65E7','PIM':'#FF4E05','Administradora':'#0F8A5F','Middle I':'#8B46C9'};
   var ORD = ['PIM','Individual','Administradora','Middle I'];
   var NAVY = '#0F297B', GRAY = '#7F7F7F', REF = '#9AA3B5';
+  var AZUL = '#3D65E7', LARANJA = '#FF4E05';   // as duas metades do ano, no produto unico
 
   var PRD_B = {
     comp:{rot:'Companhia', fonte:'planilha de 18/11/2026, todos os canais de venda',
@@ -14491,6 +14492,16 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
     '#prd2026Panel thead th{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:' + GRAY + ';font-weight:700}' +
     '#prd2026Panel tfoot td{font-weight:700;color:' + NAVY + ';border-top:2px solid #D8DEE8;border-bottom:0}' +
     '#prd2026Panel .pr-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:8px}' +
+    '#prd2026Panel .pr-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}' +
+    '@media(max-width:760px){#prd2026Panel .pr-kpis{grid-template-columns:repeat(2,1fr)}}' +
+    '#prd2026Panel .pr-kpi{background:#fff;border-radius:10px;padding:13px 15px 11px;box-shadow:0 1px 3px rgba(0,0,0,.08)}' +
+    '#prd2026Panel .pr-kpi .l{font-size:12px;color:' + GRAY + ';font-weight:600;line-height:1.3}' +
+    '#prd2026Panel .pr-kpi .v{font:700 26px Arial,sans-serif;color:' + NAVY + ';line-height:1.15;margin-top:2px}' +
+    '#prd2026Panel .pr-kpi .s{font-size:11.5px;font-weight:600;margin-top:1px}' +
+    '#prd2026Panel .pr-mom{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;margin:2px 0 6px;text-align:center}' +
+    '#prd2026Panel .pr-mom div{font-size:11px;padding:3px 0}' +
+    '#prd2026Panel .pr-mom .m{color:' + GRAY + ';font-weight:600}' +
+    '#prd2026Panel .pr-momt{font-size:11px;color:' + GRAY + ';margin:8px 0 0;border-top:1px solid #E6EAF2;padding-top:7px}' +
     '#prd2026Panel .up{color:#0F8A5F}#prd2026Panel .dn{color:#C0392B}' +
     '#prd2026Panel canvas{max-height:330px}';
   document.head.appendChild(css);
@@ -14513,7 +14524,11 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
         'corte 10/11/2026 (Venda Digital e ticket). Esta tela <b>n&atilde;o</b> acompanha a carga di&aacute;ria nem os filtros ' +
         'do topo &mdash; quando chegar base nova, os n&uacute;meros precisam ser trocados &agrave; m&atilde;o. Novembro fica fora ' +
         'das m&eacute;dias nas duas vis&otilde;es. <a href="' + LINK + '" target="_blank" rel="noopener">Abrir a an&aacute;lise completa &rarr;</a></div>' +
-      '<div class="pr-card"><h3 id="prdH1">Vidas por m&ecirc;s</h3><canvas id="prdChLin"></canvas></div>' +
+      '<div class="pr-kpis" id="prdKpis"></div>' +
+      '<div class="pr-card"><h3 id="prdH1">Vidas por m&ecirc;s</h3>' +
+        '<p class="d" id="prdH1s"></p><canvas id="prdChLin"></canvas>' +
+        '<p class="pr-momt">Varia&ccedil;&atilde;o sobre o m&ecirc;s anterior</p>' +
+        '<div class="pr-mom" id="prdMom"></div></div>' +
       '<div class="pr-card"><h3>Participa&ccedil;&atilde;o de cada produto no m&ecirc;s</h3>' +
         '<p class="d">Mostra sempre os quatro &mdash; o filtro de Produto n&atilde;o se aplica aqui, porque composi&ccedil;&atilde;o precisa do todo.</p>' +
         '<canvas id="prdChEmp"></canvas></div>' +
@@ -14542,15 +14557,62 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
     document.getElementById('prdH1').textContent =
       'Vidas por mês — ' + (alvo ? alvo : 'os quatro produtos') + ' · ' + B.rot + ' · jan–out/26';
 
-    mk('prdChLin', {type:'line', data:{labels:MES, datasets:lista.map(function(k){
-      return {label:k, data:B.v[k], borderColor:COR[k], backgroundColor:COR[k],
-              tension:.25, borderWidth:2.5, pointRadius:3}; })},
+    // leitura de ritmo: a serie em foco e o produto escolhido; em "Todos", os quatro somados
+    var foco = alvo ? B.v[alvo] : tot;
+    var focoRot = alvo ? alvo : 'os quatro somados';
+    var m1 = soma(foco.slice(0,6))/6, m2 = soma(foco.slice(6))/4;
+    var dJun = foco[6] - foco[5], perda = soma(foco.slice(6)) - m1*4;
+    var dMet = (m2/m1-1)*100, dMes = (foco[6]/foco[5]-1)*100, dFim = (foco[9]/foco[5]-1)*100;
+
+    document.getElementById('prdKpis').innerHTML = [
+      {l:'Média jan–jun', v:nf(m1), s:nf(soma(foco.slice(0,6))) + ' vidas em 6 meses', c:GRAY},
+      {l:'Média jul–out', v:nf(m2), s:pc(dMet) + ' vs 1º sem', c:dMet>=0?'#0F8A5F':'#C0392B'},
+      {l:'Jun → jul', v:(dJun>=0?'+':'−') + nf(Math.abs(dJun)), s:pc(dMes) + ' em um mês', c:dJun>=0?'#0F8A5F':'#C0392B'},
+      {l:(perda>=0?'Ganho acumulado':'Perda acumulada') + ' jul–out', v:(perda>=0?'+':'−') + nf(Math.abs(perda)),
+       s:'vs ritmo do 1º sem', c:perda>=0?'#0F8A5F':'#C0392B'}
+    ].map(function(k){ return '<div class="pr-kpi"><div class="l">' + k.l + '</div><div class="v">' + k.v +
+      '</div><div class="s" style="color:' + k.c + '">' + k.s + '</div></div>'; }).join('');
+
+    document.getElementById('prdH1s').innerHTML = esc(focoRot) + ': média de <b>' + nf(m1) +
+      '</b> vidas/mês em jan–jun contra <b>' + nf(m2) + '</b> em jul–out (' + pc(dMet) + '). ' +
+      'De junho a outubro, ' + pc(dFim) + '.' +
+      (alvo ? ' A linha troca de cor na virada do semestre; a tracejada é a média de jan–jun.'
+            : ' Os cartões acima somam os quatro produtos.');
+
+    document.getElementById('prdMom').innerHTML = MES.map(function(m, i){
+      var d = i ? (foco[i]/foco[i-1]-1)*100 : null;
+      return '<div class="m">' + m + '</div>';
+    }).join('') + MES.map(function(m, i){
+      if (!i) return '<div style="color:' + GRAY + '">–</div>';
+      var d = (foco[i]/foco[i-1]-1)*100;
+      return '<div style="color:' + (d>=0?'#0F8A5F':'#C0392B') + ';font-weight:600">' + pc(d) + '</div>';
+    }).join('');
+
+    var dsLin = lista.map(function(k){
+      var base = {label:k, data:B.v[k], borderColor:COR[k], backgroundColor:COR[k],
+                  tension:.25, borderWidth:2.5, pointRadius:3};
+      if (!alvo) return base;
+      // produto unico: primeira metade azul, segunda laranja, como na analise completa
+      base.borderColor = AZUL; base.backgroundColor = AZUL;
+      base.segment = {borderColor:function(c){ return c.p0DataIndex >= 5 ? LARANJA : AZUL; }};
+      base.pointBackgroundColor = MES.map(function(_, i){ return i < 6 ? AZUL : LARANJA; });
+      base.pointBorderColor = base.pointBackgroundColor;
+      base.datalabels = {color:function(c){ return c.dataIndex < 6 ? AZUL : LARANJA; }};
+      return base;
+    });
+    if (alvo) dsLin.push({label:'Média jan–jun (' + nf(m1) + ')',
+      data:MES.map(function(){ return m1; }), borderColor:REF, backgroundColor:REF,
+      borderWidth:2, borderDash:[6,4], pointRadius:0, datalabels:{display:false}});
+
+    mk('prdChLin', {type:'line', data:{labels:MES, datasets:dsLin},
       options:{layout:{padding:{top:16,right:20}},
-        plugins:{legend:{position:'bottom', display:!alvo}, datalabels:{display:'auto', anchor:'end', align:'top', offset:3,
+        plugins:{legend:{position:'bottom', display:true}, datalabels:{display:'auto', anchor:'end', align:'top', offset:3,
           color:function(c){ return c.dataset.borderColor; }, font:{size:9.5,weight:'600'},
           formatter:function(v){ return nf(v); }},
         tooltip:{callbacks:{afterBody:function(it){ return 'Total do mês: ' + nf(tot[it[0].dataIndex]); }}}},
-        scales:{y:{beginAtZero:true, ticks:{callback:function(v){ return v>=1000 ? (v/1000)+'k' : v; }}}}}});
+        // com os quatro, eixo em zero: a comparacao e de magnitude entre produtos. Com um so,
+        // eixo solto, senao a virada do semestre vira uma linha quase reta no alto do grafico.
+        scales:{y:{beginAtZero:!alvo, ticks:{callback:function(v){ return v>=1000 ? (v/1000)+'k' : v; }}}}}});
 
     mk('prdChEmp', {type:'bar', data:{labels:MES, datasets:ORD.map(function(k){
       return {label:k, data:B.v[k].map(function(v, i){ return tot[i] ? +(v/tot[i]*100).toFixed(1) : 0; }),
