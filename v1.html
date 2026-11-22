@@ -661,6 +661,7 @@
           <button role="menuitem" data-out="MVM" onclick="escolheOut('MVM')"><b>🧮 MVM</b></button>
           <button role="menuitem" data-out="ASET" onclick="escolheOut('ASET')"><b>📉 Análise Set</b></button>
           <button role="menuitem" data-out="AOUT" onclick="escolheOut('AOUT')"><b>📈 Análise Out</b></button>
+          <button role="menuitem" data-out="ANOV" onclick="escolheOut('ANOV')"><b>🗓️ Análise Nov</b></button>
           <button role="menuitem" data-out="VD2026" onclick="escolheOut('VD2026')"><b>📊 Vendas 2026</b></button>
           <button role="menuitem" data-out="PRD2026" onclick="escolheOut('PRD2026')"><b>&#128230; Produtos 2026</b></button>
           <button role="menuitem" data-out="CANCRET" onclick="escolheOut('CANCRET')"><b>🔄 Canc. &amp; Retenção</b></button>
@@ -7812,7 +7813,7 @@ function coorteGaranteAba() {
 // CASCA como Orçamentos/Comparar: cada item só chama setView(<view de sempre>); o gatilho (data-view
 // OUTRAS) acende e ganha o sufixo " · <nome>" quando uma delas está na tela.
 const OUT_VIEWS = { PROD: "Produtividade", LEADS: "Leads", COHORT: "Cohort", MVM: "MVM",
-                    ASET: "Análise Set", AOUT: "Análise Out", VD2026: "Vendas 2026", PRD2026: "Produtos 2026", CANCRET: "Canc. & Retenção", QUARTIS: "Quartis" };
+                    ASET: "Análise Set", AOUT: "Análise Out", ANOV: "Análise Nov", VD2026: "Vendas 2026", PRD2026: "Produtos 2026", CANCRET: "Canc. & Retenção", QUARTIS: "Quartis" };
 function fecharOutMenu() {
   const m = document.getElementById("outMenu"); if (m) m.classList.remove("aberto");
   const t = document.getElementById("outTrigger"); if (t) t.setAttribute("aria-expanded", "false");
@@ -13700,7 +13701,34 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
         + '<td style="padding:5px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:800;color:' + (melhor ? "#1D9E75" : "#D85A30") + '">' + d + '</td></tr>';
     });
     if (fRat) html += '<tr><td colspan="5" style="padding:7px 8px;font-size:10.5px;color:#64748b">* ' + M[r-1] + ' 1\u2013' + diaAte + ' (est.): contagens rateadas pela fra\u00E7\u00E3o REAL vendida at\u00E9 o dia ' + diaAte + ' (' + (fRat*100).toLocaleString("pt-BR",{maximumFractionDigits:1}) + '% do m\u00EAs, pela curva di\u00E1ria do pr\u00F3prio dashboard). Assume composi\u00E7\u00E3o novo\u00D7resgatada est\u00E1vel; convers\u00F5es (%) n\u00E3o mudam no rateio. O exato exige a base por lead (Base tratada).</td></tr>';
-    card.innerHTML = html + '</tbody></table>';
+    // LEITURA COHORT ✅/⚠️ — pontos positivos × atenção do mês ativo vs anterior (pedido 22/11)
+    var cvB2 = xB.novo[0] ? xB.novo[1]/xB.novo[0]*100 : 0, cvA2 = xA.novo[0] ? xA.novo[1]/xA.novo[0]*100 : 0;
+    var crB2 = RB[0] ? RB[1]/RB[0]*100 : 0, crA2 = RA[0] ? RA[1]/RA[0]*100 : 0;
+    var shB = xB.cas ? RB[1]/xB.cas*100 : 0, shA = xA.cas ? RA[1]/xA.cas*100 : 0;
+    var casB = xB.tot ? xB.cas/xB.tot*100 : 0, casA = xA.tot ? xA.cas/xA.tot*100 : 0;
+    function f1x(v){ return v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}); }
+    var pts=[], ngs=[];
+    function pnt(bom,t,v,d){ (bom?pts:ngs).push([t,v,d]); }
+    pnt(cvA2>=cvB2, "Conversão de leads do mês", f1x(cvB2)+"% → "+f1x(cvA2)+"%",
+        "vidas de leads novos ÷ leads novos — taxa comparável mesmo com o mês parcial");
+    pnt(crA2>=crB2, "Conversão de resgatadas", f1x(crB2)+"% → "+f1x(crA2)+"%",
+        "vidas de leads de meses anteriores ÷ leads resgatados");
+    pnt(casA>=casB, "% de vidas com lead vinculado", f1x(casB)+"% → "+f1x(casA)+"%",
+        "rastreabilidade da venda — quanto maior, mais o resultado nasce de lead");
+    pnt(shA<=shB, "Dependência de resgate", f1x(shB)+"% → "+f1x(shA)+"%",
+        "% das vidas casadas vindas de leads antigos — subir = entrada nova sustentando menos o mês");
+    if (fRat){
+      pnt(xA.tot>=estN(xB.tot), "Vidas no mesmo período (est.)", fmt(estN(xB.tot))+" → "+fmt(xA.tot),
+          "contagem do mês anterior rateada pela curva diária real");
+      pnt(xA.novo[1]>=estN(xB.novo[1]), "Vidas de leads do mês (mesmo período, est.)", fmt(estN(xB.novo[1]))+" → "+fmt(xA.novo[1]),
+          "só vidas de leads nascidos no próprio mês, mesma régua de rateio");
+    }
+    function blq(it,cor,tit){ return '<div style="border:1px solid #e2e8f1;border-top:3px solid '+cor+';border-radius:8px;padding:9px 11px">'
+      + '<div style="font-weight:800;color:'+cor+';font-size:12px;margin-bottom:3px">'+tit+'</div>'
+      + it.map(function(p){ return '<div style="padding:4px 0;border-bottom:1px solid #f1f5f9"><div style="font-size:10.5px;font-weight:800;color:'+cor+'">'+p[0]+'</div><div style="font-size:12.5px;font-weight:800">'+p[1]+'</div><div style="font-size:10px;color:#64748b">'+p[2]+'</div></div>'; }).join("") + '</div>'; }
+    html += '</tbody></table>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">' + blq(pts,"#1D9E75","\u2705 Pontos positivos") + blq(ngs,"#D85A30","\u26A0\uFE0F Pontos de atenção") + '</div>';
+    card.innerHTML = html;
     card.style.display = "";
   }
   var _rca = window.renderCoorteAba;
@@ -14711,6 +14739,37 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       return;
     }
     painel.style.display = 'none';
+    _sv.apply(null, arguments);
+  };
+})();
+</script>
+
+<!-- ABA ANALISE NOV — painel iframe (produtividade-vendas.vercel.app/analise-nov.html), patch 22/11/2026.
+     Análise Novembro × Outubro no MESMO período (dias 1–N), com pontos positivos/atenção dinâmicos.
+     Auto-contido e ÚLTIMO wrapper de setView: se a regeneração remover, reaplicar. -->
+<script>
+(function(){
+  var painel=document.createElement('div');
+  painel.id='anovPanel';
+  painel.style.cssText='display:none;position:fixed;left:0;right:0;bottom:0;top:0;z-index:800;background:#eef1f5';
+  painel.innerHTML='<iframe id="anovFrame" style="width:100%;height:100%;border:0" title="Análise Novembro — até o momento × Outubro"></iframe>';
+  document.body.appendChild(painel);
+  function pos(){var nb=document.getElementById('navBar');if(!nb)return;var r=nb.getBoundingClientRect();painel.style.top=Math.max(0,r.bottom)+'px';}
+  window.addEventListener('resize',pos);
+  window.addEventListener('scroll',function(){if(painel.style.display==='block')pos();});
+  var _sv=window.setView;
+  window.setView=function(v){
+    if(v==='ANOV'){
+      var f=document.getElementById('anovFrame');
+      if(!f.src)f.src='https://produtividade-vendas.vercel.app/analise-nov.html';
+      ['prodPanel','leadsPanel','atendPanel','funilPfPanel','funilPmePanel','vd2026Panel','cancPanel','mvmPanel','asetPanel','aoutPanel','cohortPanel','quartisPanel','prd2026Panel'].forEach(function(id){var p=document.getElementById(id);if(p)p.style.display='none';});
+      painel.style.display='block';pos();setTimeout(pos,80);
+      document.querySelectorAll('.view-tab').forEach(function(x){x.classList.toggle('active',x.dataset.view==='OUTRAS');});
+      var mg=document.getElementById('mesGroup');if(mg)mg.style.display='none';
+      var gg=document.getElementById('gestorGroup');if(gg)gg.style.display='none';
+      return;
+    }
+    painel.style.display='none';
     _sv.apply(null, arguments);
   };
 })();
