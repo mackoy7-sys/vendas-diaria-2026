@@ -13965,7 +13965,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   if (typeof PPO_VINCULO === "undefined" || window.__ppoVincFront) return;
   window.__ppoVincFront = true;
   var COR = {"5059":"#2a78d6","hapvida":"#eb6834","sem":"#898781"};
-  var LBL = {"5059":"Lead PPO — número 5059","hapvida":"Lead Hapvida","sem":"Sem vínculo"};
+  var LBL = {"5059":"Lead NotreDame","hapvida":"Lead Hapvida","sem":"Sem vínculo"};
   var KEYS = ["5059","hapvida","sem"];
   var modoDia = "proj";     // proj | vinc  (toggle C)
   var unid = "vidas";       // vidas | emp  (card A)
@@ -14091,7 +14091,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
   // Troca o empilhado "por fila" pelas 3 faixas (so Total geral). Jan-Jul nao tem WABA -> "Sem classificacao".
   var MESKEY = ["JANEIRO","FEVEREIRO","MARCO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
   var COR_SC = "#d3d1c7", modoAnual = "TOTAL";   // TOTAL | 5059 | hapvida | sem
-  var ANUAL_BTNS = [["TOTAL","Total"],["5059","Lead PPO 5059"],["hapvida","Lead Hapvida"],["sem","Sem vínculo"]];
+  var ANUAL_BTNS = [["TOTAL","Total"],["5059","Lead NotreDame"],["hapvida","Lead Hapvida"],["sem","Sem vínculo"]];
   function anualBtns(){
     var tg = document.getElementById("ppoAnualFilaToggle"); if (!tg) return null;
     if (tg.getAttribute("data-vinc") !== "1"){
@@ -14136,7 +14136,7 @@ e.textContent='DESATUALIZADO — dados até '+d;e.style.display='block'})
       options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
         interaction: { mode: "index", intersect: false },
         plugins: { legend: { display: empilhado, position: "top", labels: { boxWidth: 12, font: { size: 10 } } }, datalabels: {},
-          tooltip: { callbacks: { label: function(c){ return c.raw ? " " + c.dataset.label + ": " + c.raw + " vidas" : null; },
+          tooltip: { callbacks: { label: function(c){ return c.raw ? " " + c.dataset.label + ": " + c.raw + " vidas" + (empilhado && tot[c.dataIndex] ? " (" + pct(c.raw, tot[c.dataIndex]) + ")" : "") : null; },
                                   footer: function(it){ return empilhado ? "Total: " + tot[it[0].dataIndex] : ""; } } } },
         scales: { y: { beginAtZero: true, stacked: true, suggestedMax: max ? max + Math.max(1, Math.ceil(max * .2)) : undefined, ticks: { font: { size: 10 } } },
                   x: { stacked: true, ticks: { font: { size: 11 } } } } }
