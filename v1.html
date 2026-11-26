@@ -6009,15 +6009,20 @@ const RK_NUDGE={AC:[62,233],PA:[352,122],SC:[372,527],MA:[452,158]};
 const RK_REG = {"Norte":["AC","AP","AM","PA","RO","RR","TO"],"Nordeste":["AL","BA","CE","MA","PB","PE","PI","RN","SE"],"Centro-Oeste":["DF","GO","MT","MS"],"Sudeste":["ES","MG","RJ","SP"],"Sul":["PR","RS","SC"]};
 const RK_UF_REG = {}; Object.keys(RK_REG).forEach(r => RK_REG[r].forEach(u => { RK_UF_REG[u] = r; }));
 const RK_REG_NUDGE = {};   // ajuste fino (x,y) do rotulo de cada regiao no mapa, se precisar
-const RK = { aba: "geral", nivel: "uf", met: "vidas", tipo: "T", cmp: null, uf: "SP", reg: "Sudeste", sort: "vidas", dir: -1, D: null };
-// nivel "uf" = mapa por estado; "reg" = mapa por regiao. A chave da unidade (RK.uf / RK.reg) alimenta rkCell/rkRanking/painel sem mudar o resto.
+const RK = { aba: "geral", nivel: "nac", met: "vidas", tipo: "T", cmp: null, uf: "SP", reg: "Sudeste", sort: "vidas", dir: -1, D: null };
+// nivel "nac" = Brasil inteiro (uma unica unidade "BR"); "reg" = mapa por regiao; "uf" = mapa por estado. A chave da unidade (RK.uf / RK.reg / "BR")
+// alimenta rkCell/rkRanking/painel sem mudar o resto. Nacional soma TODAS as vidas e leads da corretora (inclui as sem DDD, fecha com os cards da aba).
 const rkReg = () => RK.nivel === "reg";
-const rkKeys = () => rkReg() ? Object.keys(RK_REG) : Object.keys(RK_UF_NOME);
-const rkSel = () => rkReg() ? RK.reg : RK.uf;
-const rkSetSel = k => { if (rkReg()) RK.reg = k; else RK.uf = k; };
-const rkUnTit = k => rkReg() ? k : RK_UF_NOME[k] + " · " + k;
+const rkNac = () => RK.nivel === "nac";
+const rkKeys = () => rkNac() ? ["BR"] : rkReg() ? Object.keys(RK_REG) : Object.keys(RK_UF_NOME);
+const rkSel = () => rkNac() ? "BR" : rkReg() ? RK.reg : RK.uf;
+const rkSetSel = k => { if (rkNac()) return; if (rkReg()) RK.reg = k; else RK.uf = k; };
+const rkSrc = () => rkNac() ? RK.D.nacU : rkReg() ? RK.D.regs : RK.D.ufs;
+// KPIs de lideranca e placar sao sempre por ESTADO (no Nacional "1 de 1" nao diz nada): roda a funcao com o nivel trocado
+function rkGeoUf(fn) { if (!rkNac()) return fn(); const n = RK.nivel; RK.nivel = "uf"; try { return fn(); } finally { RK.nivel = n; } }
+const rkUnTit = k => rkNac() ? "Brasil" : rkReg() ? k : RK_UF_NOME[k] + " · " + k;
 const rkUnPl = () => rkReg() ? "regiões" : "estados";
-const rkUnHdr = k => rkReg() ? k + ' <span style="font-weight:600">· ' + RK_REG[k].length + " estados</span>" : RK_UF_NOME[k] + ' <span style="font-weight:600">· ' + k + "</span>";
+const rkUnHdr = k => rkNac() ? 'Brasil <span style="font-weight:600">· todos os estados</span>' : rkReg() ? k + ' <span style="font-weight:600">· ' + RK_REG[k].length + " estados</span>" : RK_UF_NOME[k] + ' <span style="font-weight:600">· ' + k + "</span>";
 const rkNf = n => Math.round(n).toLocaleString("pt-BR");
 const rkPc = (v, d) => v.toFixed(d === undefined ? 1 : d).replace(".", ",") + "%";
 const rkBrl = v => "R$ " + Math.round(v).toLocaleString("pt-BR");
@@ -6040,7 +6045,6 @@ const rkRgb = a => "rgb(" + a.join(",") + ")";
     "#hpSubtabs{display:flex;gap:4px;border-bottom:1px solid #e3e8f0;margin:0 0 12px}" +
     "#hpSubtabs button{border:0;background:none;font:700 13px inherit;color:#64748b;padding:9px 14px;cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;margin-bottom:-1px}" +
     "#hpSubtabs button:hover{color:#0F297B}#hpSubtabs button.on{color:#3D65E7;border-bottom-color:#3D65E7}" +
-    "#hpSubtabs .rk-new{background:#FFD424;color:#0F297B;font-size:9px;font-weight:800;border-radius:4px;padding:1px 5px}" +
     "#haponPanel .container.rk-on>*:not(#hpSubtabs):not(#hpRankView){display:none!important}" +
     "#hpRankView{display:none}#haponPanel .container.rk-on>#hpRankView{display:block}" +
     "#hpRankView{color:#1c2b4a;font-size:13px}" +
@@ -6131,10 +6135,13 @@ function rkMes() {
   const ordem = Object.keys(corr).sort((a, b) => corr[b].vidas - corr[a].vidas || corr[b].leads - corr[a].leads);
   const regs = {}; Object.keys(RK_REG).forEach(r => { regs[r] = {}; });
   Object.keys(ufs).forEach(u => { const r = RK_UF_REG[u]; if (!r) return; Object.keys(ufs[u]).forEach(c => { const x = ufs[u][c], o = regs[r][c] || (regs[r][c] = { l: 0, vp: 0, vm: 0, wp: 0, wm: 0, vx: 0 }); for (const k in o) o[k] += x[k]; }); });
-  return { vazio: false, mesNome, key, ufs, regs, sem, semUf, corr, ordem, temRank, ref: H.ref };
+  // Nacional: uma unica unidade "BR" = total da corretora (leads e vidas, inclusive as sem DDD/UF) -- fecha com os cards e a tabela geral
+  const nac = {};
+  ordem.forEach(c => { const o = corr[c]; nac[c] = temRank ? { l: o.leads, vp: o.pf, vm: o.pme, wp: o.wp, wm: o.wm, vx: Math.max(0, o.vidas - o.pf - o.pme) } : { l: o.leads, vp: 0, vm: 0, wp: 0, wm: 0, vx: o.vidas }; });
+  return { vazio: false, mesNome, key, ufs, regs, nacU: { BR: nac }, sem, semUf, corr, ordem, temRank, ref: H.ref };
 }
 function rkCell(uf, c) {
-  const x = ((rkReg() ? RK.D.regs : RK.D.ufs)[uf] || {})[c];
+  const x = (rkSrc()[uf] || {})[c];
   if (!x) return { l: 0, v: 0, vt: 0, wt: 0, vp: 0, vm: 0 };
   const v = x.vp + x.vm + x.vx, t = RK.tipo;
   return { l: x.l, v, vp: x.vp, vm: x.vm, vt: t === "PF" ? x.vp : t === "PME" ? x.vm : v, wt: t === "PF" ? x.wp : t === "PME" ? x.wm : x.wp + x.wm };
@@ -6145,7 +6152,7 @@ function rkMetVal(x, met) {
   return met === "vidas" ? x.vt : met === "leads" ? x.l : met === "ticket" ? (rkOkT(x) ? x.wt / x.vt : null) : (rkOk(x) ? 100 * x.v / x.l : null);
 }
 const rkFmt = (val, met) => val === null ? "—" : met === "conv" ? rkPc(val) : met === "ticket" ? "R$ " + Math.round(val).toLocaleString("pt-BR") : rkNf(val);
-const rkCorrsUf = uf => Object.keys((rkReg() ? RK.D.regs : RK.D.ufs)[uf] || {}).filter(c => { const x = rkCell(uf, c); return x.l > 0 || x.v > 0; });
+const rkCorrsUf = uf => Object.keys(rkSrc()[uf] || {}).filter(c => { const x = rkCell(uf, c); return x.l > 0 || x.v > 0; });
 function rkRanking(uf, met) {
   return rkCorrsUf(uf).map(c => { const x = rkCell(uf, c); return { c, x, val: rkMetVal(x, met) }; })
     .filter(r => (met === "conv" || met === "ticket") ? r.val !== null : (met === "vidas" ? r.x.vt > 0 : r.x.l > 0))
@@ -6160,7 +6167,7 @@ const rkMetNome = { vidas: "mais vidas", conv: "melhor conversão", leads: "mais
 // da X (e vidas <= leads; * = menos de RK_MIN_V vidas, taxa instavel); ticket >= RK_MIN_T vidas da X. Mesma tela, mesmo painel do estado.
 const rkEhVol = met => met === "vidas" || met === "leads";
 const rkDSuf = met => met === "conv" ? " p.p." : "";
-const rkMediaNome = met => rkEhVol(met) ? "Média por corretora" : "Média do estado";
+const rkMediaNome = met => rkEhVol(met) ? "Média por corretora" : rkNac() ? "Média das corretoras" : "Média do estado";
 const RK_MIN_MEDIA = { vidas: 5, leads: 20 };   // vidas/leads: estado so' entra com total >= isto (senao a "media por corretora" e' ruido)
 function rkCmpVal(x, met) {
   if (rkEhVol(met)) return x.l > 0 ? { val: met === "vidas" ? x.vt : x.l, few: false } : null;   // X precisa ter recebido lead no estado
@@ -6195,9 +6202,20 @@ function rkFillInfo(k, cap) {
     const I = rkCmpInfo(k);
     if (I.d !== null) { const mm = rkMix(RK_NEUTRO, I.d >= 0 ? RK_ACIMA : RK_ABAIXO, Math.min(1, Math.abs(I.d) / cap) * (I.few ? 0.55 : 1)); /* menos de 3 vidas: cor mais clara */ fill = rkRgb(mm); txt = rkTxtOn(mm); sub = rkSgn(I.d, met) + (I.few ? "*" : ""); }
     else fill = I.has ? "url(#rkHach)" : "#f4f6f9";
-  } else if (L) { fill = rkCor(L.c); txt = rkTxtOn(rkHex(rkCor(L.c))); sub = rkFmt(L.val, met); }
-  else fill = ((met === "conv" || met === "ticket") && tem) ? "url(#rkHach)" : "#f4f6f9";
+  } else {
+    // David, 26/11/2026: a COR segue o lider, mas o NUMERO e' o total da unidade (estado/regiao/Brasil) na metrica escolhida
+    if (L) { fill = rkCor(L.c); txt = rkTxtOn(rkHex(rkCor(L.c))); }
+    else fill = ((met === "conv" || met === "ticket") && tem) ? "url(#rkHach)" : "#f4f6f9";
+    sub = rkTotSub(t, met);
+  }
   return { fill, txt, sub };
+}
+// total da unidade na metrica (todas as corretoras juntas; vidas/ticket seguem o filtro PF/PME); "" quando nao ha base minima
+function rkTotSub(t, met) {
+  if (met === "vidas") return t.vt > 0 ? rkNf(t.vt) : "";
+  if (met === "leads") return t.l > 0 ? rkNf(t.l) : "";
+  if (met === "ticket") return rkOkT(t) ? rkFmt(t.wt / t.vt, "ticket") : "";
+  return rkOk(t) ? rkPc(100 * t.v / t.l) : "";
 }
 const RK_HACH = '<pattern id="rkHach" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#f4f6f9"/><line x1="0" y1="0" x2="0" y2="6" stroke="#cbd5e1" stroke-width="2.2"/></pattern>';
 // filtro do contorno da regiao: dilata o bloco e pinta so' a borda de fora (rkOutW = filete branco entre regioes; rkOutS = contorno azul da selecionada)
@@ -6220,7 +6238,11 @@ function rkDrawMapReg() {
     el.addEventListener("mouseleave", () => { rkId("rkTip").style.display = "none"; });
   });
 }
+// mapa NACIONAL (David, 26/11/2026): o MESMO mapa por estado (cor do lider + total de cada estado); o quadro ao lado (KPIs/painel) e' o do pais inteiro.
+// Desenha com o nivel trocado para "uf", sem estado selecionado; clicar num estado abre o nivel Estados naquele estado.
+function rkDrawMapNac() { RK._nosel = true; try { rkGeoUf(rkDrawMap); } finally { RK._nosel = false; } }
 function rkDrawMap() {
+  if (rkNac()) return rkDrawMapNac();
   if (rkReg()) return rkDrawMapReg();
   const svg = rkId("rkMap"), met = RK.met;
   const defs = '<defs><pattern id="rkHach" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#f4f6f9"/><line x1="0" y1="0" x2="0" y2="6" stroke="#cbd5e1" stroke-width="2.2"/></pattern></defs>';
@@ -6229,8 +6251,8 @@ function rkDrawMap() {
   Object.keys(RK_MAPA).forEach(uf => {
     const m = RK_MAPA[uf], nx = RK_NUDGE[uf], cx = nx ? nx[0] : m[1], cy = nx ? nx[1] : m[2];
     const FI = rkFillInfo(uf, cap), fill = FI.fill, txt = FI.txt, sub = FI.sub;
-    const p = '<path class="uf' + (uf === RK.uf ? " sel" : "") + '" data-uf="' + uf + '" d="' + m[0] + '" fill="' + fill + '"/>';
-    if (uf === RK.uf) selPath = p; else paths += p;
+    const p = '<path class="uf' + (uf === RK.uf && !RK._nosel ? " sel" : "") + '" data-uf="' + uf + '" d="' + m[0] + '" fill="' + fill + '"/>';
+    if (uf === RK.uf && !RK._nosel) selPath = p; else paths += p;
     if (m[3] > 0) {
       const y = m[3];
       ext += '<g><path class="gl" d="M' + cx + " " + cy + " L" + (RK_GUIA_X - 16) + " " + y + " L" + (RK_GUIA_X - 3) + " " + y + '"/>' +
@@ -6243,12 +6265,13 @@ function rkDrawMap() {
   });
   svg.innerHTML = defs + paths + selPath + ext + labs;
   svg.querySelectorAll(".uf").forEach(el => {
-    el.addEventListener("click", () => { RK.uf = el.dataset.uf; rkRender(); });
+    el.addEventListener("click", () => { RK.nivel = "uf"; RK.uf = el.dataset.uf; rkRender(); });
     el.addEventListener("mousemove", e => rkTip(e, el.dataset.uf));
     el.addEventListener("mouseleave", () => { rkId("rkTip").style.display = "none"; });
   });
 }
-function rkTip(e, uf) {
+function rkTip(e, uf) { return rkNac() && uf !== "BR" ? rkGeoUf(() => rkTip0(e, uf)) : rkTip0(e, uf); }
+function rkTip0(e, uf) {
   const t = rkUfTot(uf), r = RK.cmp ? [] : rkRanking(uf, RK.met).slice(0, 3), T = rkId("rkTip");
   let h = "<b>" + rkUnTit(uf) + "</b><br>";
   if (RK.cmp) {
@@ -6263,7 +6286,8 @@ function rkTip(e, uf) {
   T.innerHTML = h; T.style.display = "block";
   T.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px"; T.style.top = (e.clientY + 14) + "px";
 }
-function rkLegend() {
+function rkLegend() { return rkGeoUf(rkLegend0); }
+function rkLegend0() {
   const L = rkId("rkLeg"); let h = "";
   if (RK.cmp) {
     const cap = rkCmpCap(), u = rkDSuf(RK.met), f = v => RK.met === "ticket" ? "R$ " + Math.round(v) : rkEhVol(RK.met) ? Math.round(v) + "%" : v.toFixed(1).replace(".", ",");
@@ -6280,9 +6304,9 @@ function rkLegend() {
 // ---------- painel do estado ----------
 function rkPanelSet(h) {
   const el = rkId("rkPanel"); el.innerHTML = h;
-  el.querySelectorAll("u[data-go]").forEach(e => { e.onclick = () => { RK.nivel = "uf"; RK.uf = e.dataset.go; rkRender(); }; });
+  el.querySelectorAll("u[data-go]").forEach(e => { e.onclick = () => { const g = e.dataset.go; if (RK_REG[g]) { RK.nivel = "reg"; RK.reg = g; } else { RK.nivel = "uf"; RK.uf = g; } rkRender(); }; });
 }
-const rkRegChips = r => rkReg() ? '<div class="rk-chips" style="--c:#3D65E7;margin:0 0 10px"><em>Estados (clique para abrir no mapa por estado):</em>' + RK_REG[r].map(u => '<u data-go="' + u + '">' + u + "</u>").join("") + "</div>" : "";
+const rkRegChips = r => rkNac() ? '<div class="rk-chips" style="--c:#3D65E7;margin:0 0 10px"><em>Regiões (clique para abrir no mapa por região):</em>' + Object.keys(RK_REG).map(g => '<u data-go="' + g + '">' + g + "</u>").join("") + "</div>" : rkReg() ?'<div class="rk-chips" style="--c:#3D65E7;margin:0 0 10px"><em>Estados (clique para abrir no mapa por estado):</em>' + RK_REG[r].map(u => '<u data-go="' + u + '">' + u + "</u>").join("") + "</div>" : "";
 function rkPanelCmp() {
   const uf = rkSel(), met = RK.met, c = RK.cmp, I = rkCmpInfo(uf), tp = RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "";
   const rows = rkCorrsUf(uf).map(k => { const x = rkCell(uf, k), r = rkCmpVal(x, met); return { n: rkNome(k), k, val: r ? r.val : null, few: r ? r.few : false, x }; });
@@ -6292,7 +6316,7 @@ function rkPanelCmp() {
   const mx = Math.max(1, ...rows.map(r => r.val || 0));
   let h = '<div class="rk-uf-h"><b>' + rkUnHdr(uf) + "</b><span>" + rkEsc(rkNome(c)) + " × média · " + rkMetCurto[met] + tp + "</span></div>" + rkRegChips(uf);
   const dif = I.d === null ? "—" : '<span style="color:' + (I.d >= 0 ? "#3D65E7" : "#FF4E05") + '">' + rkSgn(I.d, met) + rkDSuf(met) + "</span>";
-  h += '<div class="rk-sum"><div><i>' + rkEsc(rkNome(c)) + "</i><b>" + (I.val === null ? "—" : rkUnid(I.val, met) + (I.few ? "*" : "")) + "</b></div><div><i>" + rkMediaNome(met) + "</i><b>" + (I.avg === null ? "—" : rkUnid(I.avg, met)) + "</b></div><div><i>Diferença</i><b>" + dif + "</b></div><div><i>Média HapON</i><b>" + (avgNac === null ? "—" : rkUnid(avgNac, met)) + "</b></div></div>";
+  h += '<div class="rk-sum"><div><i>' + rkEsc(rkNome(c)) + "</i><b>" + (I.val === null ? "—" : rkUnid(I.val, met) + (I.few ? "*" : "")) + "</b></div><div><i>" + rkMediaNome(met) + "</i><b>" + (I.avg === null ? "—" : rkUnid(I.avg, met)) + "</b></div><div><i>Diferença</i><b>" + dif + "</b></div>" + (rkNac() ? "<div><i>Corretoras</i><b>" + RK.D.ordem.length + "</b></div>" : "<div><i>Média HapON</i><b>" + (avgNac === null ? "—" : rkUnid(avgNac, met)) + "</b></div>") + "</div>";
   if (I.val === null || I.avg === null) {
     let why;
     if (met === "ticket") why = "Menos de " + RK_MIN_T + " vidas da corretora neste estado: ticket não avaliável.";
@@ -6360,7 +6384,10 @@ function rkPlacarData() {
   rkUfsDado().forEach(u => ["vidas", "conv", "leads", "ticket"].forEach(m => { const L = rkLider(u, m); if (L && out[L.c]) out[L.c][m].push(u); }));
   return out;
 }
-function rkKpisCmp() {
+function rkKpisCmp() { return rkGeoUf(rkKpisCmp0); }
+function rkKpis() { return rkGeoUf(rkKpis0); }
+function rkPlacar() { return rkGeoUf(rkPlacar0); }
+function rkKpisCmp0() {
   const L = rkCorrList(), c = RK.cmp, met = RK.met, o = L.find(x => x.c === c), tp = RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "";
   const mine = !o ? null : met === "ticket" ? o.ticket : met === "conv" ? o.conv : met === "vidas" ? o.vt : o.leads, avg = rkCmpNacional();
   const d = (mine !== null && mine !== undefined && avg !== null) ? (rkEhVol(met) ? (avg > 0 ? 100 * (mine / avg - 1) : null) : mine - avg) : null;
@@ -6375,7 +6402,7 @@ function rkKpisCmp() {
     k(d === null ? "#94a3b8" : (d >= 0 ? "#3D65E7" : "#FF4E05"), "Diferença", null, d === null ? "—" : '<span style="color:' + (d >= 0 ? "#3D65E7" : "#FF4E05") + '">' + rkSgn(d, met) + rkDSuf(met) + "</span>", "da corretora para a média") +
     k("#0F297B", (rkReg() ? "Regiões" : "Estados") + " acima da média", null, up + " <small>de " + rs.length + "</small>", "só " + rkUnPl() + " com base mínima");
 }
-function rkKpis() {
+function rkKpis0() {
   if (RK.cmp) return rkKpisCmp();
   const L = rkCorrList(), tp = RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "";
   const tv = L.reduce((a, o) => a + o.vidas, 0), tl = L.reduce((a, o) => a + o.leads, 0);
@@ -6394,7 +6421,7 @@ function rkKpis() {
     (tk ? k("#FF8800", "Maior ticket médio" + tp + " (≥ 10 vidas)", tk.c, rkEsc(rkNome(tk.c)) + " <small>" + rkBrl2(tk.ticket) + "</small>", "mensalidade ÷ vida · média " + rkBrl2(tw / Math.max(1, tvt))) : nd("Maior ticket médio")) +
     (mp && mp.n ? k("#0F297B", "Mais " + rkUnPl() + " na liderança", mp.c, rkEsc(rkNome(mp.c)) + " <small>" + mp.n + " de " + nuf + "</small>", "por " + rkMetCurto[met] + tp) : nd("Mais " + rkUnPl() + " na liderança"));
 }
-function rkPlacar() {
+function rkPlacar0() {
   const P = rkPlacarData(), ms = ["vidas", "conv", "leads", "ticket"], tot = c => ms.reduce((a, m) => a + P[c][m].length, 0);
   const lst = RK.D.ordem.filter(c => tot(c) > 0).sort((a, b) => tot(b) - tot(a));
   const cel = (c, m) => { const a = P[c][m]; return '<div class="rk-chips" style="--c:' + rkCor(c) + '"><b>' + a.length + "</b>" + (a.length ? a.map(u => '<u data-uf="' + u + '">' + u + "</u>").join("") : "<em>—</em>") + "</div>"; };
@@ -6402,7 +6429,7 @@ function rkPlacar() {
   const semConv = rkUfsDado().filter(u => !rkLider(u, "conv")).length, semTk = rkUfsDado().filter(u => !rkLider(u, "ticket")).length;
   h += '<div class="rk-hint">' + (rkReg() ? "Regiões" : "Estados") + ' sem base mínima ficam fora do placar: conversão ' + semConv + " (≥ " + RK_MIN_L + " leads e ≥ " + RK_MIN_V + " vidas) · ticket " + semTk + " (≥ " + RK_MIN_T + " vidas).</div>";
   const el = rkId("rkPlacar"); el.innerHTML = h;
-  el.querySelectorAll("u").forEach(e => { e.onclick = () => { rkSetSel(e.dataset.uf); rkRender(); const p = rkId("haponPanel"); if (p) p.scrollTo({ top: 0, behavior: "smooth" }); }; });
+  el.querySelectorAll("u").forEach(e => { e.onclick = () => { if (rkNac()) RK.nivel = "uf"; rkSetSel(e.dataset.uf); rkRender(); const p = rkId("haponPanel"); if (p) p.scrollTo({ top: 0, behavior: "smooth" }); }; });
 }
 const RK_COLS = [["vidas", "Vidas"], ["leads", "Leads"], ["conv", "Conversão"], ["ticket", "Ticket médio"], ["tkPf", "Ticket PF"], ["tkPme", "Ticket PME"], ["valor", "Faturamento"], ["pfpme", "PF · PME"], ["ufs", "Estados c/ venda"], ["mel", "Melhor estado (conv.)"]];
 function rkTabela() { const nv = RK.nivel; RK.nivel = "uf"; try { rkTabelaUf(); } finally { RK.nivel = nv; } }   // a tabela geral e' sempre por estado
@@ -6443,7 +6470,7 @@ function rkGaranteUi() {
   if (!rkId("hpSubtabs")) {
     const sb = document.createElement("div");
     sb.id = "hpSubtabs";
-    sb.innerHTML = '<button type="button" data-t="geral" class="on">Visão geral</button><button type="button" data-t="ranking">🏆 Ranking Corretoras <span class="rk-new">NOVO</span></button>';
+    sb.innerHTML = '<button type="button" data-t="geral" class="on">Visão geral</button><button type="button" data-t="ranking">Ranking Corretoras</button>';
     ct.insertBefore(sb, ct.firstChild);
     sb.querySelectorAll("button").forEach(b => { b.onclick = () => rkAba(b.dataset.t); });
   }
@@ -6452,7 +6479,7 @@ function rkGaranteUi() {
     v.id = "hpRankView";
     v.innerHTML =
       '<div class="rk-card"><div class="rk-ctl">' +
-      '<div class="rk-g"><span>Nível</span><div class="rk-seg" id="rkSegNivel"><button type="button" data-v="uf" class="on">Estados</button><button type="button" data-v="reg">Regiões</button></div></div>' +
+      '<div class="rk-g"><span>Nível</span><div class="rk-seg" id="rkSegNivel"><button type="button" data-v="nac" class="on">Nacional</button><button type="button" data-v="reg">Regiões</button><button type="button" data-v="uf">Estados</button></div></div>' +
       '<div class="rk-g"><span>Líder em</span><div class="rk-seg" id="rkSegMet"><button type="button" data-v="vidas" class="on">Vidas</button><button type="button" data-v="conv">Conversão</button><button type="button" data-v="leads">Leads recebidos</button><button type="button" data-v="ticket">Ticket médio</button></div></div>' +
       '<div class="rk-g"><span>Tipo</span><div class="rk-seg" id="rkSegTipo"><button type="button" data-v="T" class="on">Todos</button><button type="button" data-v="PF">PF</button><button type="button" data-v="PME">PME</button></div></div>' +
       '<div class="rk-g"><span>Comparar com a média</span><select id="rkSelCmp"></select></div>' +
@@ -6507,14 +6534,17 @@ function rkRender() {
   if (RK.cmp) {
     rkId("rkMapTit").textContent = rkNome(RK.cmp) + " × média das corretoras — " + ({ conv: "conversão", ticket: "ticket médio", vidas: "vidas", leads: "leads recebidos" })[met] + tp + (rkReg() ? " por região · " : " por estado · ") + D.mesNome;
     rkId("rkMapSub").textContent = rkEhVol(met)
-      ? "Cada " + (rkReg() ? "região" : "estado") + " mostra quanto a corretora está acima ou abaixo da média por corretora na mesma " + (rkReg() ? "região" : "estado") + " (total ÷ corretoras que receberam lead lá, ela incluída), em %. Azul = acima, laranja = abaixo."
+      ?"Cada " + (rkReg() ? "região" : "estado") + " mostra quanto a corretora está acima ou abaixo da média por corretora na mesma " + (rkReg() ? "região" : "estado") + " (total ÷ corretoras que receberam lead lá, ela incluída), em %. Azul = acima, laranja = abaixo."
       : "Cada " + (rkReg() ? "região" : "estado") + " mostra a diferença da corretora para a média das corretoras na mesma " + (rkReg() ? "região" : "estado") + " (todas juntas, ela incluída). Azul = acima da média, laranja = abaixo.";
   } else {
     rkId("rkMapTit").textContent = "Corretora líder em cada " + (rkReg() ? "região" : "estado") + " — " + rkMetNome[met] + tp + " · " + D.mesNome;
-    rkId("rkMapSub").textContent = "Cada " + (rkReg() ? "região (soma dos seus estados) é pintada" : "estado é pintado") + " com a cor de quem lidera; o número é o valor do líder.";
+    const tpl = RK.tipo !== "T" ? " " + RK_TIPO[RK.tipo] : "";
+    const num = { vidas: "o total de vidas" + tpl, leads: "o total de leads recebidos", conv: "a conversão", ticket: "o ticket médio" + tpl }[met];
+    const de = rkReg() ? "da região" : "do estado";
+    rkId("rkMapSub").textContent = ("Cada " + (rkReg() ? "região (soma dos seus estados) é pintada" : "estado é pintado")) + " com a cor de quem lidera; o número é " + num + " " + de + (met === "conv" ? " (vidas ÷ leads de todas as corretoras juntas)" : " (todas as corretoras juntas)") + ".";
   }
   rkId("rkSegNivel").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === RK.nivel));
-  rkId("rkMapHint").textContent = rkReg() ? "Clique numa região para ver o ranking das corretoras dentro dela. Região = soma dos estados (DDD do telefone, lead e vida); as bases mínimas são as mesmas dos estados." : "Clique num estado para ver o ranking das corretoras dentro dele. Estado = DDD do telefone (lead e vida).";
+  rkId("rkMapHint").textContent = rkNac() ? "Visão nacional: o mapa mostra cada estado; o quadro ao lado é o Brasil todo (todas as vidas e leads de cada corretora, inclusive os sem DDD). Clique num estado para abri-lo no nível Estados." : rkReg() ?"Clique numa região para ver o ranking das corretoras dentro dela. Região = soma dos estados (DDD do telefone, lead e vida); as bases mínimas são as mesmas dos estados." : "Clique num estado para ver o ranking das corretoras dentro dele. Estado = DDD do telefone (lead e vida).";
   rkId("rkPlTit").textContent = "Placar de " + rkUnPl();
   rkId("rkPlSub").textContent = "Em quantas " + (rkReg() ? "regiões" : "estados") + " cada corretora é a número 1, em cada métrica. Vidas e ticket seguem o filtro de tipo. Clique " + (rkReg() ? "numa região" : "num estado") + " para abrir no mapa.";
   const sc = rkId("rkSelCmp");
