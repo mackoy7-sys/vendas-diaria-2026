@@ -5370,6 +5370,356 @@ function renderHaponCorr() {
     "<br>O filtro de corretora vale para KPIs, gráfico, conversão, empresa e vendedor (Praça e Plano estão fora da aba por enquanto); corretoras sem venda no painel só têm leads.";
 }
 // === FIM HAPON_FRONT ===
+// === HAPON_CONV (secao "Lead x venda" da aba HapON Corretoras + linha HapOn Interno na entrada de leads por dia -- aplicado por aplicar_front_hapon_conv.py; NAO editar no HTML) ===
+// David, 24/11/2026: o cruzamento lead x venda (MESMO telefone) e' uma VISAO SEPARADA da tabela "Metricas por corretora" (que fica como estava).
+// A secao nova "Lead x venda" tem o grupo "HapON corretoras" que abre em cada corretora, a linha "HapOn Interno" (leads do Notre Dame, que o resto
+// da aba exclui) e, em matriz (forma B), QUEM VENDEU o lead: propria corretora | FABIO | JOSY | outros, com a conversao direta total e a de cada lado.
+// Dado = HAPON_CONV (hapon_conv.py): meses[M].g[CORRETORA|"INTERNO"] = [leads, leads convertidos, vidas, v_propria, v_fabio, v_josy, v_outros,
+// leads convertidos pela propria corretora, leads convertidos pelo time interno (FABIO+JOSY+Adm.)]; meses[M].d = Interno por dia.
+// Bloco SEPARADO do HAPON_FRONT (mesmo desenho do HAPON_DDD): so' ENVOLVE renderHaponCorr e acrescenta secao/linha DEPOIS dela; nao altera a
+// tabela "Metricas por corretora". Sem HAPON_CONV para o mes, a secao some e a tabela de leads por dia fica como estava.
+let hapConvOrdem = "", hapConvAberto = true;
+function hapConvOrdena(k) { hapConvOrdem = hapConvOrdem === k ? "" : k; renderHapConv(); }
+function hapConvAbre() {
+  hapConvAberto = !hapConvAberto;
+  document.querySelectorAll("#hpCvTb tr.hp-cv-ch").forEach(r => { r.style.display = hapConvAberto ? "" : "none"; });
+  const c = document.getElementById("hpCvCaret"); if (c) c.textContent = hapConvAberto ? "▾" : "▸";
+}
+// 26/11/2026 (subaba "Campanhas e Leads"): cada secao ganhou um GRAFICO no topo (barras em vez de matriz de colunas); a tabela completa e as notas
+// ficam atras de "Ver tabela e notas". Os numeros sao os mesmos da tabela (mesmos dados, mesmo filtro de corretora).
+const CV_COR = ["#3D65E7", "#FF8800", "#1D9E75", "#94a3b8"], CV_NOMES = ["Própria corretora", "FABIO", "JOSY", "Outros"];
+const RV_COR = ["#3D65E7", "#8aa3f0", "#c7d3fb", "#1D9E75", "#94a3b8", "#d5dbe6"];
+let hapConvTab = { Cv: false, Rv: false, Cp: false };
+function hapConvVerTab(k) { hapConvTab[k] = !hapConvTab[k]; hapConvTabSync(k); }
+function hapConvTabSync(k) {
+  const w = document.getElementById("hp" + k + "TabWrap"), b = document.getElementById("hp" + k + "TabBtn");
+  if (w) w.style.display = hapConvTab[k] ? "" : "none";
+  if (b) b.textContent = hapConvTab[k] ? "Ocultar tabela e notas ▴" : "Ver tabela e notas ▾";
+}
+function hapConvCss2() {
+  if (document.getElementById("hpConvCss2")) return;
+  const st = document.createElement("style"); st.id = "hpConvCss2";
+  st.textContent = "#haponPanel .cv-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0 18px}" +
+    "#haponPanel .cv-k{background:#f6f8fc;border-radius:8px;padding:10px 14px}#haponPanel .cv-k b{display:block;font-size:22px;font-weight:800;color:#0F297B;letter-spacing:-.3px}" +
+    "#haponPanel .cv-k span{font-size:11.5px;color:#64748b}#haponPanel .cv-k i{display:block;font-style:normal;font-size:10.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:1px}" +
+    "#haponPanel .cv-t{font-size:14px;font-weight:700;color:#0F297B;margin:2px 0 2px}#haponPanel .cv-sub{font-size:12px;color:#64748b;margin-bottom:4px}" +
+    "#haponPanel .cv-leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:#64748b;margin:6px 0 10px}#haponPanel .cv-leg span{display:inline-flex;align-items:center;gap:5px}" +
+    "#haponPanel .cv-leg u{display:inline-block;width:10px;height:10px;border-radius:2px;text-decoration:none}" +
+    "#haponPanel .cv-h,#haponPanel .cv-r{display:grid;grid-template-columns:150px minmax(0,1fr) 46px 54px;gap:10px;align-items:center}" +
+    "#haponPanel .cv-h{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;font-weight:700;padding-bottom:4px;border-bottom:1px solid #e3e8f0}" +
+    "#haponPanel .cv-r{padding:5px 0;font-size:13px;color:#1c2b4a;border-bottom:1px solid #f3f5fa}#haponPanel .cv-r.off{opacity:.35}#haponPanel .cv-r.int{border-top:2px solid #dfe5f5;margin-top:4px;padding-top:9px}" +
+    "#haponPanel .cv-n{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#haponPanel .cv-v{text-align:right;color:#64748b}#haponPanel .cv-c{text-align:right;font-weight:700;color:#0F297B}" +
+    "#haponPanel .cv-b{display:flex;gap:2px;height:16px;min-width:2px}#haponPanel .cv-b i{display:block;height:100%}#haponPanel .cv-b i:first-child{border-radius:4px 0 0 4px}#haponPanel .cv-b i:last-child{border-radius:0 4px 4px 0}" +
+    "#haponPanel .cv-wks{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px;align-items:end;border-bottom:1px solid #e3e8f0;margin-top:8px}" +
+    "#haponPanel .cv-wk{display:flex;gap:6px;align-items:flex-end;justify-content:center;height:140px}#haponPanel .cv-wk div{text-align:center;font-size:12px;color:#1c2b4a}#haponPanel .cv-wk div u{display:block;width:32px;border-radius:4px 4px 0 0;text-decoration:none;margin-top:2px}" +
+    "#haponPanel .cv-wkl{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px;font-size:12px;color:#64748b;text-align:center;padding-top:4px}" +
+    "#haponPanel .cv-cr{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.4fr) 50px minmax(0,1fr);gap:10px;align-items:center;padding:5px 0;font-size:13px;color:#1c2b4a;border-bottom:1px solid #f3f5fa}" +
+    "#haponPanel .cv-ch{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.4fr) 50px minmax(0,1fr);gap:10px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;font-weight:700;padding-bottom:4px;border-bottom:1px solid #e3e8f0}" +
+    "#haponPanel .cv-cl{display:flex;align-items:center;gap:6px}#haponPanel .cv-cl em{font-style:normal;font-size:12px;color:#64748b;white-space:nowrap}" +
+    "#haponPanel .cv-tg{margin:14px 0 0}#haponPanel .cv-tg button{border:1px solid #cfd8ea;background:#fff;border-radius:7px;padding:6px 12px;font:600 12px inherit;color:#3D65E7;cursor:pointer}#haponPanel .cv-tg button:hover{background:#eef2fb}" +
+    "#haponPanel #hpCvNav{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}#haponPanel #hpCvNav .seg{display:inline-flex;border:1px solid #cfd8ea;border-radius:7px;overflow:hidden;background:#fff}" +
+    "#haponPanel #hpCvNav .seg button{border:0;background:#fff;padding:7px 14px;font:600 12.5px inherit;color:#64748b;cursor:pointer}#haponPanel #hpCvNav .seg button+button{border-left:1px solid #cfd8ea}" +
+    "#haponPanel #hpCvNav .seg button.on{background:#3D65E7;color:#fff}#haponPanel #hpCvNav .seg button.sem{opacity:.4}#haponPanel #hpCvNav .dica{font-size:11.5px;color:#94a3b8}";
+  document.head.appendChild(st);
+}
+const cvK = (l, v, d) => '<div class="cv-k"><i>' + l + "</i><b>" + v + "</b><span>" + d + "</span></div>";
+const cvBar = (vals, cores, nomes, w) => '<div class="cv-b" style="width:' + Math.max(0.5, w).toFixed(1) + '%">' + vals.map((v, i) => v > 0 ? '<i style="flex:' + v + ";background:" + cores[i] + '" title="' + nomes[i] + ": " + hapFmt(v) + '"></i>' : "").join("") + "</div>";
+const cvLeg = (nomes, cores, extra) => '<div class="cv-leg">' + nomes.map((n, i) => '<span><u style="background:' + cores[i] + '"></u>' + n + "</span>").join("") + (extra || "") + "</div>";
+// Lead x venda: 4 numeros + barras de "quem vendeu" por corretora + coorte semanal em colunas
+function hapConvChartCv(mc, keys, g, gTot, on, C) {
+  const f = hapFmt, p1 = (a, b) => hapPct1(a, b) + "%";
+  let h = "";
+  if (gTot) {
+    const tm = gTot[4] + gTot[5];
+    h += '<div class="cv-kpis">' + cvK("Conversão direta", gTot[0] ? p1(gTot[1], gTot[0]) : "—", f(gTot[1]) + " de " + f(gTot[0]) + " leads") + cvK("Vidas vendidas", f(gTot[2]), "pelo telefone do lead") +
+      cvK("Time interno vendeu", gTot[2] ? p1(tm, gTot[2]) : "—", "FABIO + JOSY · " + f(tm) + " vidas") + cvK("Fecharam em até 7 dias", gTot[1] ? p1(gTot[9], gTot[1]) : "—", f(gTot[9]) + " de " + f(gTot[1]) + " convertidos") + "</div>";
+  }
+  const rows = keys.map(k => ({ n: HAP_NOME[k] || k, cor: HAP_COR[k] || "#999", a: g[k], off: !on(k) })).sort((x, y) => y.a[2] - x.a[2]);
+  const mx = Math.max(1, ...rows.map(r => r.a[2]), g.INTERNO ? g.INTERNO[2] : 0);
+  const row = (r, cls) => '<div class="cv-r' + (cls || "") + (r.off ? " off" : "") + '"><span class="cv-n" title="' + r.n + '"><i class="hp-sw" style="background:' + r.cor + '"></i>' + r.n + "</span>" +
+    cvBar([r.a[3], r.a[4], r.a[5], r.a[6]], CV_COR, CV_NOMES, 100 * r.a[2] / mx) + '<span class="cv-v">' + f(r.a[2]) + '</span><span class="cv-c" title="Leads com venda de mesmo telefone ÷ leads únicos">' + (r.a[0] ? p1(r.a[1], r.a[0]) : "—") + "</span></div>";
+  h += '<div class="cv-t">Quem vendeu o lead de cada corretora</div>' + cvLeg(CV_NOMES, CV_COR) +
+    '<div class="cv-h"><span>Corretora</span><span>Vidas vendidas, por quem vendeu</span><span style="text-align:right">Vidas</span><span style="text-align:right">Conv.</span></div>' + rows.map(r => row(r, "")).join("") +
+    (g.INTERNO ? row({ n: "HapOn Interno", cor: "#6c757d", a: g.INTERNO, off: false }, " int") : "");
+  if (mc.w && mc.w.length) {
+    const dia = C.vendasAte ? parseInt(String(C.vendasAte).slice(0, 2)) : 0, corrente = !!mc.rev;
+    const pc = r => [r[2] ? r[3] / r[2] : 0, r[5] ? r[6] / r[5] : 0];
+    const mxp = Math.max(0.0001, ...mc.w.map(r => Math.max(...pc(r))));
+    h += '<div class="cv-t" style="margin-top:20px">Conversão direta por semana de entrada do lead</div>' +
+      cvLeg(["Leads das corretoras", "HapOn Interno"], ["#3D65E7", "#FF8800"], corrente ? '<span style="color:#94a3b8">cores claras = lead ainda amadurecendo (menos de 7 dias de janela)</span>' : "") +
+      '<div class="cv-wks">' + mc.w.map(r => { const imat = corrente && dia && r[1] > dia - 7, v = pc(r); return '<div class="cv-wk">' + [[v[0], r[2], r[3], "#3D65E7"], [v[1], r[5], r[6], "#FF8800"]].map(q =>
+        '<div title="' + f(q[2]) + " de " + f(q[1]) + ' leads"><span>' + (q[1] ? p1(q[2], q[1]) : "—") + '</span><u style="height:' + Math.max(2, Math.round(110 * q[0] / mxp)) + "px;background:" + q[3] + ";opacity:" + (imat ? 0.4 : 1) + '"></u></div>').join("") + "</div>"; }).join("") + "</div>" +
+      '<div class="cv-wkl">' + mc.w.map(r => "<span>Dias " + r[0] + " a " + r[1] + "</span>").join("") + "</div>";
+  }
+  return h;
+}
+// De onde vem a venda: barra 100% por corretora (lead do mes | do mes anterior | antes | GUP | sem lead | sem telefone)
+function hapConvChartRv(rv, keys, on, tot, ab) {
+  const f = hapFmt, base = tot[0] - tot[1];
+  const nomes = ["Lead de " + ab(rv.m[0]), "Lead de " + ab(rv.m[1]), ab(rv.m[2]) + " e antes", "Leads GUP", "Sem lead", "Sem telefone"];
+  const ord = a => [a[2], a[3], a[4], a[5], a[6], a[1]];
+  const rows = keys.map(k => ({ n: HAP_NOME[k] || k, cor: HAP_COR[k] || "#999", a: rv.g[k], off: !on(k) })).sort((x, y) => y.a[0] - x.a[0]);
+  return '<div class="cv-t">Qual era o lead de cada venda · ' + f(tot[0]) + " vidas</div>" +
+    '<div class="cv-sub">' + (base > 0 ? "<b>" + hapPct1(tot[2] + tot[3] + tot[4], base) + "%</b> das vidas com telefone têm lead no portal com o mesmo telefone" : "Sem vidas com telefone no período") + "</div>" + cvLeg(nomes, RV_COR) +
+    '<div class="cv-h" style="grid-template-columns:150px minmax(0,1fr) 46px"><span>Corretora</span><span>Origem da venda (100% das vidas)</span><span style="text-align:right">Vidas</span></div>' +
+    rows.map(r => '<div class="cv-r' + (r.off ? " off" : "") + '" style="grid-template-columns:150px minmax(0,1fr) 46px"><span class="cv-n" title="' + r.n + '"><i class="hp-sw" style="background:' + r.cor + '"></i>' + r.n + "</span>" +
+      cvBar(ord(r.a), RV_COR, nomes, 100) + '<span class="cv-v">' + f(r.a[0]) + "</span></div>").join("");
+}
+// Campanhas: barras de leads + conversao direta + vidas (corretora x interno)
+function hapConvChartCp(cp, t, MIN) {
+  const f = hapFmt, nm = s => s.replace(/^Hapvida - /, "").replace(/^Notredame - /, "NotreDame · ").replace(/ - /g, " · ");
+  const mxL = Math.max(1, ...cp.map(r => r[3])), mxV = Math.max(1, ...cp.map(r => r[9] + r[10]));
+  const cv = r => (r[6] < MIN) ? '<span style="color:#94a3b8;font-weight:400" title="Menos de ' + MIN + ' leads mensuráveis ou só AMELS/MHC: não comparável">n/m</span>' : hapPct1(r[7], r[6]) + "%";
+  return '<div class="cv-t">Leads e vendas por campanha</div><div class="cv-sub">' + f(t[3]) + " leads · <b>" + hapPct1(t[5], t[3]) + "%</b> vão para corretoras parceiras" + (t[6] ? " · conversão direta <b>" + hapPct1(t[7], t[6]) + "%</b>" : "") + "</div>" +
+    cvLeg(["Leads", "Vidas vendidas pela corretora", "Vidas vendidas pelo interno"], ["#3D65E7", "#9db2f3", "#FF8800"]) +
+    '<div class="cv-ch"><span>Campanha</span><span>Leads</span><span style="text-align:right">Conv.</span><span>Vidas</span></div>' +
+    cp.map(r => { const v = r[9] + r[10]; return '<div class="cv-cr"><span class="cv-n" title="' + r[0] + '">' + nm(r[0]) + '</span><div class="cv-cl"><div class="cv-b" style="width:' + Math.max(1, 78 * r[3] / mxL).toFixed(1) + '%"><i style="flex:1;background:#3D65E7"></i></div><em>' + f(r[3]) + '</em></div>' +
+      '<span class="cv-c">' + cv(r) + '</span><div class="cv-cl">' + (v ? cvBar([r[9], r[10]], ["#9db2f3", "#FF8800"], ["Vidas corretora", "Vidas interno"], 70 * v / mxV) : "") + "<em>" + (v ? f(v) : "–") + "</em></div></div>"; }).join("");
+}
+function hapConvMesNome(k) { return (typeof HAP_MES_ROTULO !== "undefined" && HAP_MES_ROTULO[k]) || k; }
+function renderHapConv() {
+  const ref = document.getElementById("hpLdSec");
+  if (!ref) return;
+  let sec = document.getElementById("hpCvSec");
+  if (!sec) {
+    sec = document.createElement("div");
+    sec.className = "chart-grid-2";
+    sec.id = "hpCvSec";
+    sec.innerHTML = '<div class="chart-card full"><div class="ppo-card-head"><div class="chart-title" id="hpCvTitle" style="margin-bottom:0">🔗 Lead × venda</div></div>' +
+      '<div id="hpCvChart"></div><div class="cv-tg"><button type="button" id="hpCvTabBtn" onclick="hapConvVerTab(\'Cv\')"></button></div><div id="hpCvTabWrap" style="display:none">' +
+      '<div style="overflow-x:auto;margin-top:12px"><table class="hp-tb" id="hpCvTab"><thead id="hpCvHead"></thead><tbody id="hpCvTb"></tbody></table></div>' +
+      '<div id="hpCvWk" style="display:none"><div class="hp-orc-tit" style="margin-top:18px">Conversão por semana de entrada do lead</div>' +
+      '<div style="overflow-x:auto"><table class="hp-tb" id="hpCvWkTab"><thead id="hpCvWkHead"></thead><tbody id="hpCvWkTb"></tbody></table></div></div>' +
+      '<div class="hp-nota" id="hpCvNota" style="margin:8px 0 0"></div></div></div>';
+    ref.parentNode.insertBefore(sec, ref.nextSibling);
+  }
+  hapConvCss2();
+  if (!document.getElementById("hpConvCss")) {
+    const st = document.createElement("style"); st.id = "hpConvCss";
+    st.textContent = "#haponPanel #hpCvSec .hp-tb th, #haponPanel #hpCvSec .hp-tb td { white-space:nowrap; padding-left:7px; padding-right:7px; } #haponPanel #hpCvSec .hp-cv-sep { border-left:1px solid #dfe5f5; } " +
+      "#haponPanel #hpCvSec .hp-tb th.hp-cv-g { text-align:center; color:#1539AA; border-bottom:1px solid #c9d3ee; } " +
+      "#haponPanel #hpCvTb tr.hp-cv-grp td { background:#f6f8fe !important; font-weight:600 !important; cursor:pointer; } " +
+      "#haponPanel #hpCvTb tr.hp-cv-int td { border-top:2px solid #dfe5f5; background:#fafbfe !important; font-weight:400 !important; } " +
+      "#haponPanel #hpCvTb tr.hp-cv-ch td:first-child { padding-left:22px; } #haponPanel #hpCvTb tr.off td { opacity:.35; } " +
+      "#haponPanel #hpCvSec .hp-tb td:first-child, #haponPanel #hpCvSec .hp-tb thead th:first-child { position:sticky; left:0; z-index:1; background:#fff; }";
+    document.head.appendChild(st);
+  }
+  const C = (typeof HAPON_CONV !== "undefined" && HAPON_CONV && HAPON_CONV.meses) ? HAPON_CONV : null;
+  const key = String(mesAtivo).toUpperCase();
+  const mc = C ? C.meses[key] : null;
+  const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : hapConvMesNome(key);
+  if (!mc || ref.style.display === "none") { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("hpCvTitle").textContent = "🔗 Lead × venda (mesmo telefone) · " + mesNome;
+  const g = mc.g || {};
+  const L = (typeof HAPON_LEADS !== "undefined" && HAPON_LEADS && HAPON_LEADS.escopo) ? HAPON_LEADS.escopo : [];
+  const keys = L.filter(k => g[k]).concat(Object.keys(g).filter(k => k !== "INTERNO" && !L.includes(k)));
+  const on = k => (typeof hapOn === "function" ? hapOn(k) : true);
+  const sel = keys.filter(on), gs = sel.map(k => g[k]);
+  const gTot = gs.length ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => gs.reduce((s, a) => s + (a[i] || 0), 0)) : null;
+  const razao = (a, i) => (a && a[0]) ? a[i] / a[0] : null;                  // i=1 direta | 7 pela corretora | 8 pelo time interno
+  const maxD = Math.max(0.0001, ...keys.map(k => razao(g[k], 1) || 0), razao(g.INTERNO, 1) || 0, razao(gTot, 1) || 0);
+  const flagP = mc.desde ? ' <span style="color:#FF8800">◆</span>' : "", tipP = mc.desde ? " ◆ Neste mês só entram os leads desde " + mc.desde + " (início do export do portal)." : "";
+  const z = n => n ? hapFmt(n) : '<span style="color:#ccc">–</span>';
+  const pct = (a, i) => razao(a, i) === null ? "—" : hapPct1(a[i], a[0]) + "%";
+  const barD = a => razao(a, 1) === null ? "—" : '<span class="hp-cb" style="width:' + Math.round(48 * razao(a, 1) / maxD) + "px;background:#1D9E75\"></span>" + hapPct1(a[1], a[0]) + "%";
+  const tipD = a => ' title="' + hapFmt(a[1]) + " de " + hapFmt(a[0]) + ' leads com venda de mesmo telefone"';
+  const cel = (a, semCorretora) => '<td>' + hapFmt(a[0]) + "</td><td>" + z(a[1]) + '</td><td class="hp-cv-sep">' + hapFmt(a[2]) + "</td><td>" + (semCorretora ? '<span style="color:#ccc">—</span>' : z(a[3])) + "</td><td>" + z(a[4]) + "</td><td>" + z(a[5]) + "</td><td>" + z(a[6]) + "</td>" +
+    '<td class="hp-cv-sep"' + tipD(a) + ">" + barD(a) + '</td><td style="color:#2a78d6">' + (semCorretora ? "—" : pct(a, 7)) + '</td><td style="color:#d9531e">' + pct(a, 8) + '</td><td title="Leads que converteram em até 7 dias do lead">' + z(a[9]) + "</td>";
+  const seta = k => hapConvOrdem === k ? " ▾" : "";
+  const th = (h, o) => "<th" + (o && o.sep ? ' class="hp-cv-sep"' : "") + (o && o.t ? ' title="' + o.t + '"' : "") + (o && o.k ? ' style="cursor:pointer" onclick="hapConvOrdena(\'' + o.k + '\')"' : "") + ">" + h + "</th>";
+  document.getElementById("hpCvHead").innerHTML =
+    '<tr><th rowspan="2">Corretora</th><th rowspan="2" title="Leads únicos do mês: telefone contado uma vez por corretora">Leads únicos</th><th rowspan="2" title="Leads únicos com pelo menos uma venda de mesmo telefone">Leads convertidos</th><th colspan="5" class="hp-cv-g hp-cv-sep">Vidas diretas · quem vendeu</th><th colspan="4" class="hp-cv-g hp-cv-sep">Conversão do lead</th></tr><tr>' +
+    th("Total", { sep: 1, t: "Vidas cujo telefone de contato é o mesmo de um lead (cadastro no mesmo dia ou depois do lead), vendidas por qualquer time. Cada vida conta para o lead mais recente. = soma das 4 colunas seguintes." }) +
+    th("Corretora", { t: "Vendidas pela própria corretora que recebeu o lead" }) + th("FABIO", { t: "Vendidas pelo time FABIO (inclui Actionline)" }) + th("JOSY", { t: "Vendidas pelo time JOSY" }) +
+    th("Outros", { t: "Vendidas por outra corretora HapON ou pelo Administrativo" }) +
+    th("Direta" + flagP + seta("d"), { sep: 1, k: "d", t: "Leads únicos com pelo menos uma venda de mesmo telefone, de qualquer time ÷ leads únicos. Clique para ordenar." + tipP }) +
+    th('<span style="color:#2a78d6">Pela corretora</span>' + seta("c"), { k: "c", t: "Leads com venda da PRÓPRIA corretora ÷ leads únicos. Clique para ordenar." }) +
+    th('<span style="color:#d9531e">Pelo time interno</span>' + seta("i"), { k: "i", t: "Leads com venda do TIME INTERNO (FABIO, JOSY ou Administrativo) ÷ leads únicos. Um lead vendido pelos dois lados entra nas duas. Clique para ordenar." }) +
+    th("Em até 7 dias", { t: "Leads que converteram em até 7 dias do lead (mesma contagem de Leads convertidos, só os rápidos)" }) + "</tr>";
+  const idx = { d: 1, c: 7, i: 8 }[hapConvOrdem];
+  const ord = idx ? keys.slice().sort((a, b) => (razao(g[b], idx) === null ? -1 : razao(g[b], idx)) - (razao(g[a], idx) === null ? -1 : razao(g[a], idx))) : keys;
+  let b = '<tr class="hp-cv-grp" onclick="hapConvAbre()"><td><span id="hpCvCaret" style="display:inline-block;width:14px;color:#1539AA">' + (hapConvAberto ? "▾" : "▸") + "</span>HapON corretoras" +
+    ' <span style="font-weight:400;color:#888;font-size:11px">(' + sel.length + ")</span></td>" + (gTot ? cel(gTot, false) : "<td>—</td>".repeat(9)) + "</tr>";
+  ord.forEach(k => {
+    const dot = '<i class="hp-sw" style="background:' + (HAP_COR[k] || "#999") + '"></i>';
+    b += '<tr class="hp-cv-ch' + (on(k) ? "" : " off") + '"' + (hapConvAberto ? "" : ' style="display:none"') + "><td>" + dot + (HAP_NOME[k] || k) + "</td>" + cel(g[k], false) + "</tr>";
+  });
+  if (g.INTERNO) b += '<tr class="hp-cv-int"><td title="Leads do Notre Dame no portal NDI: ficam fora da contagem das corretoras acima' + tipP + '"><i class="hp-sw" style="background:#6c757d"></i>HapOn Interno' + flagP + "</td>" + cel(g.INTERNO, true) + "</tr>";
+  document.getElementById("hpCvTb").innerHTML = b;
+  // coorte por semana de entrada do lead (so' mes inteiro): amadurecimento + velocidade
+  const wk = document.getElementById("hpCvWk");
+  if (mc.w && mc.w.length) {
+    wk.style.display = "";
+    const c3 = a => '<td class="hp-cv-sep">' + hapFmt(a[0]) + "</td><td>" + z(a[1]) + "</td><td>" + (a[0] ? hapPct1(a[1], a[0]) + "%" : "—") + "</td><td>" + z(a[2]) + "</td>";
+    document.getElementById("hpCvWkHead").innerHTML = '<tr><th rowspan="2">Semana de entrada</th><th colspan="4" class="hp-cv-g hp-cv-sep">HapON corretoras</th><th colspan="4" class="hp-cv-g hp-cv-sep">HapOn Interno</th></tr><tr>' +
+      ["Leads", "Convertidos", "Conv. direta", "Em até 7 dias", "Leads", "Convertidos", "Conv. direta", "Em até 7 dias"].map((h, i) => "<th" + (i % 4 === 0 ? ' class="hp-cv-sep"' : "") + ">" + h + "</th>").join("") + "</tr>";
+    document.getElementById("hpCvWkTb").innerHTML = mc.w.map(r => "<tr><td>Dias " + r[0] + " a " + r[1] + "</td>" + c3([r[2], r[3], r[4]]) + c3([r[5], r[6], r[7]]) + "</tr>").join("");
+  } else wk.style.display = "none";
+  document.getElementById("hpCvChart").innerHTML = hapConvChartCv(mc, keys, g, gTot, on, C);
+  hapConvTabSync("Cv");
+  document.getElementById("hpCvNota").innerHTML =
+    "<b>Lead × venda pelo mesmo telefone</b>: a vida é ligada ao lead pelo telefone (contato da venda × telefone do lead), com cadastro no mesmo dia ou depois do lead, até " + (C.vendasAte || "?") +
+    "; cada vida conta para o lead mais recente, então nenhuma é contada duas vezes. <b>Vidas diretas</b> = vendidas por <b>qualquer time</b>, separadas em <b>Corretora</b> (a própria), <b>FABIO</b>, <b>JOSY</b> e <b>Outros</b> (outra corretora HapON e Administrativo) — por isso podem passar das Vidas da tabela \"Métricas por corretora\", que contam só as vendas das áreas da corretora. " +
+    "<b>Direta</b> = leads únicos com venda ÷ leads únicos; <b>Pela corretora</b> e <b>Pelo time interno</b> contam só os leads vendidos por cada lado (FABIO + JOSY + Administrativo), e um lead vendido pelos dois entra nas duas. Só ~" + (C.casadas ? Math.round(100 * C.casadas.vidasComLead / C.casadas.vidasComTelefone) : "?") +
+    "% das vidas do período casam com um lead (o cliente costuma comprar com outro telefone) e leads recentes ainda não amadureceram. " +
+    "<b>HapOn Interno</b> = leads do Notre Dame (fora da conta das corretoras). Segue o filtro de corretora (o Interno não é chip)." +
+    (mc.desde ? " <b>Em " + hapConvMesNome(key) + " o cruzamento usa só os leads desde " + mc.desde + "</b> (início do export do portal)." : "");
+}
+// ---- "De onde vem a venda" (visao REVERSA, mes corrente): de onde veio o lead de cada vida vendida pelas corretoras --------------------------
+// Dado = HAPON_CONV.meses[M].rev = {mes, ate, m:[mes, mes-1, mes-2], ini, g:{CORRETORA: [vidas, sem telefone, lead do mes, lead do mes anterior,
+// lead de 2 meses antes ou mais, so' no GUP, sem lead]}}. Segue o filtro de corretora; so' existe para o mes corrente.
+function renderHapRv() {
+  const ref = document.getElementById("hpCvSec") || document.getElementById("hpLdSec");
+  if (!ref) return;
+  let sec = document.getElementById("hpRvSec");
+  if (!sec) {
+    sec = document.createElement("div");
+    sec.className = "chart-grid-2";
+    sec.id = "hpRvSec";
+    sec.innerHTML = '<div class="chart-card full"><div class="ppo-card-head"><div class="chart-title" id="hpRvTitle" style="margin-bottom:0">↩ De onde vêm as vendas</div></div>' +
+      '<div id="hpRvChart"></div><div class="cv-tg"><button type="button" id="hpRvTabBtn" onclick="hapConvVerTab(\'Rv\')"></button></div><div id="hpRvTabWrap" style="display:none">' +
+      '<div style="overflow-x:auto;margin-top:12px"><table class="hp-tb" id="hpRvTab"><thead id="hpRvHead"></thead><tbody id="hpRvTb"></tbody></table></div>' +
+      '<div class="hp-nota" id="hpRvNota" style="margin:8px 0 0"></div></div></div>';
+    ref.parentNode.insertBefore(sec, ref.nextSibling);
+  }
+  const C = (typeof HAPON_CONV !== "undefined" && HAPON_CONV && HAPON_CONV.meses) ? HAPON_CONV : null;
+  const key = String(mesAtivo).toUpperCase();
+  const mc = C ? C.meses[key] : null, rv = mc ? mc.rev : null;
+  const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : hapConvMesNome(key);
+  const base = document.getElementById("hpLdSec");
+  if (!rv || !rv.g || (base && base.style.display === "none")) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("hpRvTitle").textContent = "↩ De onde vêm as vendas · " + mesNome;
+  const L = (typeof HAPON_LEADS !== "undefined" && HAPON_LEADS && HAPON_LEADS.escopo) ? HAPON_LEADS.escopo : [];
+  const keys = L.filter(k => rv.g[k]).concat(Object.keys(rv.g).filter(k => !L.includes(k)));
+  const on = k => (typeof hapOn === "function" ? hapOn(k) : true);
+  const sel = keys.filter(on);
+  const tot = [0, 1, 2, 3, 4, 5, 6].map(i => sel.reduce((s, k) => s + rv.g[k][i], 0));
+  const ab = k => hapConvMesNome(k).slice(0, 3);
+  const z = n => n ? hapFmt(n) : '<span style="color:#ccc">–</span>';
+  const pc = a => { const base = a[0] - a[1]; return base > 0 ? hapPct1(a[2] + a[3] + a[4], base) + "%" : "—"; };
+  const cel = a => "<td>" + hapFmt(a[0]) + "</td><td>" + z(a[1]) + '</td><td class="hp-cv-sep">' + z(a[2]) + "</td><td>" + z(a[3]) + "</td><td>" + z(a[4]) + '</td><td class="hp-cv-sep">' + z(a[5]) + "</td><td>" + z(a[6]) + '</td><td class="hp-cv-sep">' + pc(a) + "</td>";
+  document.getElementById("hpRvHead").innerHTML = '<tr><th rowspan="2">Corretora</th><th rowspan="2" title="Vidas vendidas pelas áreas da corretora, cadastradas no mês">Vidas</th><th rowspan="2" title="Vida sem telefone de contato: não dá para cruzar">Sem telefone</th>' +
+    '<th colspan="3" class="hp-cv-g hp-cv-sep">Lead no portal (mesmo telefone)</th><th rowspan="2" class="hp-cv-sep" title="Sem lead no portal, mas o telefone já era lead no atendimento Hapvida (GUP: carrinho abandonado, Eugenia, fluxo espontâneo...) antes da venda">Leads GUP</th>' +
+    '<th rowspan="2" title="Sem lead no portal nem no GUP antes da venda">Sem lead</th><th rowspan="2" class="hp-cv-sep" title="Vidas com lead no portal ÷ vidas com telefone">% com lead no portal</th></tr><tr>' +
+    '<th class="hp-cv-sep" title="Lead do portal recebido no próprio mês da venda">Lead de ' + ab(rv.m[0]) + "</th><th title=\"Lead do mês anterior\">Lead de " + ab(rv.m[1]) + '</th><th title="Lead de dois meses antes ou mais antigo (o histórico começa em ' + rv.ini + ')">Lead de ' + ab(rv.m[2]) + " e antes</th></tr>";
+  let b = "";
+  keys.forEach(k => {
+    const dot = '<i class="hp-sw" style="background:' + (HAP_COR[k] || "#999") + '"></i>';
+    b += "<tr" + (on(k) ? "" : ' class="off"') + "><td>" + dot + (HAP_NOME[k] || k) + "</td>" + cel(rv.g[k]) + "</tr>";
+  });
+  b += '<tr class="hp-cv-grp" style="cursor:default"><td>Total' + (sel.length < keys.length ? " (selecionadas)" : "") + "</td>" + cel(tot) + "</tr>";
+  document.getElementById("hpRvTb").innerHTML = b;
+  hapConvCss2();
+  document.getElementById("hpRvChart").innerHTML = hapConvChartRv(rv, keys, on, tot, ab);
+  hapConvTabSync("Rv");
+  document.getElementById("hpRvNota").innerHTML = "Visão <b>reversa</b>: para cada vida das corretoras HapON cadastrada em " + mesNome + " até " + rv.ate + ", procura-se um lead com o <b>mesmo telefone</b> no portal NDI, no mesmo dia ou antes da venda (o mais recente), nos exports desde " + rv.ini +
+    ". Quem não tem lead no portal é procurado no atendimento Hapvida (<b>Leads GUP</b>); o que sobra é <b>Sem lead</b> (pode ser lead anterior a " + rv.ini + ", cliente que comprou com outro telefone ou carteira própria da corretora). " +
+    "Vidas do mesmo contato (PME) contam uma a uma. Segue o filtro de corretora.";
+}
+// ---- Campanhas (leads do mes por familia de campanha) ---------------------------------------------------------------------------------------
+// Dado = HAPON_CONV.meses[M].camp = [[nome, marca, publico, leads, leads HapOn (Interno), leads Parceiras, leads mensuraveis (fora AMELS/MHC),
+// convertidos entre os mensuraveis, vidas total, vidas vendidas por corretora HapON, vidas vendidas pelo time interno]].
+// Nao segue o filtro de corretora (a familia nao e' quebrada por corretora no payload).
+function renderHapCp() {
+  const ref = document.getElementById("hpRvSec") || document.getElementById("hpCvSec") || document.getElementById("hpLdSec");
+  if (!ref) return;
+  let sec = document.getElementById("hpCpSec");
+  if (!sec) {
+    sec = document.createElement("div");
+    sec.className = "chart-grid-2";
+    sec.id = "hpCpSec";
+    sec.innerHTML = '<div class="chart-card full"><div class="ppo-card-head"><div class="chart-title" id="hpCpTitle" style="margin-bottom:0">🧩 Campanhas</div></div>' +
+      '<div id="hpCpChart"></div><div class="cv-tg"><button type="button" id="hpCpTabBtn" onclick="hapConvVerTab(\'Cp\')"></button></div><div id="hpCpTabWrap" style="display:none">' +
+      '<div style="overflow-x:auto;margin-top:12px"><table class="hp-tb" id="hpCpTab"><thead id="hpCpHead"></thead><tbody id="hpCpTb"></tbody></table></div>' +
+      '<div class="hp-nota" id="hpCpNota" style="margin:8px 0 0"></div></div></div>';
+    ref.parentNode.insertBefore(sec, ref.nextSibling);
+  }
+  const C = (typeof HAPON_CONV !== "undefined" && HAPON_CONV && HAPON_CONV.meses) ? HAPON_CONV : null;
+  const key = String(mesAtivo).toUpperCase();
+  const mc = C ? C.meses[key] : null, cp = mc ? mc.camp : null;
+  const mesNome = (typeof CONFIG !== "undefined" && CONFIG && CONFIG.mesLabel) ? CONFIG.mesLabel : hapConvMesNome(key);
+  const base = document.getElementById("hpLdSec");
+  if (!cp || !cp.length || (base && base.style.display === "none")) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("hpCpTitle").textContent = "🧩 Campanhas · leads de " + mesNome + (mc.desde ? " (desde " + mc.desde + ")" : "");
+  const MIN = 30;                                                           // abaixo disso a conversao nao e' comparavel
+  const z = n => n ? hapFmt(n) : '<span style="color:#ccc">–</span>';
+  const conv = r => {
+    if (r[6] === 0) return '<span style="color:#999" title="Leads só de AMELS/MHC: as vendas dessas corretoras não estão na nossa base">n/m</span>';
+    if (r[6] < MIN) return '<span style="color:#999" title="Menos de ' + MIN + ' leads mensuráveis: não comparável">n/m</span>';
+    return '<span class="hp-cb" style="width:' + Math.round(40 * (r[7] / r[6]) / maxC) + "px;background:#1D9E75\"></span>" + hapPct1(r[7], r[6]) + "%";
+  };
+  const maxC = Math.max(0.0001, ...cp.filter(r => r[6] >= MIN).map(r => r[7] / r[6]));
+  const lin = (r, cls) => "<tr" + (cls ? ' class="' + cls + '"' : "") + "><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + hapFmt(r[3]) + '</td><td class="hp-cv-sep">' + z(r[4]) + "</td><td>" + z(r[5]) + "</td><td>" +
+    (r[3] ? hapPct1(r[5], r[3]) + "%" : "—") + '</td><td class="hp-cv-sep">' + conv(r) + '</td><td class="hp-cv-sep">' + z(r[8]) + "</td><td>" + z(r[9]) + "</td><td>" + z(r[10]) + "</td></tr>";
+  const t = [3, 4, 5, 6, 7, 8, 9, 10].reduce((o, i) => { o[i] = cp.reduce((s, r) => s + r[i], 0); return o; }, {});
+  const rt = ["Total", "", "", t[3], t[4], t[5], t[6], t[7], t[8], t[9], t[10]];
+  document.getElementById("hpCpHead").innerHTML = "<tr><th>Campanha</th><th>Marca</th><th>Público</th><th>Leads</th>" +
+    '<th class="hp-cv-sep" title="Leads encaminhados ao HapOn Interno (Notre Dame)">HapOn</th><th title="Leads encaminhados às corretoras (inclui AMELS e MHC)">Parceiras</th><th title="Parceiras ÷ leads">% Parceiras</th>' +
+    '<th class="hp-cv-sep" title="Leads únicos com venda de mesmo telefone ÷ leads mensuráveis (fora AMELS/MHC). n/m = não mensurável">Conv. direta</th>' +
+    '<th class="hp-cv-sep" title="Vidas com o telefone de um lead da campanha, vendidas por qualquer time = corretora + interno">Vidas total</th><th title="Vidas vendidas por corretora HapON">Vidas corretora</th><th title="Vidas vendidas pelo time interno (FABIO, JOSY ou Administrativo)">Vidas interno</th></tr>';
+  document.getElementById("hpCpTb").innerHTML = cp.map(r => lin(r, "")).join("") + lin(rt, "hp-cv-grp");
+  hapConvCss2();
+  document.getElementById("hpCpChart").innerHTML = hapConvChartCp(cp, t, MIN);
+  hapConvTabSync("Cp");
+  document.getElementById("hpCpNota").innerHTML = "Leads únicos (telefone conta uma vez por corretora no mês) agrupados pela <b>campanha da primeira ocorrência</b> do lead; o sufixo da corretora no nome técnico não entra. " +
+    "<b>HapOn</b> = leads do Notre Dame; <b>Parceiras</b> = leads das corretoras (inclui AMELS e MHC, que ficam fora da conta do resto da aba). <b>Conv. direta</b> = leads com venda de mesmo telefone ÷ leads mensuráveis (as vendas de AMELS/MHC não estão na base; <b>n/m</b> = não mensurável ou menos de " + MIN + " leads). " +
+    "<b>Vidas</b>: total = corretora (vendida por corretora HapON) + interno (FABIO, JOSY ou Administrativo), por qualquer time que vendeu o telefone do lead, até " + (C.vendasAte || "?") + ". As duas campanhas Google (<code>corretoras</code> e <code>corretoras_2</code>) são rotuladas pelo nome técnico: podem ser a Pmax e a Dgen do Martech. " +
+    "Não segue o filtro de corretora. Leads recentes ainda não amadureceram." + (mc.desde ? " <b>Mês parcial:</b> só leads desde " + mc.desde + "." : "");
+}
+// ---- "Entrada de Leads por Corretora por Dia": acrescenta a linha HapOn Interno --------------------------------------
+// Ordem: corretoras -> "Total corretoras" (= o antigo Total geral, que fecha com os KPIs) -> HapOn Interno -> "Total geral" (com o Interno).
+// Segue o toggle Unicos|Brutos da tabela; o Interno nao e' chip (sempre aparece). % do total: so' nas corretoras (denominador original).
+function renderHapConvDia() {
+  const sec = document.getElementById("hpLdDiaSec"), body = document.getElementById("hpLdDiaBody"), head = document.getElementById("hpLdDiaHead");
+  if (!sec || !body || !head || sec.style.display === "none" || !body.rows.length) return;
+  const C = (typeof HAPON_CONV !== "undefined" && HAPON_CONV && HAPON_CONV.meses) ? HAPON_CONV : null;
+  const mc = C ? C.meses[String(mesAtivo).toUpperCase()] : null;
+  if (!mc || !mc.d || !mc.d.length) return;
+  const tot = body.rows[body.rows.length - 1];
+  if ((tot.cells[0].textContent || "").trim() !== "Total geral") return;       // ja' acrescentado ou formato inesperado
+  const nDias = head.querySelectorAll("th").length - 3;
+  if (nDias < 1) return;
+  const bru = typeof hapLdModo !== "undefined" && hapLdModo === "bru", desde = mc.desde ? parseInt(mc.desde.slice(0, 2)) : 1;
+  const ser = Array.from({ length: nDias }, (_, i) => { const x = mc.d.find(r => r[0] === i + 1); return x ? (bru ? x[2] : x[1]) : 0; });
+  const totI = ser.reduce((a, b) => a + b, 0);
+  const num = c => parseInt(String(c.textContent).replace(/\./g, "").replace(/[^\d]/g, "") || "0");
+  const corr = Array.from({ length: nDias }, (_, i) => num(tot.cells[i + 1])), totC = num(tot.cells[nDias + 1]);
+  const td = "padding:6px 8px;text-align:right;color:#000;border-bottom:1px solid #eef0f4;";
+  const flag = mc.desde ? ' <span style="color:#FF8800" title="Neste mês só há leads do Interno desde ' + mc.desde + ' (início do export do portal)">◆</span>' : "";
+  // linha HapOn Interno
+  let h = '<td style="position:sticky;left:0;background:#fff;color:#000;font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid #eef0f4"><i class="hp-sw" style="background:#6c757d"></i>HapOn Interno' + flag + "</td>";
+  ser.forEach((v, i) => { h += '<td style="' + td + (i + 1 < desde ? 'color:#c4c8d4">·' : (v ? "background:rgba(108,117,125," + Math.min(0.5, v / 300).toFixed(3) + ')">' + hapFmt(v) : '">–')) + "</td>"; });
+  h += '<td style="' + td + 'font-weight:700;background:#f1f2f5">' + hapFmt(totI) + '</td><td style="' + td + 'color:#999">—</td>';
+  const tri = document.createElement("tr"); tri.className = "hp-cv-intd"; tri.innerHTML = h;
+  // novo "Total geral" = corretoras + Interno (clone do total original para herdar o estilo); o original vira "Total corretoras"
+  const tg = tot.cloneNode(true);
+  tot.cells[0].textContent = "Total corretoras";
+  tg.cells[0].textContent = "Total geral (com HapOn Interno)";
+  for (let i = 0; i < nDias; i++) tg.cells[i + 1].textContent = hapFmt(corr[i] + ser[i]);
+  tg.cells[nDias + 1].textContent = hapFmt(totC + totI);
+  tg.cells[nDias + 2].textContent = "—";
+  tot.parentNode.appendChild(tri); tot.parentNode.appendChild(tg);
+  let nt = document.getElementById("hpCvDiaNota");
+  if (!nt) { nt = document.createElement("div"); nt.className = "hp-nota"; nt.id = "hpCvDiaNota"; nt.style.margin = "8px 0 0"; document.getElementById("hpLdDiaTab").parentNode.insertAdjacentElement("afterend", nt); }
+  nt.innerHTML = "<b>HapOn Interno</b> = leads do Notre Dame no portal NDI (" + (bru ? "brutos" : "únicos: telefone conta uma vez no mês") + "); não é chip e não segue o filtro de corretora. " +
+    "<b>Total corretoras</b> fecha com o card de leads; <b>Total geral</b> soma o Interno." + (mc.desde ? " ◆ O export do portal começa em " + mc.desde + ": os dias anteriores aparecem como ·." : "");
+}
+(function () {
+  const _r = window.renderHaponCorr;
+  if (typeof _r !== "function") return;
+  window.renderHaponCorr = function () {
+    const out = _r.apply(this, arguments);
+    try { renderHapConv(); } catch (e) { console.error("HAPON_CONV", e); }
+    try { renderHapRv(); } catch (e) { console.error("HAPON_CONV rev", e); }
+    try { renderHapCp(); } catch (e) { console.error("HAPON_CONV camp", e); }
+    try { renderHapConvDia(); } catch (e) { console.error("HAPON_CONV dia", e); }
+    return out;
+  };
+})();
+// === FIM HAPON_CONV ===
 // === HAPON_DDD (tabela Leads e vidas por DDD da aba HapON Corretoras -- aplicado por aplicar_front_hapon_ddd.py; NAO editar no HTML) ===
 // David, 12/11/2026 (Forma A aprovada): DDD do lead x LEADS x VIDAS (x TICKET MEDIO na 2a etapa), sem mapa, filtrado pelos
 // chips de corretora da aba. Dado = HAPON_DDD (hapon_ddd.py): leads UNICOS do portal NDI por DDD do telefone do lead e vidas da
@@ -6009,7 +6359,7 @@ const RK_NUDGE={AC:[62,233],PA:[352,122],SC:[372,527],MA:[452,158]};
 const RK_REG = {"Norte":["AC","AP","AM","PA","RO","RR","TO"],"Nordeste":["AL","BA","CE","MA","PB","PE","PI","RN","SE"],"Centro-Oeste":["DF","GO","MT","MS"],"Sudeste":["ES","MG","RJ","SP"],"Sul":["PR","RS","SC"]};
 const RK_UF_REG = {}; Object.keys(RK_REG).forEach(r => RK_REG[r].forEach(u => { RK_UF_REG[u] = r; }));
 const RK_REG_NUDGE = {};   // ajuste fino (x,y) do rotulo de cada regiao no mapa, se precisar
-const RK = { aba: "geral", nivel: "nac", met: "vidas", tipo: "T", cmp: null, uf: "SP", reg: "Sudeste", sort: "vidas", dir: -1, D: null };
+const RK = { aba: "geral", nivel: "nac", met: "vidas", tipo: "T", cmp: null, cvSec: "cv", uf: "SP", reg: "Sudeste", sort: "vidas", dir: -1, D: null };
 // nivel "nac" = Brasil inteiro (uma unica unidade "BR"); "reg" = mapa por regiao; "uf" = mapa por estado. A chave da unidade (RK.uf / RK.reg / "BR")
 // alimenta rkCell/rkRanking/painel sem mudar o resto. Nacional soma TODAS as vidas e leads da corretora (inclui as sem DDD, fecha com os cards da aba).
 const rkReg = () => RK.nivel === "reg";
@@ -6046,6 +6396,10 @@ const rkRgb = a => "rgb(" + a.join(",") + ")";
     "#hpSubtabs button{border:0;background:none;font:700 13px inherit;color:#64748b;padding:9px 14px;cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;margin-bottom:-1px}" +
     "#hpSubtabs button:hover{color:#0F297B}#hpSubtabs button.on{color:#3D65E7;border-bottom-color:#3D65E7}" +
     "#haponPanel .container.rk-on>*:not(#hpSubtabs):not(#hpRankView){display:none!important}" +
+    "#haponPanel .container.cv-on>*:not(#hpSubtabs):not(#hpFiltro):not(#hpCvNav):not(#hpCvSec):not(#hpRvSec):not(#hpCpSec){display:none!important}" +
+    "#haponPanel .container:not(.cv-on)>#hpCvNav{display:none!important}" +
+    "#haponPanel .container.cv-on[data-cvs=cv]>#hpRvSec,#haponPanel .container.cv-on[data-cvs=cv]>#hpCpSec,#haponPanel .container.cv-on[data-cvs=rv]>#hpCvSec,#haponPanel .container.cv-on[data-cvs=rv]>#hpCpSec,#haponPanel .container.cv-on[data-cvs=cp]>#hpCvSec,#haponPanel .container.cv-on[data-cvs=cp]>#hpRvSec{display:none!important}" +
+    "#haponPanel .container:not(.cv-on)>#hpCvSec,#haponPanel .container:not(.cv-on)>#hpRvSec,#haponPanel .container:not(.cv-on)>#hpCpSec{display:none!important}" +
     "#hpRankView{display:none}#haponPanel .container.rk-on>#hpRankView{display:block}" +
     "#hpRankView{color:#1c2b4a;font-size:13px}" +
     "#hpRankView .rk-card{background:#fff;border:1px solid #e3e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(15,41,123,.04);margin-bottom:12px}" +
@@ -6510,10 +6864,35 @@ function rkGaranteUi() {
   }
   return true;
 }
+// Subaba "Campanhas e Leads" (David, 26/11/2026): leva para fora da Visao geral as secoes do HAPON_CONV (Lead x venda, De onde vem as vendas,
+// Campanhas). So' existe se o HAPON_CONV estiver no template (hpCvSec criada); o filtro de corretora (hpFiltro) acompanha a subaba.
+function rkTabLeads() {
+  const sb = rkId("hpSubtabs"); if (!sb) return;
+  const tem = !!rkId("hpCvSec"), btn = sb.querySelector('button[data-t="leads"]');
+  if (tem && !btn) { const b = document.createElement("button"); b.type = "button"; b.dataset.t = "leads"; b.textContent = "Campanhas e Leads"; b.onclick = () => rkAba("leads"); sb.appendChild(b); }
+  if (!tem && btn) { btn.remove(); if (RK.aba === "leads") RK.aba = "geral"; }
+  if (tem && !rkId("hpCvNav")) {   // seletor de secao: uma de cada vez (Lead x venda | De onde vem as vendas | Campanhas)
+    const nav = document.createElement("div"); nav.id = "hpCvNav";
+    nav.innerHTML = '<div class="seg"><button type="button" data-s="cv">Lead × venda</button><button type="button" data-s="rv">De onde vêm as vendas</button><button type="button" data-s="cp">Campanhas</button></div><span class="dica"></span>';
+    rkId("hpCvSec").parentNode.insertBefore(nav, rkId("hpCvSec"));
+    nav.querySelectorAll("button").forEach(b => { b.onclick = () => { RK.cvSec = b.dataset.s; rkCvNavSync(); }; });
+  }
+  rkCvNavSync();
+}
+// secao sem dado no mes (display:none inline) fica esmaecida; se a escolhida some, cai na primeira com dado
+function rkCvNavSync() {
+  const nav = rkId("hpCvNav"), ct = rkId("haponPanel") && rkId("haponPanel").querySelector(".container"); if (!nav || !ct) return;
+  const ids = { cv: "hpCvSec", rv: "hpRvSec", cp: "hpCpSec" }, vazio = s => { const e = rkId(ids[s]); return !e || e.style.display === "none"; };
+  if (vazio(RK.cvSec)) { const ok = Object.keys(ids).find(s => !vazio(s)); if (ok) RK.cvSec = ok; }
+  ct.dataset.cvs = RK.cvSec;
+  nav.querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.s === RK.cvSec); b.classList.toggle("sem", vazio(b.dataset.s)); b.title = vazio(b.dataset.s) ? "Sem dado neste mês" : ""; });
+  nav.querySelector(".dica").textContent = RK.cvSec === "cp" ? "Campanhas não segue o filtro de corretora" : "Segue o filtro de corretora acima";
+}
 function rkAba(t) {
   RK.aba = t;
   const ct = rkId("haponPanel") && rkId("haponPanel").querySelector(".container"); if (!ct) return;
   ct.classList.toggle("rk-on", t === "ranking");
+  ct.classList.toggle("cv-on", t === "leads");
   document.querySelectorAll("#hpSubtabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   if (t === "ranking") rkRender();
   const p = rkId("haponPanel"); if (p && p.scrollTo) p.scrollTo(0, 0);
@@ -6562,7 +6941,7 @@ function rkRender() {
   if (typeof _r !== "function") return;
   window.renderHaponCorr = function () {
     const out = _r.apply(this, arguments);
-    try { if (rkGaranteUi()) { const ct = rkId("haponPanel").querySelector(".container"); ct.classList.toggle("rk-on", RK.aba === "ranking"); rkRender(); } } catch (e) { console.error("RANKING_CORRETORAS", e); }
+    try { if (rkGaranteUi()) { const ct = rkId("haponPanel").querySelector(".container"); rkTabLeads(); ct.classList.toggle("rk-on", RK.aba === "ranking"); ct.classList.toggle("cv-on", RK.aba === "leads"); rkRender(); } } catch (e) { console.error("RANKING_CORRETORAS", e); }
     return out;
   };
 })();
@@ -6592,6 +6971,10 @@ const HAPON_DDD = {"ref":"26/11/2026","fonte":{"arquivo":"1795689351150-stats-gn
 // === HAPON_RANK_DADOS (gerado por hapon_rank.py -- NAO editar a mao) ===
 const HAPON_RANK = {"ref":"26/11/2026","meses":{"OUTUBRO":{"ufs":{"AL":{"F FURTADO":[20,9137.58,6,4068.77],"QUINDTECH":[1,313.28,3,1007.01],"RAISE":[1,226.37,0,0.0],"W3G OPTAS":[1,312.59,0,0.0]},"AM":{"F FURTADO":[2,754.07,0,0.0],"FJS":[1,356.99,0,0.0],"RAISE":[1,320.76,0,0.0]},"BA":{"CLINIPAM":[6,2702.05,0,0.0],"F FURTADO":[16,5225.6,6,1570.77],"QUINDTECH":[2,1097.15,0,0.0],"RAISE":[9,3096.53,3,949.03],"VHRC AMELS":[1,359.12,0,0.0],"W3G OPTAS":[1,291.91,0,0.0]},"CE":{"F FURTADO":[16,5143.44,3,827.19],"FJS":[1,292.06,0,0.0],"QUINDTECH":[0,0.0,2,397.05],"RAISE":[12,3919.96,13,3914.98],"VHRC AMELS":[1,292.06,0,0.0]},"DF":{"CLINIPAM":[1,250.73,0,0.0],"F FURTADO":[8,2574.95,13,2767.26],"RAISE":[2,532.03,2,471.02],"VHRC AMELS":[1,295.31,0,0.0]},"GO":{"CLINIPAM":[1,960.31,0,0.0],"F FURTADO":[3,993.85,4,774.55],"FJS":[2,617.96,0,0.0],"QUINDTECH":[3,927.0,2,430.93],"RAISE":[17,4426.55,2,548.62],"VHRC AMELS":[2,421.9,2,506.36]},"MA":{"F FURTADO":[2,1236.35,5,1492.37],"RAISE":[4,1203.15,0,0.0]},"MG":{"CLINIPAM":[1,362.61,0,0.0],"F FURTADO":[7,1794.2,4,734.81],"FJS":[5,1442.09,10,2134.98],"QUINDTECH":[6,2153.33,14,3551.46],"RAISE":[10,3400.81,11,2668.64],"VHRC AMELS":[1,228.03,0,0.0]},"MS":{"F FURTADO":[0,0.0,28,6349.16]},"MT":{"F FURTADO":[0,0.0,9,2597.83],"RAISE":[0,0.0,1,259.35]},"PA":{"F FURTADO":[6,1745.07,6,1742.19],"QUINDTECH":[1,381.04,0,0.0],"RAISE":[2,611.19,0,0.0]},"PB":{"CLINIPAM":[1,564.41,0,0.0],"F FURTADO":[4,1118.51,0,0.0],"RAISE":[1,169.76,0,0.0],"W3G OPTAS":[1,1217.39,0,0.0]},"PE":{"CLINIPAM":[1,298.05,0,0.0],"F FURTADO":[8,3695.57,2,1814.77],"FJS":[3,1348.31,0,0.0],"RAISE":[15,4982.59,6,1933.87]},"PI":{"F FURTADO":[14,3691.06,13,2304.23]},"PR":{"CLINIPAM":[1,254.69,0,0.0],"F FURTADO":[1,286.23,5,876.22],"QUINDTECH":[1,254.69,0,0.0]},"RJ":{"F FURTADO":[2,945.46,3,1966.28],"FJS":[1,340.76,0,0.0],"QUINDTECH":[2,681.52,0,0.0],"VHRC AMELS":[1,340.76,0,0.0]},"RN":{"F FURTADO":[23,5476.45,10,2440.13],"RAISE":[1,250.44,0,0.0],"VHRC AMELS":[4,1477.1,0,0.0],"W3G OPTAS":[1,269.83,0,0.0]},"RS":{"F FURTADO":[2,570.2,6,1383.97]},"SC":{"CLINIPAM":[2,538.04,0,0.0],"F FURTADO":[3,940.23,5,1104.96],"VHRC AMELS":[1,307.1,0,0.0]},"SE":{"F FURTADO":[14,4989.95,2,925.73],"FJS":[1,285.5,0,0.0],"RAISE":[5,1271.31,0,0.0]},"SP":{"CLINIPAM":[3,917.16,0,0.0],"F FURTADO":[23,7063.76,18,5283.03],"FJS":[7,1887.5,7,1898.42],"QUINDTECH":[3,1311.79,9,2974.23],"RAISE":[13,5991.62,19,4114.91],"VHRC AMELS":[3,1197.37,0,0.0]}},"semUf":{}},"NOVEMBRO":{"ufs":{"AL":{"CLINIPAM":[1,519.93,0,0.0],"F FURTADO":[12,6450.68,8,2440.96],"RAISE":[2,792.91,5,1701.38],"VHRC AMELS":[1,541.04,0,0.0]},"AM":{"F FURTADO":[1,251.34,0,0.0],"FJS":[1,1247.46,0,0.0],"QUINDTECH":[1,320.76,0,0.0],"RAISE":[2,810.16,3,965.0],"VHRC AMELS":[1,181.4,0,0.0],"W3G OPTAS":[2,962.68,3,947.11]},"BA":{"CLINIPAM":[2,659.14,0,0.0],"F FURTADO":[13,4416.89,5,1332.82],"HAPBIT":[7,3182.31,2,505.97],"QUINDTECH":[1,543.35,0,0.0],"RAISE":[6,2078.13,2,588.46],"VHRC AMELS":[2,718.65,2,699.34]},"CE":{"CLINIPAM":[2,642.66,0,0.0],"F FURTADO":[8,2120.74,18,3735.87],"FJS":[1,426.85,0,0.0],"HAPBIT":[2,742.51,0,0.0],"QUINDTECH":[0,0.0,4,1903.33],"RAISE":[3,807.79,0,0.0],"VHRC AMELS":[3,1055.66,0,0.0],"W3G OPTAS":[2,544.93,0,0.0]},"DF":{"F FURTADO":[21,7216.98,20,6977.42],"HAPBIT":[2,632.18,0,0.0],"QUINDTECH":[1,354.76,0,0.0],"RAISE":[2,588.62,0,0.0],"VHRC AMELS":[2,379.11,0,0.0],"W3G OPTAS":[2,939.26,2,374.85]},"ES":{"F FURTADO":[0,0.0,1,383.74]},"GO":{"CLINIPAM":[1,223.82,0,0.0],"F FURTADO":[13,5725.62,4,1187.42],"HAPBIT":[1,569.96,0,0.0],"QUINDTECH":[1,256.69,0,0.0],"RAISE":[6,2133.39,15,6306.5],"VHRC AMELS":[6,1844.64,2,563.5],"W3G OPTAS":[2,994.8,0,0.0]},"MA":{"F FURTADO":[3,1016.31,8,2144.77],"QUINDTECH":[1,260.04,0,0.0],"VHRC AMELS":[3,931.83,2,418.13]},"MG":{"CLINIPAM":[11,3943.49,0,0.0],"F FURTADO":[11,3290.33,6,1196.76],"FJS":[3,913.15,4,1041.1],"HAPBIT":[1,886.98,0,0.0],"QUINDTECH":[1,264.95,5,933.21],"RAISE":[8,2038.02,4,652.92],"VHRC AMELS":[8,2044.26,2,657.05],"W3G OPTAS":[4,1474.21,7,1289.0]},"MS":{"F FURTADO":[0,0.0,19,4701.8],"HAPBIT":[0,0.0,6,1631.84],"VHRC AMELS":[0,0.0,2,483.97]},"MT":{"F FURTADO":[0,0.0,2,497.84],"FJS":[2,365.55,0,0.0]},"PA":{"CLINIPAM":[5,1376.55,0,0.0],"F FURTADO":[5,2544.43,0,0.0],"HAPBIT":[2,503.92,2,797.96],"QUINDTECH":[1,612.68,0,0.0],"VHRC AMELS":[6,2157.41,2,834.37]},"PB":{"F FURTADO":[2,652.03,0,0.0],"HAPBIT":[1,291.65,0,0.0],"W3G OPTAS":[1,169.76,0,0.0]},"PE":{"F FURTADO":[7,2715.88,0,0.0],"FJS":[1,298.05,0,0.0],"HAPBIT":[1,204.53,0,0.0],"QUINDTECH":[1,556.53,4,1517.5],"RAISE":[4,1607.89,0,0.0],"VHRC AMELS":[2,887.52,0,0.0],"W3G OPTAS":[3,1331.14,0,0.0]},"PI":{"F FURTADO":[13,3130.88,7,1816.95],"VHRC AMELS":[1,283.11,0,0.0],"W3G OPTAS":[2,509.3,0,0.0]},"PR":{"F FURTADO":[2,509.38,0,0.0],"FJS":[2,458.44,0,0.0],"RAISE":[2,688.69,0,0.0],"VHRC AMELS":[5,1351.05,0,0.0],"W3G OPTAS":[2,585.38,0,0.0]},"RJ":{"F FURTADO":[1,340.76,8,2147.66],"FJS":[1,340.76,3,667.33],"HAPBIT":[0,0.0,3,676.59],"QUINDTECH":[0,0.0,1,372.61],"RAISE":[2,619.11,1,221.92],"VHRC AMELS":[0,0.0,3,1161.72],"W3G OPTAS":[0,0.0,1,315.67]},"RN":{"F FURTADO":[27,8057.72,8,1539.1],"HAPBIT":[1,328.73,0,0.0],"RAISE":[0,0.0,2,396.93]},"RS":{"F FURTADO":[7,1994.56,6,1559.22],"RAISE":[0,0.0,2,293.65],"VHRC AMELS":[0,0.0,11,2705.65]},"SC":{"F FURTADO":[4,1184.04,5,1492.48],"VHRC AMELS":[1,456.87,0,0.0]},"SE":{"CLINIPAM":[1,1301.01,0,0.0],"F FURTADO":[10,4259.73,2,548.57],"RAISE":[3,999.05,0,0.0],"VHRC AMELS":[1,452.23,0,0.0]},"SP":{"CLINIPAM":[6,2354.58,0,0.0],"F FURTADO":[32,13033.14,44,11559.01],"FJS":[13,4088.51,11,2244.05],"HAPBIT":[3,1253.3,5,1126.37],"MERIDIAL":[3,1150.99,5,1903.32],"QUINDTECH":[9,2986.22,23,5120.24],"RAISE":[15,6230.54,23,5099.03],"VHRC AMELS":[10,5034.1,21,5029.87],"W3G OPTAS":[20,5671.52,35,7256.47]}},"semUf":{"F FURTADO":[0,0.0,16,3757.62]}},"DEZEMBRO":{"ufs":{},"semUf":{"F FURTADO":[0,0.0,1,326.23],"FJS":[0,0.0,1,210.89],"MERIDIAL":[0,0.0,1,323.76],"QUINDTECH":[0,0.0,5,1372.18],"VHRC AMELS":[0,0.0,3,407.69],"W3G OPTAS":[0,0.0,1,253.53]}}}};
 // === FIM HAPON_RANK_DADOS ===
+
+// === HAPON_CONV_DADOS (gerado por hapon_conv.py -- NAO editar a mao) ===
+const HAPON_CONV = {"ref":"26/11/2026","vendasAte":"26/11/2026","fonte":{"arquivo":"1795689351150-stats-gndi-deneuve-v2.5.xlsx","extraidoEm":"26/11/2026 07:38"},"casadas":{"vidasComLead":1094,"vidasComTelefone":9368},"meses":{"OUTUBRO":{"desde":"26/10/2026","g":{"CLINIPAM":[337,11,13,4,3,6,0,3,8,5],"F FURTADO":[1127,45,60,33,7,15,5,25,18,29],"FJS":[483,22,28,9,12,7,0,6,16,16],"INTERNO":[856,23,38,0,24,11,3,0,22,11],"QUINDTECH":[406,12,13,4,5,4,0,4,8,7],"RAISE":[460,18,26,11,8,7,0,8,10,12],"VHRC AMELS":[1125,38,54,22,21,9,2,15,21,25],"W3G OPTAS":[677,27,43,16,9,13,5,9,14,14]},"d":[[26,200,200],[27,261,261],[28,141,142],[29,102,103],[30,107,111],[31,45,45]],"camp":[["Hapvida - PF - Search - Institucional - Nacional","Hapvida","PF",2265,2,2263,2265,81,96,46,50],["Hapvida - PF - Google (corretoras)","Hapvida","PF",1072,0,1072,0,0,3,0,3],["Hapvida - PF - Search - Institucional - SP|RJ","Hapvida","PF",944,5,939,944,41,62,31,31],["Hapvida - PF - Search - Institucional - MG|CE","Hapvida","PF",589,1,588,589,22,28,16,12],["Hapvida - PF - Google (corretoras_2)","Hapvida","PF",401,0,401,0,0,0,0,0],["Hapvida - PF - Search - Generica - Hibrida - T1","Hapvida","PF + PME",286,0,286,286,7,15,8,7],["Hapvida - PF - Search - Generica - Hibrida - T2|T3","Hapvida","PF + PME",223,0,223,223,12,20,1,19],["Hapvida - PME - Search - Institucional","Hapvida","PME",154,0,154,153,5,8,6,2],["Hapvida - PME - Search - Generica","Hapvida","PME",135,0,135,135,4,7,1,6],["Notredame - PME - Search - Generica","NotreDame","PME",40,39,1,40,0,0,0,0],["Notredame - PME - Search - Institucional","NotreDame","PME",1,1,0,1,0,0,0,0],["Outras campanhas (Meta, Criteo, organico, PPO...)","-","-",837,808,29,835,24,39,4,35]]},"NOVEMBRO":{"desde":null,"g":{"CLINIPAM":[1033,45,51,13,22,14,2,12,32,41],"F FURTADO":[4041,152,204,115,54,34,1,83,68,127],"FJS":[1086,25,37,16,14,7,0,11,14,18],"HAPBIT":[813,28,38,30,1,7,0,21,7,25],"INTERNO":[2947,45,77,0,49,26,2,0,44,34],"MERIDIAL":[1025,20,33,6,16,11,0,4,16,18],"QUINDTECH":[1239,31,44,20,17,6,1,12,18,22],"RAISE":[1918,67,89,58,19,12,0,41,26,60],"VHRC AMELS":[3455,93,147,72,42,29,4,50,39,75],"W3G OPTAS":[1962,66,84,46,23,13,2,34,31,56]},"d":[[1,19,19],[2,28,28],[3,156,156],[4,183,183],[5,154,154],[6,139,141],[7,123,126],[8,119,125],[9,165,168],[10,167,171],[11,134,138],[12,110,115],[13,91,92],[14,88,89],[15,89,90],[16,151,154],[17,157,160],[18,124,125],[19,162,166],[20,114,114],[21,121,121],[22,138,143],[23,67,69],[24,76,78],[25,65,66],[26,7,7]],"w":[[1,7,4919,194,145,802,13,7],[8,14,4969,196,164,874,24,19],[15,21,3619,84,80,918,7,7],[22,26,3065,53,53,353,1,1]],"camp":[["Hapvida - PF - Search - Institucional - Nacional","Hapvida","PF",6842,6,6836,6840,260,327,146,181],["Hapvida - PF - Google (corretoras)","Hapvida","PF",4379,0,4379,0,0,12,0,12],["Hapvida - PF - Search - Institucional - SP|RJ","Hapvida","PF",2841,3,2838,2841,99,129,79,50],["Hapvida - PF - Search - Generica - Hibrida - T1","Hapvida","PF + PME",2158,1,2157,2158,44,76,43,33],["Hapvida - PF - Search - Institucional - MG|CE","Hapvida","PF",1902,3,1899,1902,60,73,28,45],["Hapvida - PF - Google (corretoras_2)","Hapvida","PF",1738,1,1737,2,0,0,0,0],["Hapvida - PF - Search - Generica - Hibrida - T2|T3","Hapvida","PF + PME",1668,0,1668,1668,29,67,46,21],["Hapvida - PME - Search - Generica","Hapvida","PME",681,0,681,681,17,29,27,2],["Hapvida - PME - Search - Institucional","Hapvida","PME",465,0,465,465,16,24,14,10],["Notredame - PME - Search - Generica","NotreDame","PME",108,105,3,107,2,3,0,3],["Notredame - PME - Search - Institucional","NotreDame","PME",14,14,0,14,0,0,0,0],["Outras campanhas (Meta, Criteo, organico, PPO...)","-","-",2850,2814,36,2841,45,76,3,73]],"rev":{"mes":"NOVEMBRO","ate":"26/11/2026","m":["NOVEMBRO","OUTUBRO","SETEMBRO"],"ini":"01/09/2026","g":{"CLINIPAM":[29,0,14,9,0,6,0],"F FURTADO":[365,14,120,47,0,44,140],"FJS":[40,0,17,13,0,0,10],"HAPBIT":[33,0,30,0,0,0,3],"MERIDIAL":[6,0,6,0,0,0,0],"QUINDTECH":[50,0,20,14,7,0,9],"RAISE":[108,0,61,10,1,11,25],"VHRC AMELS":[98,0,72,16,0,2,8],"W3G OPTAS":[83,0,46,23,0,2,12]}}}}};
+// === FIM HAPON_CONV_DADOS ===
 
 (function montaTrimestre(){
   const gestores = ["TOTAL","FABIO","JOSY","ADMINISTRATIVO","ACTIONLINE"];
