@@ -658,7 +658,7 @@
           <button role="menuitem" data-out="PROD" onclick="escolheOut('PROD')"><b>📆 Produtividade</b></button>
           <button role="menuitem" data-out="LEADS" onclick="escolheOut('LEADS')"><b>📈 Leads</b></button>
           <button role="menuitem" data-out="COHORT" onclick="escolheOut('COHORT')"><b>🧭 Cohort</b></button>
-          <button role="menuitem" data-out="LFORA" onclick="escolheOut('LFORA')"><b>🚪 Leads que compraram fora</b></button>
+          <button role="menuitem" data-out="LFORA" onclick="escolheOut('LFORA')"><b>🚪 Corretoras</b></button>
           <button role="menuitem" data-out="MVM" onclick="escolheOut('MVM')"><b>🧮 MVM</b></button>
           <button role="menuitem" data-out="ASET" onclick="escolheOut('ASET')"><b>📉 Análise Set</b></button>
           <button role="menuitem" data-out="AOUT" onclick="escolheOut('AOUT')"><b>📈 Análise Out</b></button>
@@ -7810,7 +7810,7 @@ function coorteGaranteAba() {
 // ── Menu "Outras visualizações" (30/09/2026): as abas fora das 4 principais num dropdown só ──
 // CASCA como Orçamentos/Comparar: cada item só chama setView(<view de sempre>); o gatilho (data-view
 // OUTRAS) acende e ganha o sufixo " · <nome>" quando uma delas está na tela.
-const OUT_VIEWS = { PROD: "Produtividade", LEADS: "Leads", COHORT: "Cohort", LFORA: "Leads que compraram fora", MVM: "MVM",
+const OUT_VIEWS = { PROD: "Produtividade", LEADS: "Leads", COHORT: "Cohort", LFORA: "Corretoras", MVM: "MVM",
                     ASET: "Análise Set", AOUT: "Análise Out", ANOV: "Análise Nov", VD2026: "Vendas 2026", PRD2026: "Produtos 2026", CANCRET: "Canc. & Retenção", QUARTIS: "Quartis" };
 function fecharOutMenu() {
   const m = document.getElementById("outMenu"); if (m) m.classList.remove("aberto");
